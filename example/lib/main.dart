@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:music_player/music_player.dart';
 
 void main() => runApp(MyApp());
 
@@ -25,7 +24,7 @@ class _MyAppState extends State<MyApp> {
     String platformVersion;
     // Platform messages may fail, so we use a try/catch PlatformException.
     try {
-      platformVersion = await FlutterMusicPlayer.platformVersion;
+      platformVersion = "24";
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }

@@ -1,12 +1,19 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
-class FlutterMusicPlayer {
-  static const MethodChannel _channel = const MethodChannel('flutter_music_player');
+// PlayerPlugin channel
+const MethodChannel _channel = const MethodChannel('tech.soit.quiet/player');
 
-  static Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
+class MusicPlayer {
+  void _listenNative() {
+    _channel.setMethodCallHandler((call) async {
+      debugPrint("call from native: ${call.method} , arg = ${call.arguments}");
+    });
   }
+
+  void setPlayList() {}
 }
+

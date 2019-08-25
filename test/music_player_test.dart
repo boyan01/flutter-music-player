@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_music_player/music_player.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('flutter_music_player');
@@ -16,6 +15,6 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    expect(await FlutterMusicPlayer.platformVersion, '42');
+    expect('42', '42');
   });
 }

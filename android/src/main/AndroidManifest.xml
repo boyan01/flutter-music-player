@@ -1,3 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="tech.soit.quiet">
+    package="tech.soit.quiet"
+    >
+
+    <application>
+        <service
+            android:exported="true"
+            android:name=".service.MusicPlayerService"
+            />
+    </application>
+
 </manifest>
