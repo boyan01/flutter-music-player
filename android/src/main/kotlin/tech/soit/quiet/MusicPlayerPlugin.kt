@@ -12,8 +12,12 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.setPlaylist
 import tech.soit.quiet.utils.toMap
 import tech.soit.quiet.utils.toMediaMetadataCompat
 
@@ -77,6 +81,10 @@ class MusicPlayerPlugin(
     private val controls: MediaControllerCompat.TransportControls? get() = mediaController?.transportControls
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        GlobalScope.launch(Dispatchers.Main) { onMethodCallAsync(call, result) }
+    }
+
+    private suspend fun onMethodCallAsync(call: MethodCall, result: MethodChannel.Result) {
         val controls = this.controls
         val mediaController = this.mediaController
         if (controls == null || mediaController == null) {
@@ -112,9 +120,7 @@ class MusicPlayerPlugin(
             "setPlayList" -> {
                 //set current playing play list
                 val items = call.arguments<List<Map<*, *>>>().map { it.toMediaMetadataCompat() }
-                val bundle = Bundle(1)
-                bundle.putParcelableArrayList("playlist", ArrayList(items))
-                mediaBrowser.sendCustomAction("setPlaylist", bundle, null)
+                mediaBrowser.setPlaylist(items)
             }
             else -> {
                 result.notImplemented()

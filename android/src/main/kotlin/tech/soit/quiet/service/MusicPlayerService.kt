@@ -84,6 +84,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
                     log { "state : $playWhenReady , $playbackState" }
                 }
+
+                override fun onRepeatModeChanged(repeatMode: Int) {
+
+                }
+
             })
         }
     }
@@ -107,6 +112,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         )
         MediaSessionConnector(mediaSession).also { it ->
             it.setPlayer(exoPlayer, object : MediaSessionConnector.PlaybackPreparer {
+
                 override fun onPrepare() = Unit
 
                 override fun onPrepareFromSearch(query: String?, extras: Bundle?) {
@@ -165,9 +171,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
     override fun onCustomAction(action: String, extras: Bundle?, result: Result<Bundle>) {
-        when (action) {
-            "setPlaylist" -> setPlaylist(extras, result)
-        }
+        handleOnCustomAction(action, extras, result)
     }
 
 
@@ -186,6 +190,15 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         }
         notifyChildrenChanged(ROOT)
         result.sendResult(null)
+    }
+
+    fun setPlaylist(list: List<MediaDescriptionCompat>?) {
+        playList.clear()
+        log { list }
+        if (list != null) {
+            playList.addAll(list.map { it.toMediaItem() })
+        }
+        notifyChildrenChanged(ROOT)
     }
 
 
@@ -214,6 +227,17 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
     private inner class MediaControllerCallback : MediaControllerCompat.Callback() {
+
+        override fun onShuffleModeChanged(shuffleMode: Int) {
+            log { "onShuffleModeChanged : $shuffleMode" }
+            super.onShuffleModeChanged(shuffleMode)
+        }
+
+
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            log { "onRepeatModeChanged  : $repeatMode" }
+            mediaSession.setRepeatMode(repeatMode)
+        }
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             log { "onMetadataChanged : $metadata" }

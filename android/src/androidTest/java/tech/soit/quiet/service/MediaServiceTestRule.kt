@@ -16,12 +16,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- *
- *
- * test rule for [MediaBrowserServiceCompat]
+ * Test rule for [MediaBrowserServiceCompat]
  *
  * @param timeout timeout time in milliseconds.
- *
  */
 class MediaServiceTestRule @JvmOverloads constructor(
     private val timeout: Long = DEFAULT_TIMEOUT
@@ -35,6 +32,11 @@ class MediaServiceTestRule @JvmOverloads constructor(
 
     private var serviceConnected = false
 
+    /**
+     * Connect to a [MediaBrowserServiceCompat], return [MediaBrowserCompat] if succeed.
+     *
+     * @param serviceComponent component name of [MediaBrowserServiceCompat]
+     */
     fun connect(serviceComponent: ComponentName): MediaBrowserCompat =
         runBlocking(context = Dispatchers.Main) {
             val context = ApplicationProvider.getApplicationContext<Context>()
