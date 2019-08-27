@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.media.MediaBrowserServiceCompat
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
+import com.google.android.exoplayer2.ext.mediasession.DefaultPlaybackController
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.source.ExtractorMediaSource
@@ -110,7 +111,12 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         val dataSourceFactory = DefaultDataSourceFactory(
             this, Util.getUserAgent(this, ""), null
         )
-        MediaSessionConnector(mediaSession).also { it ->
+        MediaSessionConnector(mediaSession, object : DefaultPlaybackController() {
+            override fun getSupportedPlaybackActions(player: Player?): Long {
+                return ACTIONS
+            }
+
+        }).also { it ->
             it.setPlayer(exoPlayer, object : MediaSessionConnector.PlaybackPreparer {
 
                 override fun onPrepare() = Unit
@@ -166,6 +172,17 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                     ).tag as MediaDescriptionCompat
                 }
 
+
+                override fun onSkipToNext(player: Player) {
+                    log { "on skip to next : ${player.currentWindowIndex}" }
+                    super.onSkipToNext(player)
+                    log { "on skip to next : ${player.currentWindowIndex}" }
+                }
+
+
+                override fun getSupportedQueueNavigatorActions(player: Player?): Long {
+                    return super.getSupportedQueueNavigatorActions(player)
+                }
             })
         }
 
@@ -224,7 +241,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            log { "onMetadataChanged : $metadata" }
+            log { "onMetadataChanged : ${metadata?.description}" }
 //            mediaController.playbackState?.let { updateNotification(it) }
         }
 

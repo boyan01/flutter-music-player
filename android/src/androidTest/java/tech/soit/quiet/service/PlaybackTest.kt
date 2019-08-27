@@ -1,16 +1,18 @@
 package tech.soit.quiet.service
 
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import tech.soit.quiet.ext.waitAsync
+import tech.soit.quiet.ext.waitUntil
 import tech.soit.quiet.model.bamboo
+import tech.soit.quiet.model.hide
+import tech.soit.quiet.model.rise
 import tech.soit.quiet.utils.setPlaylist
 
 @RunWith(AndroidJUnit4::class)
@@ -22,43 +24,109 @@ class PlaybackTest {
 
     private val controller get() = playerService.mediaController
 
+
+    private suspend fun verifyPlayingStateAsync(
+        mediaMetadata: MediaMetadataCompat,
+        state: Int
+    ) {
+        waitUntil(
+            msg = """
+            current playing should be ${mediaMetadata.description}  state should be $state
+        """.trimIndent()
+        ) {
+            controller.metadata?.description?.mediaId == mediaMetadata.description.mediaId
+                    && state == controller.playbackState.state
+        }
+        Assert.assertEquals(
+            "current playing media",
+            controller.metadata?.description?.mediaId,
+            mediaMetadata.description.mediaId
+        )
+        Assert.assertEquals(
+            "current player state",
+            state,
+            controller.playbackState.state
+        )
+    }
+
+
+    private val playList = listOf(bamboo, hide, rise)
+
+    @Before
+    fun setup() = runBlocking {
+        playerService.mediaBrowser.setPlaylist(playList)
+    }
+
+
     @Test
-    fun testPlaySong() = runBlocking(Dispatchers.Main) {
-        playerService.mediaBrowser.setPlaylist(listOf(bamboo))
+    fun testPlaySingle() = runBlocking {
+
+        controller.transportControls.playFromMediaId(bamboo.description.mediaId, null)
+        verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PLAYING)
+
+        controller.transportControls.pause()
+        verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PAUSED)
+    }
 
 
-        waitAsync(2) {
-            controller.registerCallback(object : MediaControllerCompat.Callback() {
-                override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                    val playingItem = metadata?.description
-                    if (playingItem?.mediaId == bamboo.description.mediaId) {
-                        it.unlock()
-                    }
-                }
+    @Test
+    fun testSkipToNext() = runBlocking {
 
-                override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-                    if (state.state == PlaybackStateCompat.STATE_PLAYING) {
-                        it.unlock()
-                    }
-                }
+        val transportControls = controller.transportControls
+        transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+        transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
 
-            })
-            controller.transportControls.playFromMediaId(bamboo.description.mediaId, null)
+        transportControls.playFromMediaId(playList[0].description.mediaId, null)
+        verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PLAYING)
+
+        transportControls.skipToNext()
+        verifyPlayingStateAsync(playList[1], PlaybackStateCompat.STATE_PLAYING)
+    }
+
+
+    @Test
+    fun testSkipToNextAtLastPosition() = runBlocking {
+        val transportControls = controller.transportControls
+        transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+        transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
+        waitUntil("shuffle mode has been set") {
+            controller.repeatMode == PlaybackStateCompat.REPEAT_MODE_ALL
+                    && controller.shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE
         }
 
-        waitAsync {
-            controller.registerCallback(object : MediaControllerCompat.Callback() {
-                override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-                    if (state.state == PlaybackStateCompat.STATE_PAUSED) {
-                        it.unlock()
-                        controller.unregisterCallback(this)
-                    }
-                }
-            })
-            controller.transportControls.pause()
-        }
+        transportControls.playFromMediaId(playList.last().description.mediaId, null)
+        verifyPlayingStateAsync(playList.last(), PlaybackStateCompat.STATE_PLAYING)
+
+        transportControls.skipToNext()
+        verifyPlayingStateAsync(playList.first(), PlaybackStateCompat.STATE_PLAYING)
 
     }
 
+
+    @Test
+    fun testSkipToPrevious() = runBlocking {
+        val transportControls = controller.transportControls
+        transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+        transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
+
+        transportControls.playFromMediaId(playList[1].description.mediaId, null)
+        verifyPlayingStateAsync(playList[1], PlaybackStateCompat.STATE_PLAYING)
+
+        transportControls.skipToPrevious()
+        verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PLAYING)
+
+    }
+
+    fun testSkipToPreviousAtFirstPosition() = runBlocking {
+        val transportControls = controller.transportControls
+        transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+        transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
+
+        transportControls.playFromMediaId(playList.first().description.mediaId, null)
+        verifyPlayingStateAsync(playList.first(), PlaybackStateCompat.STATE_PLAYING)
+
+        transportControls.skipToNext()
+        verifyPlayingStateAsync(playList.last(), PlaybackStateCompat.STATE_PLAYING)
+    }
 
 }
