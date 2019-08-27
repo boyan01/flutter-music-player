@@ -94,7 +94,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
     //the current playing media list
-    private val playList = ArrayList<MediaItem>()
+    private val playList = ArrayList<MediaMetadataCompat>()
 
 
     override fun onCreate() {
@@ -136,11 +136,12 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
                 override fun onPrepareFromMediaId(mediaId: String?, extras: Bundle?) {
                     if (playList.isEmpty()) return
-                    val windowIndex = playList.indexOfFirst { it.mediaId == mediaId }
+                    val windowIndex = playList.indexOfFirst { it.description.mediaId == mediaId }
                     val source = playList.toMediaSource(dataSourceFactory)
                     exoPlayer.prepare(source)
                     exoPlayer.seekTo(windowIndex, 0)
                     exoPlayer.playWhenReady = true
+                    log { "prepare for : ${playList[windowIndex].description.mediaUri}" }
                 }
 
                 override fun onPrepareFromUri(uri: Uri?, extras: Bundle?) {
@@ -175,28 +176,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
 
-    private fun setPlaylist(extras: Bundle?, result: Result<Bundle>) {
-        if (extras == null) {
-            result.sendError(null)
-            return
-        }
-
+    fun setPlaylist(list: List<MediaMetadataCompat>?) {
         playList.clear()
-
-        val medias = extras.getParcelableArrayList<MediaDescriptionCompat>("playlist")
-        log { medias }
-        if (medias != null) {
-            playList.addAll(medias.map { it.toMediaItem() })
-        }
-        notifyChildrenChanged(ROOT)
-        result.sendResult(null)
-    }
-
-    fun setPlaylist(list: List<MediaDescriptionCompat>?) {
-        playList.clear()
-        log { list }
+        log { list?.map { it.description } }
         if (list != null) {
-            playList.addAll(list.map { it.toMediaItem() })
+            playList.addAll(list)
         }
         notifyChildrenChanged(ROOT)
     }
@@ -211,7 +195,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         log { "send result : $playList" }
 
-        result.sendResult(playList)
+        result.sendResult(playList.map { it.description.toMediaItem() }.toMutableList())
     }
 
     override fun onGetRoot(
@@ -241,11 +225,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             log { "onMetadataChanged : $metadata" }
-            mediaController.playbackState?.let { updateNotification(it) }
+//            mediaController.playbackState?.let { updateNotification(it) }
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            state?.let { updateNotification(it) }
+//            state?.let { updateNotification(it) }
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {

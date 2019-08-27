@@ -2,7 +2,7 @@ package tech.soit.quiet.utils
 
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.MediaDescriptionCompat
+import android.support.v4.media.MediaMetadataCompat
 import androidx.media.MediaBrowserServiceCompat
 import tech.soit.quiet.service.MusicPlayerService
 import kotlin.coroutines.resume
@@ -13,7 +13,7 @@ private const val functionSetPlaylist = "setPlaylist"
 /**
  * change current playing list
  */
-suspend fun MediaBrowserCompat.setPlaylist(items: List<MediaDescriptionCompat>) {
+suspend fun MediaBrowserCompat.setPlaylist(items: List<MediaMetadataCompat>) {
     val bundle = Bundle(1)
     bundle.putParcelableArrayList("playlist", ArrayList(items))
     sendCustomActionAsync(functionSetPlaylist, bundle)
@@ -29,7 +29,7 @@ private fun MusicPlayerService.handleSetPlaylist(
         result.sendError(null)
         return
     }
-    val medias = extras.getParcelableArrayList<MediaDescriptionCompat>("playlist")
+    val medias = extras.getParcelableArrayList<MediaMetadataCompat>("playlist")
     setPlaylist(medias)
     result.sendResult(null)
 }

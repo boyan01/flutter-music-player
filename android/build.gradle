@@ -30,6 +30,8 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        //add tracks file into assets for AndroidTest
+        androidTest.assets.srcDirs += "${new File(projectDir.parentFile, "example/tracks").path}"
     }
     defaultConfig {
         minSdkVersion 16

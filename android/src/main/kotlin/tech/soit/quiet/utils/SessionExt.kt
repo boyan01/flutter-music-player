@@ -13,27 +13,27 @@ import android.support.v4.media.session.PlaybackStateCompat
  */
 fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
     return mutableMapOf<String, Any>(
-            "state" to state,
-            "position" to position,
-            "playbackSpeed" to playbackSpeed,
-            "lastPositionUpdateTime" to lastPositionUpdateTime,
-            "bufferedPosition" to bufferedPosition,
-            "actions" to actions,
-            "errorMessage" to errorMessage,
-            "activeQueueItemId" to activeQueueItemId,
-            "errorCode" to errorCode
+        "state" to state,
+        "position" to position,
+        "playbackSpeed" to playbackSpeed,
+        "lastPositionUpdateTime" to lastPositionUpdateTime,
+        "bufferedPosition" to bufferedPosition,
+        "actions" to actions,
+        "errorMessage" to errorMessage,
+        "activeQueueItemId" to activeQueueItemId,
+        "errorCode" to errorCode
     )
 }
 
 
-fun Map<*, *>.toMediaMetadataCompat(): MediaDescriptionCompat {
-    return MediaDescriptionCompat.Builder()
-            .setMediaId(get("id").toString())
-            .setTitle(get("title") as CharSequence?)
-            .setSubtitle(get("subtitle") as CharSequence?)
-            .setMediaUri((get("url") as String?)?.let { Uri.parse(it) })
-            .setExtras(toBundle())
-            .build()
+fun Map<*, *>.toMediaMetadataCompat(): MediaMetadataCompat {
+    //TODO handle more
+    return MediaMetadataCompat.Builder()
+        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, get("id").toString())
+        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, get("title").toString())
+        .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, get("subtitle").toString())
+        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, get("url").toString())
+        .build()
 }
 
 fun MediaMetadataCompat?.toMap(): Map<String, *>? {

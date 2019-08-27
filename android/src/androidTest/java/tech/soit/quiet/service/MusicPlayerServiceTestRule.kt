@@ -3,6 +3,7 @@ package tech.soit.quiet.service
 import android.content.ComponentName
 import android.content.Context
 import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.session.MediaControllerCompat
 import androidx.media.MediaBrowserServiceCompat
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.Dispatchers
@@ -16,11 +17,11 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * Test rule for [MediaBrowserServiceCompat]
+ * Test rule for [MusicPlayerService]
  *
  * @param timeout timeout time in milliseconds.
  */
-class MediaServiceTestRule @JvmOverloads constructor(
+class MusicPlayerServiceTestRule @JvmOverloads constructor(
     private val timeout: Long = DEFAULT_TIMEOUT
 ) : TestRule {
 
@@ -28,7 +29,13 @@ class MediaServiceTestRule @JvmOverloads constructor(
         private const val DEFAULT_TIMEOUT = 5000L // 5 seconds
     }
 
-    private lateinit var mediaBrowser: MediaBrowserCompat
+    private lateinit var _mediaBrowser: MediaBrowserCompat
+
+    private lateinit var _mediaController: MediaControllerCompat
+
+    val mediaBrowser get() = _mediaBrowser
+
+    val mediaController get() = _mediaController
 
     private var serviceConnected = false
 
@@ -37,19 +44,19 @@ class MediaServiceTestRule @JvmOverloads constructor(
      *
      * @param serviceComponent component name of [MediaBrowserServiceCompat]
      */
-    fun connect(serviceComponent: ComponentName): MediaBrowserCompat =
+    private fun connect(serviceComponent: ComponentName): MediaBrowserCompat =
         runBlocking(context = Dispatchers.Main) {
             val context = ApplicationProvider.getApplicationContext<Context>()
 
             suspend fun connect() =
                 suspendCancellableCoroutine<MediaBrowserCompat> { continuation ->
-                    mediaBrowser = MediaBrowserCompat(
+                    _mediaBrowser = MediaBrowserCompat(
                         context,
                         serviceComponent,
                         object : MediaBrowserCompat.ConnectionCallback() {
                             override fun onConnected() {
                                 serviceConnected = true
-                                continuation.resume(mediaBrowser)
+                                continuation.resume(_mediaBrowser)
                             }
 
                             override fun onConnectionFailed() {
@@ -59,7 +66,7 @@ class MediaServiceTestRule @JvmOverloads constructor(
                         },
                         null
                     )
-                    mediaBrowser.connect()
+                    _mediaBrowser.connect()
                 }
 
 
@@ -69,9 +76,20 @@ class MediaServiceTestRule @JvmOverloads constructor(
         }
 
 
+    private fun connectService() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        _mediaBrowser = connect(
+            ComponentName(
+                context,
+                MusicPlayerService::class.java
+            )
+        )
+        _mediaController = MediaControllerCompat(context, _mediaBrowser.sessionToken)
+    }
+
     private fun shutdownService() {
         if (serviceConnected) {
-            mediaBrowser.disconnect()
+            _mediaBrowser.disconnect()
         }
     }
 
@@ -86,6 +104,7 @@ class MediaServiceTestRule @JvmOverloads constructor(
 
         override fun evaluate() {
             try {
+                connectService()
                 base.evaluate()
             } finally {
                 shutdownService()

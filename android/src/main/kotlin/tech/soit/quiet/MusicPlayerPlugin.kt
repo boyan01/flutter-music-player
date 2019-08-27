@@ -2,7 +2,6 @@ package tech.soit.quiet
 
 import android.content.ComponentName
 import android.content.Context
-import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -110,11 +109,11 @@ class MusicPlayerPlugin(
             "addQueueItem" -> {
                 val index = call.argument<Int>("index") ?: 0
                 val item = call.argument<Map<*, *>>("item")?.toMediaMetadataCompat() ?: return
-                mediaController.addQueueItem(item, index)
+                mediaController.addQueueItem(item.description, index)
             }
             "removeQueueItem" -> {
                 val item = call.arguments<Map<*, *>>().toMediaMetadataCompat()
-                mediaController.removeQueueItem(item)
+                mediaController.removeQueueItem(item.description)
             }
             /*custom*/
             "setPlayList" -> {
