@@ -4,6 +4,10 @@ import 'dart:typed_data';
 /// created using the Builder or retrieved from existing metadata using
 /// [MediaMetadata.getDescription].
 class MediaDescription {
+  static const STATUS_NOT_DOWNLOADED = 0;
+  static const STATUS_DOWNLOADING = 1;
+  static const STATUS_DOWNLOADED = 2;
+
   final String mediaId;
   final String title;
   final String subTitle;
