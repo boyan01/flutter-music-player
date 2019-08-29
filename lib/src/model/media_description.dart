@@ -10,10 +10,10 @@ class MediaDescription {
 
   final String mediaId;
   final String title;
-  final String subTitle;
+  final String subtitle;
   final String description;
   final Uint8List iconBitmap;
-  final Uri iconUri;
+  final String iconUri;
   final Map extras;
 
 //<editor-fold desc="Data Methods" defaultstate="collapsed">
@@ -21,7 +21,7 @@ class MediaDescription {
   const MediaDescription({
     this.mediaId,
     this.title,
-    this.subTitle,
+    this.subtitle,
     this.description,
     this.iconBitmap,
     this.iconUri,
@@ -35,7 +35,7 @@ class MediaDescription {
           runtimeType == other.runtimeType &&
           mediaId == other.mediaId &&
           title == other.title &&
-          subTitle == other.subTitle &&
+          subtitle == other.subtitle &&
           description == other.description &&
           iconBitmap == other.iconBitmap &&
           iconUri == other.iconUri &&
@@ -45,7 +45,7 @@ class MediaDescription {
   int get hashCode =>
       mediaId.hashCode ^
       title.hashCode ^
-      subTitle.hashCode ^
+      subtitle.hashCode ^
       description.hashCode ^
       iconBitmap.hashCode ^
       iconUri.hashCode ^
@@ -56,7 +56,7 @@ class MediaDescription {
     return 'MediaDescription{' +
         ' mediaId: $mediaId,' +
         ' title: $title,' +
-        ' subTitle: $subTitle,' +
+        ' subtitle: $subtitle,' +
         ' description: $description,' +
         ' iconBitmap: $iconBitmap,' +
         ' iconUri: $iconUri,' +
@@ -67,16 +67,16 @@ class MediaDescription {
   MediaDescription copy({
     String mediaId,
     String title,
-    String subTitle,
+    String subtitle,
     String description,
     Uint8List iconBitmap,
-    Uri iconUri,
+    String iconUri,
     Map extras,
   }) {
     return MediaDescription(
       mediaId: mediaId ?? this.mediaId,
       title: title ?? this.title,
-      subTitle: subTitle ?? this.subTitle,
+      subtitle: subtitle ?? this.subtitle,
       description: description ?? this.description,
       iconBitmap: iconBitmap ?? this.iconBitmap,
       iconUri: iconUri ?? this.iconUri,
@@ -92,7 +92,7 @@ class MediaDescription {
     return {
       keyMapper('mediaId'): this.mediaId,
       keyMapper('title'): this.title,
-      keyMapper('subTitle'): this.subTitle,
+      keyMapper('subtitle'): this.subtitle,
       keyMapper('description'): this.description,
       keyMapper('iconBitmap'): this.iconBitmap,
       keyMapper('iconUri'): this.iconUri,
@@ -109,10 +109,10 @@ class MediaDescription {
     return MediaDescription(
       mediaId: map[keyMapper('mediaId')] as String,
       title: map[keyMapper('title')] as String,
-      subTitle: map[keyMapper('subTitle')] as String,
+      subtitle: map[keyMapper('subtitle')] as String,
       description: map[keyMapper('description')] as String,
       iconBitmap: map[keyMapper('iconBitmap')] as Uint8List,
-      iconUri: map[keyMapper('iconUri')] as Uri,
+      iconUri: map[keyMapper('iconUri')] as String,
       extras: map[keyMapper('extras')] as Map,
     );
   }

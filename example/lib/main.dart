@@ -1,55 +1,53 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:overlay_support/overlay_support.dart';
 
-void main() => runApp(MyApp());
+import 'player/player.dart';
+import 'widgets/music_controller.dart';
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
+void main() => runApp(ExampleApp());
 
-class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = "24";
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
-
+class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+    return PlayerWidget(
+      child: OverlaySupport(
+        child: MaterialApp(
+          home: ExamplePage(),
         ),
       ),
     );
+  }
+}
+
+class ExamplePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: <Widget>[
+          Expanded(child: _ExampleMusicList()),
+          MusicControlBar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExampleMusicList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        itemCount: medias.length,
+        itemBuilder: (context, index) {
+          final item = medias[index].getDescription();
+          return ListTile(
+            title: Text(item.title),
+            subtitle: Text(item.subtitle ?? ""),
+            trailing: Icon(Icons.play_circle_outline),
+            onTap: () {
+              PlayerWidget.transportControls(context).playFromMediaId(item.mediaId, medias, "Example");
+            },
+          );
+        });
   }
 }

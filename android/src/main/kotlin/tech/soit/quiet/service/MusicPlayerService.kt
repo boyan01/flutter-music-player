@@ -19,9 +19,7 @@ import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.ext.mediasession.DefaultPlaybackController
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
-import com.google.android.exoplayer2.source.ExtractorMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.upstream.FileDataSourceFactory
 import com.google.android.exoplayer2.util.Util
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.utils.*
@@ -81,28 +79,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     private val exoPlayer: ExoPlayer by lazy {
         ExoPlayerFactory.newSimpleInstance(this).apply {
             setAudioAttributes(audioAttribute, true)
-            addListener(object : Player.EventListener {
-                override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-                    log { "state : $playWhenReady , $playbackState" }
-                }
-
-                override fun onRepeatModeChanged(repeatMode: Int) {
-
-                }
-
-            })
         }
     }
 
-    //the current playing media list
-    private val playList = ArrayList<MediaMetadataCompat>()
-
-
     override fun onCreate() {
         super.onCreate()
-
-        log { "on create" }
-
         sessionToken = mediaSession.sessionToken
         mediaController = MediaControllerCompat(this, mediaSession).apply {
             registerCallback(MediaControllerCallback())
@@ -118,10 +99,8 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         }).also { it ->
             it.setPlayer(exoPlayer, object : MediaSessionConnector.PlaybackPreparer {
-
-                override fun onPrepare() = Unit
-
                 override fun onPrepareFromSearch(query: String?, extras: Bundle?) {
+
                 }
 
                 override fun onCommand(
@@ -132,30 +111,52 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 ) {
                 }
 
-                override fun getSupportedPrepareActions(): Long {
-                    return MediaSessionConnector.PlaybackPreparer.ACTIONS
-                }
-
                 override fun getCommands(): Array<String>? {
                     return null
                 }
 
-                override fun onPrepareFromMediaId(mediaId: String?, extras: Bundle?) {
-                    if (playList.isEmpty()) return
-                    val windowIndex = playList.indexOfFirst { it.description.mediaId == mediaId }
-                    val source = playList.toMediaSource(dataSourceFactory)
+                override fun onPrepareFromUri(uri: Uri?, extras: Bundle?) {
+                }
+
+                override fun onPrepare() {
+                }
+
+
+                override fun getSupportedPrepareActions(): Long {
+                    return MediaSessionConnector.PlaybackPreparer.ACTIONS
+                }
+
+                override fun onPrepareFromMediaId(mediaId: String, extras: Bundle?) {
+
+                    val playlist = extras?.getParcelableArrayList<MediaMetadataCompat>("queue")
+                    val title = extras?.getString("queueTitle")
+
+                    val queue = mutableListOf<MediaDescriptionCompat>()
+                    if (playlist.isNullOrEmpty()) {
+                        // We got a empty playlist from extra, try to load previous queue.
+                        queue.addAll(mediaController.queue.orEmpty().map { it.description })
+                    } else {
+                        queue.addAll(playlist.map { it.description })
+                    }
+
+                    if (queue.isEmpty()) {
+                        log(LoggerLevel.ERROR) { "Skip play action: try to play $mediaId, but we can not find queue to obtain MediaDescription." }
+                        return
+                    }
+
+                    val windowIndex = queue.indexOfFirst { it.mediaId == mediaId }
+                    if (windowIndex == -1) {
+                        log(LoggerLevel.ERROR) { "Skip play action : try to play $mediaId, but this media seems not in queue." }
+                        return
+                    }
+
+                    val source = queue.toMediaSource(dataSourceFactory)
                     exoPlayer.prepare(source)
                     exoPlayer.seekTo(windowIndex, 0)
-                    exoPlayer.playWhenReady = true
-                    log { "prepare for : ${playList[windowIndex].description.mediaUri}" }
-                }
 
-                override fun onPrepareFromUri(uri: Uri?, extras: Bundle?) {
-                    val source = ExtractorMediaSource.Factory(FileDataSourceFactory())
-                        .createMediaSource(uri)
-                    exoPlayer.prepare(source)
+                    mediaSession.setQueueTitle(title)
+                    log { "prepare for : ${queue[windowIndex].description}" }
                 }
-
 
             })
             it.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
@@ -172,47 +173,21 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                     ).tag as MediaDescriptionCompat
                 }
 
-
-                override fun onSkipToNext(player: Player) {
-                    log { "on skip to next : ${player.currentWindowIndex}" }
-                    super.onSkipToNext(player)
-                    log { "on skip to next : ${player.currentWindowIndex}" }
-                }
-
-
-                override fun getSupportedQueueNavigatorActions(player: Player?): Long {
-                    return super.getSupportedQueueNavigatorActions(player)
-                }
             })
         }
 
     }
-
-    override fun onCustomAction(action: String, extras: Bundle?, result: Result<Bundle>) {
-        handleOnCustomAction(action, extras, result)
-    }
-
-
-    fun setPlaylist(list: List<MediaMetadataCompat>?) {
-        playList.clear()
-        log { list?.map { it.description } }
-        if (list != null) {
-            playList.addAll(list)
-        }
-        notifyChildrenChanged(ROOT)
-    }
-
 
     override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaItem>>) {
 
         if (parentId != ROOT) return
 
         //We only have a playlist which user has played from UI
-        //load playing playlist we save
-
-        log { "send result : $playList" }
-
-        result.sendResult(playList.map { it.description.toMediaItem() }.toMutableList())
+        val mediaItems =
+            mediaController.queue.orEmpty()
+                .map { MediaItem(it.description, MediaItem.FLAG_PLAYABLE) }
+        log { "send result : $mediaItems" }
+        result.sendResult(mediaItems.toMutableList())
     }
 
     override fun onGetRoot(
@@ -247,6 +222,10 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
 //            state?.let { updateNotification(it) }
+        }
+
+        override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
+            notifyChildrenChanged(ROOT)
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {
@@ -319,7 +298,6 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
     override fun onDestroy() {
-        log { "onDestroy" }
         mediaSession.apply {
             isActive = false
             release()

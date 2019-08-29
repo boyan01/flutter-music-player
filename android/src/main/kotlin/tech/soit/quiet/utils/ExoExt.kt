@@ -8,10 +8,10 @@ import com.google.android.exoplayer2.upstream.DataSource
 
 /**
  * Extension method for building a [ConcatenatingMediaSource] given a [List]
- * of [MediaMetadataCompat] objects.
+ * of [MediaDescriptionCompat] objects.
  */
-fun List<MediaMetadataCompat>.toMediaSource(
-        dataSourceFactory: DataSource.Factory
+fun List<MediaDescriptionCompat>.toMediaSource(
+    dataSourceFactory: DataSource.Factory
 ): ConcatenatingMediaSource {
 
     val concatenatingMediaSource = ConcatenatingMediaSource()
@@ -26,7 +26,7 @@ fun List<MediaMetadataCompat>.toMediaSource(
  *
  * For convenience, place the [MediaDescriptionCompat] into the tag so it can be retrieved later.
  */
-fun MediaMetadataCompat.toMediaSource(dataSourceFactory: DataSource.Factory): ExtractorMediaSource =
-        ExtractorMediaSource.Factory(dataSourceFactory)
-                .setTag(description)
-                .createMediaSource(description.mediaUri)
+fun MediaDescriptionCompat.toMediaSource(dataSourceFactory: DataSource.Factory): ExtractorMediaSource =
+    ExtractorMediaSource.Factory(dataSourceFactory)
+        .setTag(this)
+        .createMediaSource(mediaUri)

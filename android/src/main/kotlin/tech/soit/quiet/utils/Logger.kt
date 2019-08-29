@@ -19,7 +19,7 @@ fun logError(error: Throwable?) {
     }
 }
 
-fun log(level: LoggerLevel = LoggerLevel.INFO, lazyMessage: () -> Any?) {
+fun log(level: LoggerLevel = LoggerLevel.DEBUG, lazyMessage: () -> Any?) {
     if (DEBUG) {
         //TODO logger adjust
         val traceElement = Exception().stackTrace[2]

@@ -29,9 +29,9 @@ class MediaMetadata {
   final String date;
   final int year;
   final String genre;
-  final String trackNumber;
-  final String numTracks;
-  final String discNumber;
+  final int trackNumber;
+  final int numTracks;
+  final int discNumber;
   final String albumArtist;
   final Uint8List art;
   final String artUri;
@@ -47,7 +47,7 @@ class MediaMetadata {
   final String mediaId;
   final int btFolderType;
   final String mediaUri;
-  final String advertisement;
+  final int advertisement;
 
   /// The download status of the media which will be used for later offline playback. It should be
   /// one of the following:
@@ -108,7 +108,14 @@ class MediaMetadata {
     }
 
     // TODO
-    return null;
+    _description = MediaDescription(
+      mediaId: mediaId,
+      title: title,
+      subtitle: displaySubtitle,
+      description: "TODO",
+      iconUri: "",
+    );
+    return _description;
   }
 
   Map<String, dynamic> toMap() {
@@ -147,6 +154,7 @@ class MediaMetadata {
   }
 
   factory MediaMetadata.fromMap(Map<String, dynamic> map) {
+    if (map == null) return null;
     return new MediaMetadata(
       title: map['title'] as String,
       artist: map['artist'] as String,
@@ -158,9 +166,9 @@ class MediaMetadata {
       date: map['date'] as String,
       year: map['year'] as int,
       genre: map['genre'] as String,
-      trackNumber: map['trackNumber'] as String,
-      numTracks: map['numTracks'] as String,
-      discNumber: map['discNumber'] as String,
+      trackNumber: map['trackNumber'] as int,
+      numTracks: map['numTracks'] as int,
+      discNumber: map['discNumber'] as int,
       albumArtist: map['albumArtist'] as String,
       art: map['art'] as Uint8List,
       artUri: map['artUri'] as String,
@@ -176,7 +184,7 @@ class MediaMetadata {
       mediaId: map['mediaId'] as String,
       btFolderType: map['btFolderType'] as int,
       mediaUri: map['mediaUri'] as String,
-      advertisement: map['advertisement'] as String,
+      advertisement: map['advertisement'] as int,
       downloadStatus: map['downloadStatus'] as int,
     );
   }

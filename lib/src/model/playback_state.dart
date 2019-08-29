@@ -118,6 +118,9 @@ class PlaybackState {
     return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, speed: $speed, actions: $actions, errorCode: $errorCode, errorMessage: $errorMessage, updateTime: $updateTime, activeItemId: $activeItemId, extras: $extras}';
   }
 
+  const PlaybackState.none()
+      : this(state: STATE_NONE, position: PLAYBACK_POSITION_UNKNOWN, bufferedPosition: 0, speed: 1, actions: 0);
+
   const PlaybackState({
     this.state,
     this.position,

@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:music_player/src/model/media_metadata.dart';
 import 'package:music_player/src/model/playback_state.dart';
 import 'package:music_player/src/model/rating.dart';
+import 'package:music_player/src/player/player_channel.dart';
 
 ///
 /// Interface for controlling media playback.
@@ -16,15 +18,22 @@ class TransportControls {
   }
 
   void prepareFromMediaId(String mediaId, Map extras) {
-    _channel.invokeMethod("prepareFromMediaId", extras);
+    _channel.invokeMethod("prepareFromMediaId", {
+      "mediaId": mediaId,
+      "extras": extras,
+    });
   }
 
   void play() {
     _channel.invokeMethod("play");
   }
 
-  void playFromMediaId(String mediaId, Map extras) {
-    _channel.invokeMethod("playFromMediaId", extras);
+  void playFromMediaId(String mediaId, List<MediaMetadata> queue, String queueTitle) {
+    _channel.invokeMethod("playFromMediaId", {
+      "mediaId": mediaId,
+      "queue": queue.map((it) => it.toMap()).toList(),
+      "queueTitle": queueTitle,
+    });
   }
 
   void skipToQueueItem(int id) {
@@ -72,7 +81,7 @@ class TransportControls {
   }
 }
 
-mixin MediaControllerCallback {
+mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {
       case "onSessionReady":
@@ -82,10 +91,11 @@ mixin MediaControllerCallback {
         onSessionDestroyed();
         break;
       case "onPlaybackStateChanged":
-        onPlaybackStateChanged(PlaybackState.fromMap(call.arguments));
+        final value = PlaybackState.fromMap((call.arguments as Map)?.cast());
+        onPlaybackStateChanged(value);
         break;
       case "onMetadataChanged":
-        onMetadataChanged(MediaMetadata.fromMap(call.arguments));
+        onMetadataChanged(MediaMetadata.fromMap((call.arguments as Map)?.cast()));
         break;
       case "onAudioInfoChanged":
         onAudioInfoChanged();
@@ -102,17 +112,41 @@ mixin MediaControllerCallback {
     return true;
   }
 
-  void onSessionReady() {}
+  void onSessionReady() {
+    value = value.copyWith();
+    notifyListeners();
+  }
 
-  void onSessionDestroyed() {}
+  void onSessionDestroyed() {
+    value = const MusicPlayerState.none();
+    notifyListeners();
+  }
 
-  void onPlaybackStateChanged(PlaybackState playbackState) {}
+  void onPlaybackStateChanged(PlaybackState playbackState) {
+    value = value.copyWith(playbackState: playbackState);
+    debugPrint("onPlaybackStateChanged: $playbackState");
+    notifyListeners();
+  }
 
-  void onMetadataChanged(MediaMetadata metadata) {}
+  void onMetadataChanged(MediaMetadata metadata) {
+    //FIXME metadata be null
+    value = value.copyWith(metadata: metadata);
+    notifyListeners();
+  }
 
-  void onAudioInfoChanged() {}
+  void onAudioInfoChanged() {
+    //TODO audio info
+    value = value.copyWith(playbackInfo: null);
+    notifyListeners();
+  }
 
-  void onRepeatModeChanged(int repeatMode) {}
+  void onRepeatModeChanged(int repeatMode) {
+    value = value.copyWith(repeatMode: repeatMode);
+    notifyListeners();
+  }
 
-  void onShuffleModeChanged(int shuffleMode) {}
+  void onShuffleModeChanged(int shuffleMode) {
+    value = value.copyWith(shuffleMode: shuffleMode);
+    notifyListeners();
+  }
 }

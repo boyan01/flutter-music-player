@@ -2,6 +2,7 @@ package tech.soit.quiet
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -16,7 +17,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.log
-import tech.soit.quiet.utils.setPlaylist
 import tech.soit.quiet.utils.toMap
 import tech.soit.quiet.utils.toMediaMetadataCompat
 
@@ -83,7 +83,7 @@ class MusicPlayerPlugin(
         GlobalScope.launch(Dispatchers.Main) { onMethodCallAsync(call, result) }
     }
 
-    private suspend fun onMethodCallAsync(call: MethodCall, result: MethodChannel.Result) {
+    private fun onMethodCallAsync(call: MethodCall, result: MethodChannel.Result) {
         val controls = this.controls
         val mediaController = this.mediaController
         if (controls == null || mediaController == null) {
@@ -96,16 +96,26 @@ class MusicPlayerPlugin(
             "skipToPrevious" -> controls.skipToPrevious()
             "pause" -> controls.pause()
             "play" -> controls.play()
-            "playWithQinDing" -> controls.playFromMediaId(call.argument<Any>("id").toString(), null)
+            "playFromMediaId" -> {
+                val mediaId = call.argument<String>("mediaId")
+                val playList = call.argument<List<Map<String, Any>>>("queue")
+                val extras = playList?.map { it.toMediaMetadataCompat() }?.let { medias ->
+                    Bundle().apply {
+                        putParcelableArrayList("queue", ArrayList(medias))
+                        putString("queueTitle", call.argument("queueTitle"))
+                    }
+                }
+                controls.playFromMediaId(mediaId, extras)
+            }
             "seekTo" -> controls.seekTo(call.arguments as Long)
             "setShuffleMode" -> controls.setShuffleMode(call.arguments as Int)
             "setRepeatMode" -> controls.setRepeatMode(call.arguments as Int)
             /*media controller*/
             "getRepeatMode" -> mediaController.repeatMode
             "isSessionReady" -> mediaController.isSessionReady
-            "playbackState" -> mediaController.playbackState.toMap()
-            "queue" -> mediaController.queue.map { it.description.toMap() }
-            "queueTitle" -> mediaController.queueTitle
+            "getPlaybackState" -> mediaController.playbackState.toMap()
+            "getQueue" -> mediaController.queue.map { it.description.toMap() }
+            "getQueueTitle" -> mediaController.queueTitle
             "addQueueItem" -> {
                 val index = call.argument<Int>("index") ?: 0
                 val item = call.argument<Map<*, *>>("item")?.toMediaMetadataCompat() ?: return
@@ -114,12 +124,6 @@ class MusicPlayerPlugin(
             "removeQueueItem" -> {
                 val item = call.arguments<Map<*, *>>().toMediaMetadataCompat()
                 mediaController.removeQueueItem(item.description)
-            }
-            /*custom*/
-            "setPlayList" -> {
-                //set current playing play list
-                val items = call.arguments<List<Map<*, *>>>().map { it.toMediaMetadataCompat() }
-                mediaBrowser.setPlaylist(items)
             }
             else -> {
                 result.notImplemented()
@@ -185,6 +189,17 @@ class MusicPlayerPlugin(
             channel.invokeMethod("onQueueChanged", queue?.map { it.description.toMap() })
         }
 
+        override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo) {
+            channel.invokeMethod("onAudioInfoChanged", null)
+        }
+
+        override fun onSessionDestroyed() {
+            channel.invokeMethod("onSessionDestroyed", null)
+        }
+
+        override fun onQueueTitleChanged(title: CharSequence?) {
+            channel.invokeMethod("onQueueTitleChanged", title.toString())
+        }
 
     }
 }

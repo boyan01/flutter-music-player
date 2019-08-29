@@ -1,11 +1,11 @@
 package tech.soit.quiet.service
 
+import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +13,6 @@ import tech.soit.quiet.ext.waitUntil
 import tech.soit.quiet.model.bamboo
 import tech.soit.quiet.model.hide
 import tech.soit.quiet.model.rise
-import tech.soit.quiet.utils.setPlaylist
 
 @RunWith(AndroidJUnit4::class)
 class PlaybackTest {
@@ -50,18 +49,17 @@ class PlaybackTest {
     }
 
 
-    private val playList = listOf(bamboo, hide, rise)
+    private val playList = arrayListOf(bamboo, hide, rise)
 
-    @Before
-    fun setup() = runBlocking {
-        playerService.mediaBrowser.setPlaylist(playList)
+    private val playListExtras = Bundle().apply {
+        putParcelableArrayList("queue", playList)
+        putString("queueTitle", "Testing")
     }
-
 
     @Test
     fun testPlaySingle() = runBlocking {
 
-        controller.transportControls.playFromMediaId(bamboo.description.mediaId, null)
+        controller.transportControls.playFromMediaId(bamboo.description.mediaId, playListExtras)
         verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PLAYING)
 
         controller.transportControls.pause()
@@ -76,7 +74,7 @@ class PlaybackTest {
         transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
         transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
 
-        transportControls.playFromMediaId(playList[0].description.mediaId, null)
+        transportControls.playFromMediaId(playList[0].description.mediaId, playListExtras)
         verifyPlayingStateAsync(playList[0], PlaybackStateCompat.STATE_PLAYING)
 
         transportControls.skipToNext()
@@ -94,7 +92,7 @@ class PlaybackTest {
                     && controller.shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE
         }
 
-        transportControls.playFromMediaId(playList.last().description.mediaId, null)
+        transportControls.playFromMediaId(playList.last().description.mediaId, playListExtras)
         verifyPlayingStateAsync(playList.last(), PlaybackStateCompat.STATE_PLAYING)
 
         transportControls.skipToNext()
@@ -109,7 +107,7 @@ class PlaybackTest {
         transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
         transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
 
-        transportControls.playFromMediaId(playList[1].description.mediaId, null)
+        transportControls.playFromMediaId(playList[1].description.mediaId, playListExtras)
         verifyPlayingStateAsync(playList[1], PlaybackStateCompat.STATE_PLAYING)
 
         transportControls.skipToPrevious()
@@ -122,7 +120,7 @@ class PlaybackTest {
         transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
         transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
 
-        transportControls.playFromMediaId(playList.first().description.mediaId, null)
+        transportControls.playFromMediaId(playList.first().description.mediaId, playListExtras)
         verifyPlayingStateAsync(playList.first(), PlaybackStateCompat.STATE_PLAYING)
 
         transportControls.skipToNext()
