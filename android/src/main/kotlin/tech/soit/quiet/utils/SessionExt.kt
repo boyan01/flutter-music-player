@@ -1,9 +1,10 @@
 package tech.soit.quiet.utils
 
 import android.os.Bundle
-import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.RatingCompat
+import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 
 
@@ -25,14 +26,47 @@ fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
 }
 
 
+/**
+ * Convert a map to MediaMetadata, but skip Bitmap field.
+ */
 fun Map<*, *>.toMediaMetadataCompat(): MediaMetadataCompat {
-    //TODO handle more
     return MediaMetadataCompat.Builder()
-        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, get("mediaId").toString())
-        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, get("title").toString())
-        .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, get("subtitle").toString())
-        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, get("mediaUri").toString())
+        .put(MediaMetadataCompat.METADATA_KEY_TITLE, get("title"))
+        .put(MediaMetadataCompat.METADATA_KEY_ARTIST, get("artist"))
+        .put(MediaMetadataCompat.METADATA_KEY_DURATION, get("duration"))
+        .put(MediaMetadataCompat.METADATA_KEY_ALBUM, get("album"))
+        .put(MediaMetadataCompat.METADATA_KEY_COMPOSER, get("composer"))
+        .put(MediaMetadataCompat.METADATA_KEY_COMPILATION, get("compilation"))
+        .put(MediaMetadataCompat.METADATA_KEY_DATE, get("date"))
+        .put(MediaMetadataCompat.METADATA_KEY_YEAR, get("year"))
+        .put(MediaMetadataCompat.METADATA_KEY_GENRE, get("genre"))
+        .put(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, get("trackNumber"))
+        .put(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, get("numTracks"))
+        .put(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, get("discNumber"))
+        .put(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, get("albumArtist"))
+        .put(MediaMetadataCompat.METADATA_KEY_ART_URI, get("artUri"))
+        .put(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, get("albumArtUri"))
+//        .putString(MediaMetadataCompat.METADATA_KEY_USER_RATING, get("userRating").toString())
+//        .putString(MediaMetadataCompat.METADATA_KEY_RATING, get("rating").toString())
+        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, get("displayTitle"))
+        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, get("displaySubtitle"))
+        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, get("displayDescription"))
+        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, get("displayIconUri"))
+        .put(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, get("mediaId"))
+        .put(MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE, get("btFolderType"))
+        .put(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, get("mediaUri"))
+        .put(MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT, get("advertisement"))
         .build()
+}
+
+private fun MediaMetadataCompat.Builder.put(key: String, value: Any?): MediaMetadataCompat.Builder {
+    when (value) {
+        is String -> putString(key, value)
+        is Number -> putLong(key, value.toLong())
+        is RatingCompat -> putRating(key, value)
+        //Skip Bitmap...
+    }
+    return this
 }
 
 fun MediaMetadataCompat?.toMap(): Map<String, *>? {
@@ -52,22 +86,26 @@ fun MediaMetadataCompat?.toMap(): Map<String, *>? {
         "numTracks" to getLong(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS),
         "discNumber" to getLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER),
         "albumArtist" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST),
-//    "art" tox getBitmap(MediaMetadataCompat.METADATA_KEY_ART),
         "artUri" to getString(MediaMetadataCompat.METADATA_KEY_ART_URI),
-//    "albumArt" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART),
         "albumArtUri" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI),
 //    "userRating" to getString(MediaMetadataCompat.METADATA_KEY_USER_RATING),
 //    "rating" to getString(MediaMetadataCompat.METADATA_KEY_RATING),
         "displayTitle" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE),
         "displaySubtitle" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE),
         "displayDescription" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION),
-//    "displayIcon" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON),
         "displayIconUri" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI),
         "mediaId" to getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID),
         "btFolderType" to getLong(MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE),
         "mediaUri" to getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI),
         "advertisement" to getLong(MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT),
         "downloadStatus" to getLong(MediaMetadataCompat.METADATA_KEY_DOWNLOAD_STATUS)
+    )
+}
+
+fun MediaSessionCompat.QueueItem.toMap(): Map<String, *> {
+    return mapOf(
+        "queueId" to queueId,
+        "description" to description.toMap()
     )
 }
 
@@ -80,10 +118,6 @@ fun MediaDescriptionCompat.toMap(): Map<String, *> {
         "iconUri" to iconUri?.toString(),
         "extras" to extras?.toMap()
     )
-}
-
-fun MediaDescriptionCompat.toMediaItem(): MediaBrowserCompat.MediaItem {
-    return MediaBrowserCompat.MediaItem(this, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)
 }
 
 private fun Bundle.toMap(): Map<String, Any?> {

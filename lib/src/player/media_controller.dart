@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:music_player/music_player.dart';
 import 'package:music_player/src/model/media_metadata.dart';
 import 'package:music_player/src/model/playback_state.dart';
 import 'package:music_player/src/model/rating.dart';
@@ -84,6 +85,9 @@ class TransportControls {
 mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {
+      case "onInit":
+        value = MusicPlayerState.fromMap(call.arguments) ?? MusicPlayerState.none();
+        break;
       case "onSessionReady":
         onSessionReady();
         break;
@@ -105,6 +109,13 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
         break;
       case "onShuffleModeChanged":
         onShuffleModeChanged(call.arguments);
+        break;
+      case 'onQueueChanged':
+        final List list = call.arguments as List ?? const [];
+        onQueueChanged(list.cast<Map>().map((it) => QueueItem.fromMap(it.cast())).toList());
+        break;
+      case 'onQueueTitleChanged':
+        onQueueTitleChanged(call.arguments);
         break;
       default:
         return false;
@@ -142,6 +153,16 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
 
   void onRepeatModeChanged(int repeatMode) {
     value = value.copyWith(repeatMode: repeatMode);
+    notifyListeners();
+  }
+
+  void onQueueChanged(List<QueueItem> queue) {
+    value = value.copyWith(queue: queue);
+    notifyListeners();
+  }
+
+  void onQueueTitleChanged(String title) {
+    value = value.copyWith(queueTitle: title);
     notifyListeners();
   }
 

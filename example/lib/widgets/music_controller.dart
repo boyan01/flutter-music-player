@@ -5,76 +5,65 @@ class MusicControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-    var music = PlayerState.of(context).metadata?.getDescription();
-    if (music == null) {
+    final MusicPlayerState state = PlayerState.of(context);
+    var description = state.metadata?.getDescription();
+    if (state.playbackState.state == PlaybackState.STATE_NONE) {
       return Container();
     }
-    return InkWell(
-      onTap: () {
-        if (music != null) {
-          debugPrint("on taped");
-        }
-      },
-      child: Card(
-        margin: const EdgeInsets.all(0),
-        shape: const RoundedRectangleBorder(
-            borderRadius:
-                const BorderRadius.only(topLeft: const Radius.circular(4.0), topRight: const Radius.circular(4.0))),
-        child: Container(
-          height: 56 + bottomPadding,
-          padding: EdgeInsets.only(bottom: bottomPadding),
-          child: Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(8),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(3)),
-                    child: Container(color: Theme.of(context).primaryColor),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: DefaultTextStyle(
-                  style: TextStyle(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Spacer(),
-                      Text(
-                        music.title ?? "",
-                        style: Theme.of(context).textTheme.body1,
-                      ),
-                      Padding(padding: const EdgeInsets.only(top: 2)),
-                      DefaultTextStyle(
-                        child: Text(music.subtitle ?? ""),
-                        maxLines: 1,
-                        style: Theme.of(context).textTheme.caption,
-                      ),
-                      Spacer(),
-                    ],
-                  ),
-                ),
-              ),
-              _PauseButton(),
-              IconButton(
-                  tooltip: "当前播放列表",
-                  icon: Icon(Icons.menu),
-                  onPressed: () {
-                    //TODO
-                  }),
-            ],
-          ),
-        ),
+    return Container(
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _ControllerBar(),
+          Text.rich(TextSpan(children: [
+            TextSpan(text: 'current metadata:'),
+            TextSpan(text: description?.title),
+          ])),
+          Text.rich(TextSpan(children: [
+            TextSpan(text: state.queueTitle + "\n"),
+            TextSpan(text: state.queue.join()),
+          ])),
+          Text.rich(TextSpan(children: [
+            TextSpan(text: "playback state : \n"),
+            TextSpan(text: """
+speed:  ${state.playbackState.playbackSpeed} 
+bufferedPosition:  ${state.playbackState.bufferedPosition} 
+position:  ${state.playbackState.position} 
+errorCode:  ${state.playbackState.errorCode} 
+updateTime:  ${DateTime.fromMillisecondsSinceEpoch(state.playbackState.lastPositionUpdateTime).toIso8601String()} 
+activeItemId:  ${state.playbackState.activeQueueItemId} 
+          """),
+          ])),
+        ],
       ),
     );
   }
 }
 
-class _PauseButton extends StatelessWidget {
+class _ControllerBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ButtonBar(
+      children: <Widget>[
+        RepeatModelButton(),
+        IconButton(
+            icon: Icon(Icons.skip_previous),
+            onPressed: () {
+              PlayerWidget.transportControls(context).skipToPrevious();
+            }),
+        PlayPauseButton(),
+        IconButton(
+            icon: Icon(Icons.skip_next),
+            onPressed: () {
+              PlayerWidget.transportControls(context).skipToNext();
+            }),
+      ],
+    );
+  }
+}
+
+class PlayPauseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playbackState = PlayerState.of(context).playbackState;
@@ -98,9 +87,70 @@ class _PauseButton extends StatelessWidget {
     } else {
       return IconButton(
           icon: Icon(Icons.play_arrow),
+          tooltip: "play mode",
           onPressed: () {
             PlayerWidget.transportControls(context).play();
           });
     }
+  }
+}
+
+class RepeatModelButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final MusicPlayerState state = PlayerState.of(context);
+    final int shuffleMode = state.shuffleMode;
+    final int repeatMode = state.repeatMode;
+    final _PlayMode playMode = _PlayMode(shuffleMode, repeatMode);
+
+    Widget icon;
+    if (playMode == shuffle) {
+      icon = const Icon(Icons.shuffle);
+    } else if (playMode == single) {
+      icon = const Icon(Icons.repeat_one);
+    } else {
+      icon = const Icon(Icons.repeat);
+      if (playMode != sequence) {
+        _setPlayModel(context, sequence);
+      }
+    }
+    return IconButton(
+        icon: icon,
+        onPressed: () {
+          _setPlayModel(context, playMode.next());
+        });
+  }
+
+  void _setPlayModel(BuildContext context, _PlayMode mode) {
+    PlayerWidget.transportControls(context).setRepeatMode(mode.repeatMode);
+    PlayerWidget.transportControls(context).setShuffleMode(mode.shuffleMode);
+  }
+}
+
+const _PlayMode sequence = _PlayMode(PlaybackState.SHUFFLE_MODE_NONE, PlaybackState.REPEAT_MODE_ALL);
+const _PlayMode single = _PlayMode(PlaybackState.SHUFFLE_MODE_NONE, PlaybackState.REPEAT_MODE_ONE);
+const _PlayMode shuffle = _PlayMode(PlaybackState.SHUFFLE_MODE_ALL, PlaybackState.REPEAT_MODE_ALL);
+
+class _PlayMode {
+  final int shuffleMode;
+  final int repeatMode;
+
+  const _PlayMode(this.shuffleMode, this.repeatMode);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _PlayMode &&
+          runtimeType == other.runtimeType &&
+          shuffleMode == other.shuffleMode &&
+          repeatMode == other.repeatMode;
+
+  @override
+  int get hashCode => shuffleMode.hashCode ^ repeatMode.hashCode;
+
+  _PlayMode next() {
+    if (this == sequence) return single;
+    if (this == single) return shuffle;
+    return sequence;
   }
 }

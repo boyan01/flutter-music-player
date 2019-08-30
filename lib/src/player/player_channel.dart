@@ -64,6 +64,33 @@ class MusicPlayerState {
           shuffleMode: PlaybackState.SHUFFLE_MODE_NONE,
           repeatMode: PlaybackState.REPEAT_MODE_NONE,
         );
+
+  Map<String, dynamic> toMap() {
+    return {
+      'metadata': this.metadata.toMap(),
+      'playbackInfo': this.playbackInfo,
+      'playbackState': this.playbackState.toMap(),
+      'queue': this.queue,
+      'queueTitle': this.queueTitle,
+      'repeatMode': this.repeatMode,
+      'ratingType': this.ratingType,
+      'shuffleMode': this.shuffleMode,
+    };
+  }
+
+  factory MusicPlayerState.fromMap(Map map) {
+    if (map == null) return null;
+    return new MusicPlayerState(
+      metadata: MediaMetadata.fromMap(map['metadata']),
+      playbackInfo: null,
+      playbackState: PlaybackState.fromMap(map['playbackState']),
+      queue: (map['queue'] as List)?.map((it) => QueueItem.fromMap(it))?.toList() ?? const [],
+      queueTitle: map['queueTitle'] as String,
+      repeatMode: map['repeatMode'] as int,
+      ratingType: map['ratingType'] as int,
+      shuffleMode: map['shuffleMode'] as int,
+    );
+  }
 }
 
 class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCallback {
@@ -83,6 +110,7 @@ class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCa
         debugPrint(trace.toString());
       }
     });
+    _channel.invokeMethod("init");
   }
 
   /// Transport controls for this player

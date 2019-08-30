@@ -6,35 +6,42 @@ class QueueItem {
   /// This id is reserved. No items can be explicitly assigned this id.
   static const int UNKNOWN_ID = -1;
 
+  /// The description for this item.
   final MediaDescription description;
-  final int id;
 
-  const QueueItem({this.description, this.id});
+  /// The queue id for this item.
+  final int queueId;
+
+  const QueueItem({this.description, this.queueId});
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is QueueItem && runtimeType == other.runtimeType && description == other.description && id == other.id);
+      (other is QueueItem &&
+          runtimeType == other.runtimeType &&
+          description == other.description &&
+          queueId == other.queueId);
 
   @override
-  int get hashCode => description.hashCode ^ id.hashCode;
+  int get hashCode => description.hashCode ^ queueId.hashCode;
 
   @override
   String toString() {
-    return 'QueueItem{' + ' description: $description,' + ' id: $id,' + '}';
+    return 'QueueItem{' + ' description: $description,' + ' id: $queueId,' + '}';
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'description': this.description,
-      'id': this.id,
+      'description': this.description.toMap(),
+      'queueId': this.queueId,
     };
   }
 
-  factory QueueItem.fromMap(Map<String, dynamic> map) {
+  factory QueueItem.fromMap(Map map) {
+    if (map == null) return null;
     return new QueueItem(
-      description: map['description'] as MediaDescription,
-      id: map['id'] as int,
+      description: MediaDescription.fromMap(map['description']),
+      queueId: map['queueId'] as int,
     );
   }
 }

@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'dart:typed_data';
-
 import 'media_description.dart';
 import 'rating.dart';
 
@@ -25,6 +23,7 @@ class MediaMetadata {
   final String album;
   final String writer;
   final String composer;
+  final String author;
   final String compilation;
   final String date;
   final int year;
@@ -33,16 +32,13 @@ class MediaMetadata {
   final int numTracks;
   final int discNumber;
   final String albumArtist;
-  final Uint8List art;
   final String artUri;
-  final Uint8List albumArt;
   final String albumArtUri;
   final Rating userRating;
   final Rating rating;
   final String displayTitle;
   final String displaySubtitle;
   final String displayDescription;
-  final Uint8List displayIcon;
   final String displayIconUri;
   final String mediaId;
   final int btFolderType;
@@ -66,6 +62,7 @@ class MediaMetadata {
     this.duration,
     this.album,
     this.writer,
+    this.author,
     this.composer,
     this.compilation,
     this.date,
@@ -75,16 +72,13 @@ class MediaMetadata {
     this.numTracks,
     this.discNumber,
     this.albumArtist,
-    this.art,
     this.artUri,
-    this.albumArt,
     this.albumArtUri,
     this.userRating,
     this.rating,
     this.displayTitle,
     this.displaySubtitle,
     this.displayDescription,
-    this.displayIcon,
     this.displayIconUri,
     this.mediaId,
     this.btFolderType,
@@ -100,21 +94,53 @@ class MediaMetadata {
     List<String> text = List(3);
     if (displayTitle == null || displayTitle.isEmpty) {
       // use whatever fields we can
-
+      var textIndex = 0;
+      var keyIndex = 0;
+      final description = [title, artist, album, albumArtist, writer, author, composer];
+      while (textIndex < text.length && keyIndex < description.length) {
+        final next = description[keyIndex++];
+        if (next != null && next.isNotEmpty) {
+          text[textIndex++] = next;
+        }
+      }
     } else {
+      // If they have a display title use only display data, otherwise use
+      // our best bets
       text[0] = displayTitle;
       text[1] = displaySubtitle;
       text[2] = displayDescription;
     }
 
-    // TODO
-    _description = MediaDescription(
-      mediaId: mediaId,
-      title: title,
-      subtitle: displaySubtitle,
-      description: "TODO",
-      iconUri: "",
+    Uri iconUri;
+    // Get the best Uri we can find
+    final String iconUrl = [displayIconUri, artUri, albumArtUri].firstWhere(
+      (uri) => uri != null && uri.isNotEmpty,
+      orElse: () => null,
     );
+    if (iconUrl != null) {
+      iconUri = Uri.parse(iconUrl);
+    }
+
+    Uri mediaUri;
+    if (this.mediaUri != null) {
+      mediaUri = Uri.parse(this.mediaUri);
+    }
+
+    final extras = {};
+    if (btFolderType != null) {
+      extras[MediaDescription.EXTRA_BT_FOLDER_TYPE] = btFolderType;
+    }
+    if (downloadStatus != null) {
+      extras[MediaDescription.EXTRA_DOWNLOAD_STATUS] = downloadStatus;
+    }
+    _description = MediaDescription(
+        mediaId: mediaId,
+        title: text[0],
+        subtitle: text[1],
+        description: text[2],
+        iconUri: iconUri,
+        mediaUri: mediaUri,
+        extras: extras.isEmpty ? null : extras);
     return _description;
   }
 
@@ -125,6 +151,7 @@ class MediaMetadata {
       'duration': this.duration,
       'album': this.album,
       'writer': this.writer,
+      'author': this.author,
       'composer': this.composer,
       'compilation': this.compilation,
       'date': this.date,
@@ -134,16 +161,13 @@ class MediaMetadata {
       'numTracks': this.numTracks,
       'discNumber': this.discNumber,
       'albumArtist': this.albumArtist,
-      'art': this.art,
       'artUri': this.artUri,
-      'albumArt': this.albumArt,
       'albumArtUri': this.albumArtUri,
       'userRating': this.userRating,
       'rating': this.rating,
       'displayTitle': this.displayTitle,
       'displaySubtitle': this.displaySubtitle,
       'displayDescription': this.displayDescription,
-      'displayIcon': this.displayIcon,
       'displayIconUri': this.displayIconUri,
       'mediaId': this.mediaId,
       'btFolderType': this.btFolderType,
@@ -153,7 +177,7 @@ class MediaMetadata {
     };
   }
 
-  factory MediaMetadata.fromMap(Map<String, dynamic> map) {
+  factory MediaMetadata.fromMap(Map map) {
     if (map == null) return null;
     return new MediaMetadata(
       title: map['title'] as String,
@@ -161,6 +185,7 @@ class MediaMetadata {
       duration: map['duration'] as int,
       album: map['album'] as String,
       writer: map['writer'] as String,
+      author: map['author'] as String,
       composer: map['composer'] as String,
       compilation: map['compilation'] as String,
       date: map['date'] as String,
@@ -170,16 +195,13 @@ class MediaMetadata {
       numTracks: map['numTracks'] as int,
       discNumber: map['discNumber'] as int,
       albumArtist: map['albumArtist'] as String,
-      art: map['art'] as Uint8List,
       artUri: map['artUri'] as String,
-      albumArt: map['albumArt'] as Uint8List,
       albumArtUri: map['albumArtUri'] as String,
       userRating: Rating.fromMap(map['userRating']),
       rating: Rating.fromMap(map['rating']),
       displayTitle: map['displayTitle'] as String,
       displaySubtitle: map['displaySubtitle'] as String,
       displayDescription: map['displayDescription'] as String,
-      displayIcon: map['displayIcon'] as Uint8List,
       displayIconUri: map['displayIconUri'] as String,
       mediaId: map['mediaId'] as String,
       btFolderType: map['btFolderType'] as int,

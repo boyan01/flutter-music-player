@@ -47,10 +47,10 @@ class MusicPlayerPlugin(
 
         override fun onConnected() {
             log { "connected , ${mediaBrowser.sessionToken}" }
-            mediaBrowser.subscribe(mediaBrowser.root, mediaSubscription)
             mediaController?.unregisterCallback(controllerCallback)
             mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken).apply {
                 registerCallback(controllerCallback)
+                controllerCallback.sendInitData()
             }
         }
 
@@ -62,10 +62,10 @@ class MusicPlayerPlugin(
 
         override fun onConnectionFailed() {
             log { "connect failed" }
-            mediaController?.unregisterCallback(controllerCallback)
             mediaController = null
-        }
+            //TODO handle connect failed
 
+        }
     }
 
     private val mediaBrowser: MediaBrowserCompat =
@@ -91,6 +91,7 @@ class MusicPlayerPlugin(
             return
         }
         val r: Any = when (call.method) {
+            "init" -> controllerCallback.sendInitData()
             /*transport controller*/
             "skipToNext" -> controls.skipToNext()
             "skipToPrevious" -> controls.skipToPrevious()
@@ -146,24 +147,23 @@ class MusicPlayerPlugin(
         mediaBrowser.connect()
     }
 
-    private val mediaSubscription = object : MediaBrowserCompat.SubscriptionCallback() {
-
-        override fun onChildrenLoaded(
-            parentId: String,
-            children: MutableList<MediaBrowserCompat.MediaItem>
-        ) {
-            val musicList = children.map { it.description.toMap() }
-
-            log { "music list : $musicList" }
-            channel.invokeMethod("onPlaylistLoaded", musicList)
-        }
-
-        override fun onError(parentId: String) {
-            log { "error to load $parentId" }
-        }
-    }
-
     private val controllerCallback = object : MediaControllerCompat.Callback() {
+
+        fun sendInitData() {
+            val mediaController = mediaController ?: return
+            channel.invokeMethod(
+                "onInit", hashMapOf(
+                    "metadata" to mediaController.metadata?.toMap(),
+                    "playbackInfo" to null,
+                    "playbackState" to mediaController.playbackState?.toMap(),
+                    "queue" to mediaController.queue?.map { it.toMap() },
+                    "queueTitle" to mediaController.queueTitle,
+                    "repeatMode" to mediaController.repeatMode,
+                    "shuffleMode" to mediaController.shuffleMode
+                )
+            )
+        }
+
 
         override fun onSessionReady() {
             channel.invokeMethod("onSessionReady", null)
@@ -186,7 +186,7 @@ class MusicPlayerPlugin(
         }
 
         override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
-            channel.invokeMethod("onQueueChanged", queue?.map { it.description.toMap() })
+            channel.invokeMethod("onQueueChanged", queue?.map { it.toMap() })
         }
 
         override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo) {

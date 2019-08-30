@@ -1,3 +1,5 @@
+import 'package:music_player/music_player.dart';
+
 /// Playback state of MusicPlayer.
 class PlaybackState {
   static const int STATE_NONE = 0;
@@ -57,7 +59,7 @@ class PlaybackState {
   final int state;
   final int position;
   final int bufferedPosition;
-  final double speed;
+  final double playbackSpeed;
   final int actions;
 
   /// Get the error code. This should be set when the state is [STATE_ERROR].
@@ -79,8 +81,15 @@ class PlaybackState {
 
   /// Get the user readable optional error message. This may be set when the state is [STATE_ERROR]
   final String errorMessage;
-  final int updateTime;
-  final int activeItemId;
+
+  /// Get the elapsed real time at which position was last updated. If the
+  /// position has never been set this will return 0;
+  final int lastPositionUpdateTime;
+
+  /// Get the id of the currently active item in the queue. If there is no
+  /// queue or a queue is not supported by the session this will be
+  /// [QueueItem.UNKNOWN_ID].
+  final int activeQueueItemId;
   final Map extras;
 
   Map<String, dynamic> toMap() {
@@ -88,49 +97,56 @@ class PlaybackState {
       'state': this.state,
       'position': this.position,
       'bufferedPosition': this.bufferedPosition,
-      'speed': this.speed,
+      'playbackSpeed': this.playbackSpeed,
       'actions': this.actions,
       'errorCode': this.errorCode,
       'errorMessage': this.errorMessage,
-      'updateTime': this.updateTime,
-      'activeItemId': this.activeItemId,
+      'lastPositionUpdateTime': this.lastPositionUpdateTime,
+      'activeQueueItemId': this.activeQueueItemId,
       'extras': this.extras,
     };
   }
 
-  factory PlaybackState.fromMap(Map<String, dynamic> map) {
+  factory PlaybackState.fromMap(Map map) {
+    if(map == null) return null;
     return new PlaybackState(
       state: map['state'] as int,
       position: map['position'] as int,
       bufferedPosition: map['bufferedPosition'] as int,
-      speed: map['speed'] as double,
+      playbackSpeed: map['playbackSpeed'] as double,
       actions: map['actions'] as int,
       errorCode: map['errorCode'] as int,
       errorMessage: map['errorMessage'] as String,
-      updateTime: map['updateTime'] as int,
-      activeItemId: map['activeItemId'] as int,
+      lastPositionUpdateTime: map['lastPositionUpdateTime'] as int,
+      activeQueueItemId: map['activeQueueItemId'] as int,
       extras: map['extras'] as Map,
     );
   }
 
   @override
   String toString() {
-    return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, speed: $speed, actions: $actions, errorCode: $errorCode, errorMessage: $errorMessage, updateTime: $updateTime, activeItemId: $activeItemId, extras: $extras}';
+    return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, playbackSpeed: $playbackSpeed, actions: $actions, errorCode: $errorCode, errorMessage: $errorMessage, lastPositionUpdateTime: $lastPositionUpdateTime, activeQueueItemId: $activeQueueItemId, extras: $extras}';
   }
 
   const PlaybackState.none()
-      : this(state: STATE_NONE, position: PLAYBACK_POSITION_UNKNOWN, bufferedPosition: 0, speed: 1, actions: 0);
+      : this(
+            state: STATE_NONE,
+            position: PLAYBACK_POSITION_UNKNOWN,
+            bufferedPosition: 0,
+            playbackSpeed: 1,
+            actions: 0,
+            lastPositionUpdateTime: 0);
 
   const PlaybackState({
     this.state,
     this.position,
     this.bufferedPosition,
-    this.speed,
+    this.playbackSpeed,
     this.actions,
     this.errorCode,
     this.errorMessage,
-    this.updateTime,
-    this.activeItemId,
+    this.lastPositionUpdateTime,
+    this.activeQueueItemId,
     this.extras,
   });
 }
