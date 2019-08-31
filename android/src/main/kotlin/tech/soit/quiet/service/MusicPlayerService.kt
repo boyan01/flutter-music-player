@@ -315,6 +315,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             isActive = false
             release()
         }
+        notificationBuilder.destroy()
         super.onDestroy()
     }
 

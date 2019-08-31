@@ -6,8 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Build
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -16,15 +14,12 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.media.session.MediaButtonReceiver
-import androidx.palette.graphics.Palette
-import androidx.palette.graphics.Target
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import tech.soit.quiet.R
 import tech.soit.quiet.utils.*
-import java.net.HttpURLConnection
-import java.net.URI
-import kotlin.coroutines.resume
 
 
 /**
@@ -39,20 +34,6 @@ class NotificationBuilder(private val context: Context) {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
         const val NOW_PLAYING_NOTIFICATION: Int = 0xb339
 
-        private val targetList = listOf(
-            Target.DARK_MUTED,
-            Target.LIGHT_MUTED,
-            Target.DARK_VIBRANT,
-            Target.LIGHT_VIBRANT
-        )
-
-        private fun Palette.getAvailableSwatch(): Palette.Swatch? {
-            targetList.forEach {
-                val swatch = getSwatchForTarget(it)
-                if (swatch != null) return swatch
-            }
-            return null
-        }
     }
 
     private val platformNotificationManager: NotificationManager =
@@ -90,90 +71,68 @@ class NotificationBuilder(private val context: Context) {
 
     val notificationGenerator = Channel<Notification?>()
 
-    private var job: Job? = null
 
-    fun updateNotification(
-        sessionToken: MediaSessionCompat.Token
-    ) {
+    fun updateNotification(sessionToken: MediaSessionCompat.Token) {
         if (shouldCreateNowPlayingChannel()) {
             createNowPlayingChannel()
         }
-        job?.cancel()
-        job = GlobalScope.launch(Dispatchers.Main) {
-            val controller = MediaControllerCompat(context, sessionToken)
-            if (controller.metadata == null) return@launch
 
-            val playbackState = controller.playbackState
-            val description = controller.metadata.description
-            if (playbackState.state == PlaybackStateCompat.STATE_NONE) {
-                notificationGenerator.send(null)
-                return@launch
-            }
 
-            notificationGenerator.send(
-                buildNotificationWithIcon(
-                    sessionToken,
-                    description,
-                    playbackState,
-                    controller.sessionActivity
-                )
-            )
-            if (description.iconBitmap == null && description.iconUri == null) {
-                return@launch
-            }
-            var icon = description.iconBitmap
-            var color: Int? = null
-            if (icon == null) {
-                val result = runCatching {
-                    withContext(Dispatchers.IO) {
-                        loadImageFromUri(requireNotNull(description.iconUri))
-                    }
-                }
-                icon = result.getOrElse {
-                    it.printStackTrace()
-                    log(LoggerLevel.WARN) {
-                        "get icon for failed: ${description.iconUri}, msg:  ${it.message}"
-                    }
-                    null
-                }
-            }
-            if (icon == null) return@launch
-            val generate = Palette.from(icon).generate()
-            val swatch = generate.getAvailableSwatch()
-            if (swatch != null) {
-                color = swatch.rgb
-            }
-            notificationGenerator.send(
+        val controller = MediaControllerCompat(context, sessionToken)
+        if (controller.metadata == null) return
+
+        val playbackState = controller.playbackState
+        val description = controller.metadata.description
+        if (playbackState.state == PlaybackStateCompat.STATE_NONE) {
+            notificationGenerator.offer(null)
+            return
+        }
+
+        fun updateNotificationInner(artwork: Bitmap?, color: Int?) {
+            notificationGenerator.offer(
                 buildNotificationWithIcon(
                     sessionToken,
                     description,
                     playbackState,
                     controller.sessionActivity,
-                    icon,
+                    artwork,
                     color
                 )
             )
         }
 
+        val iconUri = description.iconUri
+        if (iconUri == null) {
+            // this description haven't artwork. create notification without image cover
+            updateNotificationInner(null, null)
+            return
+        }
 
+        val artworkCache = ArtworkCache[iconUri]
+        if (artworkCache != null) {
+            // cache hit
+            updateNotificationInner(artworkCache.bitmap, artworkCache.color)
+            return
+        }
+
+        updateNotificationInner(null, null)
+
+        GlobalScope.launch(Dispatchers.Main) {
+            val artwork = loadArtworkFromUri(iconUri)
+            if (artwork != null) {
+                ArtworkCache.put(iconUri, artwork)
+                updateNotification(sessionToken)
+            }
+        }
     }
 
+    fun destroy() {
+        //clear all cache
+        ArtworkCache.evictAll()
 
-    private suspend fun loadImageFromUri(iconUri: Uri): Bitmap =
-        suspendCancellableCoroutine { continuation ->
-            val urlConnection =
-                URI.create(iconUri.toString()).toURL().openConnection() as HttpURLConnection
-            urlConnection.connect()
+        notificationGenerator.close()
+    }
 
-            continuation.invokeOnCancellation {
-                urlConnection.disconnect()
-            }
-            val bitmap = urlConnection.inputStream.use { stream ->
-                val bytes = stream.readBytes()
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            }
-            continuation.resume(bitmap)
-        }
 
     private fun buildNotificationWithIcon(
         sessionToken: MediaSessionCompat.Token,
