@@ -21,8 +21,14 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
-import tech.soit.quiet.utils.*
+import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
+import tech.soit.quiet.utils.LoggerLevel
+import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.toMediaSource
 
 
 /**
@@ -80,6 +86,51 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         ExoPlayerFactory.newSimpleInstance(this).apply {
             setAudioAttributes(audioAttribute, true)
         }
+    }
+
+
+    private fun handleNotification() = GlobalScope.launch(Dispatchers.Main) {
+
+        for (notification in notificationBuilder.notificationGenerator) {
+
+            val playbackState = mediaController.playbackState ?: return@launch
+            when (val updatedState = playbackState.state) {
+                PlaybackStateCompat.STATE_BUFFERING,
+                PlaybackStateCompat.STATE_PLAYING -> {
+
+                    /**
+                     * This may look strange, but the documentation for [Service.startForeground]
+                     * notes that "calling this method does *not* put the service in the started
+                     * state itself, even though the name sounds like it."
+                     */
+                    if (!isForegroundService) {
+                        startService(Intent(applicationContext, this@MusicPlayerService.javaClass))
+                        startForeground(NOW_PLAYING_NOTIFICATION, notification)
+                        isForegroundService = true
+                    } else if (notification != null) {
+                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
+                    }
+                }
+                else -> {
+                    if (isForegroundService) {
+                        stopForeground(false)
+                        isForegroundService = false
+
+                        // If playback has ended, also stop the service.
+                        if (updatedState == PlaybackStateCompat.STATE_NONE) {
+                            stopSelf()
+                        }
+
+                        if (notification != null) {
+                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
+                        } else {
+                            stopForeground(true)
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     override fun onCreate() {
@@ -174,6 +225,8 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 }
 
             })
+
+            handleNotification()
         }
 
     }
@@ -217,11 +270,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             log { "onMetadataChanged : ${metadata?.description}" }
-//            mediaController.playbackState?.let { updateNotification(it) }
+            mediaController.playbackState?.let { updateNotification(it) }
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-//            state?.let { updateNotification(it) }
+            state?.let { updateNotification(it) }
         }
 
         override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
@@ -229,56 +282,16 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {
-            val updatedState = state.state
-            if (mediaController.metadata == null) {
-                return
-            }
-
-            // Skip building a notification when state is "none".
-            val notification = if (updatedState != PlaybackStateCompat.STATE_NONE) {
-                notificationBuilder.buildNotification(mediaSession.sessionToken)
-            } else {
-                null
-            }
-
-            when (updatedState) {
+            when (state.state) {
                 PlaybackStateCompat.STATE_BUFFERING,
                 PlaybackStateCompat.STATE_PLAYING -> {
                     becomingNoisyReceiver.register()
-
-                    /**
-                     * This may look strange, but the documentation for [Service.startForeground]
-                     * notes that "calling this method does *not* put the service in the started
-                     * state itself, even though the name sounds like it."
-                     */
-                    if (!isForegroundService) {
-                        startService(Intent(applicationContext, this@MusicPlayerService.javaClass))
-                        startForeground(NOW_PLAYING_NOTIFICATION, notification)
-                        isForegroundService = true
-                    } else if (notification != null) {
-                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                    }
                 }
                 else -> {
                     becomingNoisyReceiver.unregister()
-
-                    if (isForegroundService) {
-                        stopForeground(false)
-                        isForegroundService = false
-
-                        // If playback has ended, also stop the service.
-                        if (updatedState == PlaybackStateCompat.STATE_NONE) {
-                            stopSelf()
-                        }
-
-                        if (notification != null) {
-                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                        } else {
-                            stopForeground(true)
-                        }
-                    }
                 }
             }
+            notificationBuilder.updateNotification(mediaSession.sessionToken)
         }
 
 

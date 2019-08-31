@@ -1,5 +1,5 @@
-import 'package:music_player/music_player.dart';
 import 'package:flutter/material.dart';
+import 'package:music_player/music_player.dart';
 
 export 'package:music_player/music_player.dart';
 
@@ -9,18 +9,21 @@ final medias = [
     artist: "SanWu marblue",
     mediaId: "bamboo",
     mediaUri: "asset:///flutter_assets/tracks/bamboo.mp3",
+    artUri: "https://via.placeholder.com/150/FFCA28/000000/?text=bamboo",
   ),
   MediaMetadata(
     title: "Rise",
     artist: "The Glitch Mob",
     mediaId: "rise",
     mediaUri: "asset:///flutter_assets/tracks/rise.mp3",
+    artUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
   ),
   MediaMetadata(
     title: "Cang",
     artist: "xu meng yuan",
     mediaId: "hide",
     mediaUri: "asset:///flutter_assets/tracks/hide.mp3",
+    artUri: "https://via.placeholder.com/150/03A9F4/000000/?text=Cang",
   ),
 ];
 

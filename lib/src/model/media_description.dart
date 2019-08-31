@@ -46,9 +46,9 @@ class MediaDescription {
       title: map['title'] as String,
       subtitle: map['subtitle'] as String,
       description: map['description'] as String,
-      iconUri: map['iconUri'] as Uri,
+      iconUri: Uri.tryParse(map['iconUri'] ?? ""),
       extras: map['extras'] as Map,
-      mediaUri: map['mediaUri'] as Uri,
+      mediaUri: Uri.tryParse(map['mediaUri'] ?? ""),
     );
   }
 
