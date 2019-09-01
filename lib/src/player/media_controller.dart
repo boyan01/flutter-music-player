@@ -18,10 +18,11 @@ class TransportControls {
     _channel.invokeMethod("prepare");
   }
 
-  void prepareFromMediaId(String mediaId, Map extras) {
+  void prepareFromMediaId(String mediaId, List<MediaMetadata> queue, String queueTitle) {
     _channel.invokeMethod("prepareFromMediaId", {
       "mediaId": mediaId,
-      "extras": extras,
+      "queue": queue.map((it) => it.toMap()).toList(),
+      "queueTitle": queueTitle,
     });
   }
 

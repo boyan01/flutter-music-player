@@ -97,7 +97,7 @@ class MusicPlayerPlugin(
             "skipToPrevious" -> controls.skipToPrevious()
             "pause" -> controls.pause()
             "play" -> controls.play()
-            "playFromMediaId" -> {
+            "playFromMediaId", "prepareFromMediaId" -> {
                 val mediaId = call.argument<String>("mediaId")
                 val playList = call.argument<List<Map<String, Any>>>("queue")
                 val extras = playList?.map { it.toMediaMetadataCompat() }?.let { medias ->
@@ -106,7 +106,11 @@ class MusicPlayerPlugin(
                         putString("queueTitle", call.argument("queueTitle"))
                     }
                 }
-                controls.playFromMediaId(mediaId, extras)
+                if (call.method == "prepareFromMediaId") {
+                    controls.prepareFromMediaId(mediaId, extras)
+                } else {
+                    controls.playFromMediaId(mediaId, extras)
+                }
             }
             "seekTo" -> controls.seekTo(call.arguments as Long)
             "setShuffleMode" -> controls.setShuffleMode(call.arguments as Int)
