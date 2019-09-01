@@ -54,8 +54,6 @@ class Rating {
     return Rating._private(RATING_HEART, hasHeart ? 1.0 : 0.0);
   }
 
-//<editor-fold desc="Data Methods" defaultstate="collapsed">
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -69,23 +67,21 @@ class Rating {
 
   @override
   String toString() {
-    return 'Rating{' + ' _ratingStyle: $_ratingStyle,' + ' _ratingValue: $_ratingValue,' + '}';
+    return 'Rating{' + ' ratingStyle: $_ratingStyle,' + ' ratingValue: $_ratingValue,' + '}';
   }
 
   Map<String, dynamic> toMap() {
     return {
-      '_ratingStyle': this._ratingStyle,
-      '_ratingValue': this._ratingValue,
+      'ratingStyle': this._ratingStyle,
+      'ratingValue': this._ratingValue,
     };
   }
 
   factory Rating.fromMap(Map<String, dynamic> map) {
     if (map == null) return null;
     return new Rating._private(
-      map['_ratingStyle'] as int,
-      map['_ratingValue'] as double,
+      map['ratingStyle'] as int,
+      map['ratingValue'] as double,
     );
   }
-
-//</editor-fold>
 }

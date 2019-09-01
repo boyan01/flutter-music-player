@@ -163,8 +163,8 @@ class MediaMetadata {
       'albumArtist': this.albumArtist,
       'artUri': this.artUri,
       'albumArtUri': this.albumArtUri,
-      'userRating': this.userRating,
-      'rating': this.rating,
+      'userRating': this.userRating?.toMap(),
+      'rating': this.rating?.toMap(),
       'displayTitle': this.displayTitle,
       'displaySubtitle': this.displaySubtitle,
       'displayDescription': this.displayDescription,
@@ -179,6 +179,7 @@ class MediaMetadata {
 
   factory MediaMetadata.fromMap(Map map) {
     if (map == null) return null;
+    //TODO extras...
     return new MediaMetadata(
       title: map['title'] as String,
       artist: map['artist'] as String,

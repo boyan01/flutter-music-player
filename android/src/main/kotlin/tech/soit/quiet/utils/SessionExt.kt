@@ -26,80 +26,82 @@ fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
 }
 
 
+private val metadataKeyMapping = mapOf(
+    MediaMetadataCompat.METADATA_KEY_TITLE to "title",
+    MediaMetadataCompat.METADATA_KEY_ARTIST to "artist",
+    MediaMetadataCompat.METADATA_KEY_DURATION to "duration",
+    MediaMetadataCompat.METADATA_KEY_ALBUM to "album",
+    MediaMetadataCompat.METADATA_KEY_COMPOSER to "composer",
+    MediaMetadataCompat.METADATA_KEY_COMPILATION to "compilation",
+    MediaMetadataCompat.METADATA_KEY_DATE to "date",
+    MediaMetadataCompat.METADATA_KEY_YEAR to "year",
+    MediaMetadataCompat.METADATA_KEY_GENRE to "genre",
+    MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER to "trackNumber",
+    MediaMetadataCompat.METADATA_KEY_NUM_TRACKS to "numTracks",
+    MediaMetadataCompat.METADATA_KEY_DISC_NUMBER to "discNumber",
+    MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST to "albumArtist",
+    MediaMetadataCompat.METADATA_KEY_ART_URI to "artUri",
+    MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI to "albumArtUri",
+    MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE to "displayTitle",
+    MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE to "displaySubtitle",
+    MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION to "displayDescription",
+    MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI to "displayIconUri",
+    MediaMetadataCompat.METADATA_KEY_MEDIA_ID to "mediaId",
+    MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE to "btFolderType",
+    MediaMetadataCompat.METADATA_KEY_MEDIA_URI to "mediaUri",
+    MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT to "advertisement",
+    // Rating
+    MediaMetadataCompat.METADATA_KEY_RATING to "rating",
+    MediaMetadataCompat.METADATA_KEY_USER_RATING to "userRating"
+)
+
+private val metadataKeyMappingReverse = HashMap<String, String>()
+    .also {
+        for ((key, value) in metadataKeyMapping) {
+            it[value] = key
+        }
+    }.toMap()
+
+
 /**
  * Convert a map to MediaMetadata, but skip Bitmap field.
  */
-fun Map<*, *>.toMediaMetadataCompat(): MediaMetadataCompat {
-    return MediaMetadataCompat.Builder()
-        .put(MediaMetadataCompat.METADATA_KEY_TITLE, get("title"))
-        .put(MediaMetadataCompat.METADATA_KEY_ARTIST, get("artist"))
-        .put(MediaMetadataCompat.METADATA_KEY_DURATION, get("duration"))
-        .put(MediaMetadataCompat.METADATA_KEY_ALBUM, get("album"))
-        .put(MediaMetadataCompat.METADATA_KEY_COMPOSER, get("composer"))
-        .put(MediaMetadataCompat.METADATA_KEY_COMPILATION, get("compilation"))
-        .put(MediaMetadataCompat.METADATA_KEY_DATE, get("date"))
-        .put(MediaMetadataCompat.METADATA_KEY_YEAR, get("year"))
-        .put(MediaMetadataCompat.METADATA_KEY_GENRE, get("genre"))
-        .put(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, get("trackNumber"))
-        .put(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, get("numTracks"))
-        .put(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, get("discNumber"))
-        .put(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, get("albumArtist"))
-        .put(MediaMetadataCompat.METADATA_KEY_ART_URI, get("artUri"))
-        .put(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, get("albumArtUri"))
-//        .putString(MediaMetadataCompat.METADATA_KEY_USER_RATING, get("userRating").toString())
-//        .putString(MediaMetadataCompat.METADATA_KEY_RATING, get("rating").toString())
-        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, get("displayTitle"))
-        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, get("displaySubtitle"))
-        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, get("displayDescription"))
-        .put(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, get("displayIconUri"))
-        .put(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, get("mediaId"))
-        .put(MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE, get("btFolderType"))
-        .put(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, get("mediaUri"))
-        .put(MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT, get("advertisement"))
-        .build()
-}
+fun Map<*, *>.toMediaMetadataCompat(): MediaMetadataCompat = MediaMetadataCompat.Builder().also {
+    for ((key, value) in this) {
+        it.put(metadataKeyMappingReverse[key] ?: key, value)
+    }
+}.build()
 
-private fun MediaMetadataCompat.Builder.put(key: String, value: Any?): MediaMetadataCompat.Builder {
+
+private fun MediaMetadataCompat.Builder.put(key: Any?, value: Any?): MediaMetadataCompat.Builder {
+    if (key !is String) return this
+    value ?: return this
     when (value) {
         is String -> putString(key, value)
         is Number -> putLong(key, value.toLong())
-        is RatingCompat -> putRating(key, value)
-        //Skip Bitmap...
+        //Skip Bitmap/Other...
+    }
+    if ("rating" == key || "userRating" == key) {
+        putRating(key, (value as? Map<*, *>).toRating())
     }
     return this
 }
 
 fun MediaMetadataCompat?.toMap(): Map<String, *>? {
     if (this == null) return null
-    return mapOf(
-        "title" to getString(MediaMetadataCompat.METADATA_KEY_TITLE),
-        "artist" to getString(MediaMetadataCompat.METADATA_KEY_ARTIST),
-        "duration" to getLong(MediaMetadataCompat.METADATA_KEY_DURATION),
-        "album" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM),
-        "writer" to getString(MediaMetadataCompat.METADATA_KEY_WRITER),
-        "composer" to getString(MediaMetadataCompat.METADATA_KEY_COMPOSER),
-        "compilation" to getString(MediaMetadataCompat.METADATA_KEY_COMPILATION),
-        "date" to getString(MediaMetadataCompat.METADATA_KEY_DATE),
-        "year" to getLong(MediaMetadataCompat.METADATA_KEY_YEAR),
-        "genre" to getString(MediaMetadataCompat.METADATA_KEY_GENRE),
-        "trackNumber" to getLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER),
-        "numTracks" to getLong(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS),
-        "discNumber" to getLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER),
-        "albumArtist" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST),
-        "artUri" to getString(MediaMetadataCompat.METADATA_KEY_ART_URI),
-        "albumArtUri" to getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI),
-//    "userRating" to getString(MediaMetadataCompat.METADATA_KEY_USER_RATING),
-//    "rating" to getString(MediaMetadataCompat.METADATA_KEY_RATING),
-        "displayTitle" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE),
-        "displaySubtitle" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE),
-        "displayDescription" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION),
-        "displayIconUri" to getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI),
-        "mediaId" to getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID),
-        "btFolderType" to getLong(MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE),
-        "mediaUri" to getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI),
-        "advertisement" to getLong(MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT),
-        "downloadStatus" to getLong(MediaMetadataCompat.METADATA_KEY_DOWNLOAD_STATUS)
-    )
+
+    val bundle = bundle
+
+    fun convector(any: Any?): Any? {
+        any ?: return null
+        return when (any) {
+            is String, is Number -> any
+            is RatingCompat -> any.toMap()
+            else -> null
+        }
+    }
+    return bundle.keySet().map { metadataKeyMapping[it] ?: it }
+        .map { it to convector(bundle[it]) }.toMap()
 }
 
 fun MediaSessionCompat.QueueItem.toMap(): Map<String, *> {
@@ -120,6 +122,9 @@ fun MediaDescriptionCompat.toMap(): Map<String, *> {
     )
 }
 
+/**
+ *  convert Bundle to Map object
+ */
 private fun Bundle.toMap(): Map<String, Any?> {
     return keySet().map {
         val obj = get(it)
@@ -131,6 +136,27 @@ private fun Bundle.toMap(): Map<String, Any?> {
     }.toMap()
 }
 
+
+private fun RatingCompat.toMap(): Map<String, Any?> {
+    return mapOf(
+        "ratingStyle" to ratingStyle,
+        "ratingValue" to percentRating
+    )
+}
+
+private fun Map<*, *>?.toRating(): RatingCompat? {
+    this ?: return null
+    val value = get("ratingValue") as? Float ?: 0F
+    return when (val style = get("ratingStyle") as? Int) {
+        RatingCompat.RATING_HEART -> RatingCompat.newHeartRating(value > 0)
+        RatingCompat.RATING_PERCENTAGE -> RatingCompat.newPercentageRating(value)
+        RatingCompat.RATING_3_STARS, RatingCompat.RATING_4_STARS, RatingCompat.RATING_5_STARS ->
+            RatingCompat.newStarRating(style, value)
+        RatingCompat.RATING_THUMB_UP_DOWN -> RatingCompat.newThumbRating(value > 0)
+        else -> null
+    }
+
+}
 
 private fun Map<*, *>.toBundle(): Bundle {
     val bundle = Bundle()
