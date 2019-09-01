@@ -100,8 +100,8 @@ fun MediaMetadataCompat?.toMap(): Map<String, *>? {
             else -> null
         }
     }
-    return bundle.keySet().map { metadataKeyMapping[it] ?: it }
-        .map { it to convector(bundle[it]) }.toMap()
+    return bundle.keySet().map { it to (metadataKeyMapping[it] ?: it) }
+        .map { (nativeKey, dartKey) -> dartKey to convector(bundle[nativeKey]) }.toMap()
 }
 
 fun MediaSessionCompat.QueueItem.toMap(): Map<String, *> {
