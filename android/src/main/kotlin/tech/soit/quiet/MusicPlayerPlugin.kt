@@ -112,7 +112,7 @@ class MusicPlayerPlugin(
                     controls.playFromMediaId(mediaId, extras)
                 }
             }
-            "seekTo" -> controls.seekTo(call.arguments as Long)
+            "seekTo" -> controls.seekTo((call.arguments as Number).toLong())
             "setShuffleMode" -> controls.setShuffleMode(call.arguments as Int)
             "setRepeatMode" -> controls.setRepeatMode(call.arguments as Int)
             /*media controller*/
