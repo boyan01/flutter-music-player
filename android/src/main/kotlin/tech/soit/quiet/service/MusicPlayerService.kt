@@ -68,6 +68,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private val notificationBuilder by lazy { NotificationBuilder(this) }
 
+    val backgroundCallback: BackgroundCallbackChannel by lazy {
+        BackgroundCallbackChannel.startBackgroundIsolate(this)
+    }
+
+
     private val becomingNoisyReceiver by lazy {
         BecomingNoisyReceiver(
             this,
@@ -132,6 +137,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
     }
+
 
     override fun onCreate() {
         super.onCreate()
@@ -227,6 +233,8 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             })
 
             handleNotification()
+
+
         }
 
     }
@@ -318,5 +326,6 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         notificationBuilder.destroy()
         super.onDestroy()
     }
+
 
 }

@@ -25,10 +25,8 @@ import tech.soit.quiet.utils.*
 /**
  * Helper class to encapsulate code for building notifications.
  *
- * TODO action build callback from flutter
  */
-
-class NotificationBuilder(private val context: Context) {
+class NotificationBuilder(private val context: MusicPlayerService) {
 
     companion object {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
@@ -108,19 +106,20 @@ class NotificationBuilder(private val context: Context) {
             return
         }
 
-        val artworkCache = ArtworkCache[iconUri]
-        if (artworkCache != null) {
-            // cache hit
+
+        val iconCacheKey = description.key()
+
+        if (iconCacheKey != null && ArtworkCache[iconCacheKey] != null) {
+            val artworkCache = ArtworkCache.get(iconCacheKey)
             updateNotificationInner(artworkCache.bitmap, artworkCache.color)
             return
         }
 
         updateNotificationInner(null, null)
-
         GlobalScope.launch(Dispatchers.Main) {
-            val artwork = loadArtworkFromUri(iconUri)
+            val artwork = context.backgroundCallback.loadImage(description, iconUri)
             if (artwork != null) {
-                ArtworkCache.put(iconUri, artwork)
+                iconCacheKey?.let { ArtworkCache.put(it, artwork) }
                 updateNotification(sessionToken)
             }
         }
@@ -131,6 +130,11 @@ class NotificationBuilder(private val context: Context) {
         ArtworkCache.evictAll()
 
         notificationGenerator.close()
+    }
+
+    private fun MediaDescriptionCompat.key(): Int? {
+        if (iconUri == null && mediaId == null) return null
+        return arrayOf(iconUri, mediaUri).contentHashCode()
     }
 
 

@@ -6,22 +6,22 @@ import android.net.Uri
 import android.util.LruCache
 import androidx.palette.graphics.Palette
 import androidx.palette.graphics.Target
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import java.net.HttpURLConnection
 import java.net.URI
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-private const val MEMORY_CACHE_SIZE = 20 * 1024 * 1024 // 20MB
+private const val MEMORY_CACHE_SIZE = 40 * 1024 * 1024 // 20MB
 
-object ArtworkCache : LruCache<Uri, Artwork>(MEMORY_CACHE_SIZE) {
+/**
+ * key : hash(mediaId, iconUri)
+ * value: artwork
+ */
+object ArtworkCache : LruCache<Int, Artwork>(MEMORY_CACHE_SIZE) {
 
-
-    override fun sizeOf(key: Uri?, value: Artwork): Int {
-        return value.bitmap.byteCount
+    override fun sizeOf(key: Int?, value: Artwork?): Int {
+        return value?.bitmap?.byteCount ?: 0
     }
 
 }
@@ -51,29 +51,34 @@ private fun createArtwork(bitmap: Bitmap): Artwork {
 }
 
 
-private val pendingImages = hashMapOf<Uri, Deferred<Artwork?>>()
+private val pendingUriRequests = hashMapOf<Uri, Deferred<ByteArray?>>()
 
-suspend fun loadArtworkFromUri(uri: Uri): Artwork? {
-    val image = pendingImages.getOrPut(uri) {
-        GlobalScope.async(Dispatchers.IO) {
+
+suspend fun createArtworkFromByteArray(byteArray: ByteArray): Artwork? =
+    withContext(Dispatchers.IO) {
+        return@withContext runCatching {
             //TODO resize bitmap
-            runCatching { loadImageFormUriInternal(uri) }.getOrNull()?.let {
-                createArtwork(it)
-            }
+            val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            createArtwork(bitmap)
+        }.getOrNull()
+    }
+
+suspend fun loadArtworkFromUri(uri: Uri): ByteArray? {
+    val image = pendingUriRequests.getOrPut(uri) {
+        GlobalScope.async(Dispatchers.IO) {
+            runCatching { loadDataFormUriInternal(uri) }.getOrNull()
         }
     }
     return image.await()
 }
 
-private suspend fun loadImageFormUriInternal(uri: Uri): Bitmap = suspendCoroutine { continuation ->
-    val urlConnection = URI.create(uri.toString()).toURL().openConnection() as HttpURLConnection
-    urlConnection.connect()
 
-    val bitmap = urlConnection.inputStream.use { stream ->
-        val bytes = stream.readBytes()
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+private suspend fun loadDataFormUriInternal(uri: Uri): ByteArray? =
+    suspendCoroutine { continuation ->
+        val urlConnection = URI.create(uri.toString()).toURL().openConnection() as HttpURLConnection
+        urlConnection.connect()
+        val bytes = urlConnection.inputStream.use { stream ->
+            stream.readBytes()
+        }
+        continuation.resume(bytes)
     }
-    Thread.sleep(4000)
-    continuation.resume(bitmap)
-
-}

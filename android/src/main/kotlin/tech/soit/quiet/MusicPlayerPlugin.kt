@@ -15,6 +15,7 @@ import io.flutter.plugin.common.PluginRegistry.Registrar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import tech.soit.quiet.functions.RemoteFunction
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.log
 import tech.soit.quiet.utils.toMap
@@ -28,6 +29,7 @@ class MusicPlayerPlugin(
     companion object {
 
         private const val NAME = "tech.soit.quiet/player"
+        private const val NAME_BACKGROUND = "tech.soit.quiet/player.background"
 
         @JvmStatic
         fun registerWith(registrar: Registrar) {
@@ -38,6 +40,16 @@ class MusicPlayerPlugin(
             registrar.addViewDestroyListener {
                 playerPlugin.destroy()
                 false
+            }
+
+            val background = MethodChannel(registrar.messenger(), NAME_BACKGROUND)
+            background.setMethodCallHandler { call, result ->
+                if (call.method == "registerCallbackHandle") {
+                    RemoteFunction.registerCallback(call.arguments<Long>())
+                    result.success(null)
+                    return@setMethodCallHandler
+                }
+                result.notImplemented()
             }
         }
     }
