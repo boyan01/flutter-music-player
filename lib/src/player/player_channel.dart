@@ -128,6 +128,8 @@ class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCa
   /// Transport controls for this player
   final TransportControls transportControls = TransportControls(_channel);
 
+  final MediaController mediaController = MediaController(_channel);
+
   /// Set the playlist of MusicPlayer
   void setPlayList(List<MediaMetadata> list) {}
 }

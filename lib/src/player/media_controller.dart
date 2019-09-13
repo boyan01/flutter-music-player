@@ -83,6 +83,30 @@ class TransportControls {
   }
 }
 
+class MediaController {
+  final MethodChannel _channel;
+
+  MediaController(this._channel);
+
+  Future<bool> get isSessionReady => _channel.invokeMethod("isSessionReady");
+
+  Future<PlaybackState> get playbackState =>
+      _channel.invokeMethod("getPlaybackState").then((data) => PlaybackState.fromMap(data));
+
+  Future<List<QueueItem>> get queue => _channel.invokeMethod("getQueue").then((data) {
+        if (data is! List) return const [];
+        return (data as List).map((t) => QueueItem.fromMap(t)).toList(growable: false);
+      });
+
+  Future<String> get queueTitle => _channel.invokeMethod("getQueueTitle");
+
+  Future<PlaybackInfo> get playbackInfo => _channel.invokeMethod("getPlaybackInfo");
+
+  Future<int> get repeatMode => _channel.invokeMethod("getRepeatMode");
+
+  Future<int> get shuffleMode => _channel.invokeMethod("getShuffleMode");
+}
+
 mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {

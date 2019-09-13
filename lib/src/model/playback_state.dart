@@ -82,7 +82,7 @@ class PlaybackState {
   /// Get the user readable optional error message. This may be set when the state is [STATE_ERROR]
   final String errorMessage;
 
-  /// Get the elapsed real time at which position was last updated. If the
+  /// Get the millisecondsSinceEpoch time at which position was last updated. If the
   /// position has never been set this will return 0;
   final int lastPositionUpdateTime;
 
@@ -108,7 +108,7 @@ class PlaybackState {
   }
 
   factory PlaybackState.fromMap(Map map) {
-    if(map == null) return null;
+    if (map == null) return null;
     return new PlaybackState(
       state: map['state'] as int,
       position: map['position'] as int,
@@ -117,7 +117,7 @@ class PlaybackState {
       actions: map['actions'] as int,
       errorCode: map['errorCode'] as int,
       errorMessage: map['errorMessage'] as String,
-      lastPositionUpdateTime: map['lastPositionUpdateTime'] as int,
+      lastPositionUpdateTime: map['lastPositionUpdateTime'] == 0 ? 0 : DateTime.now().millisecondsSinceEpoch,
       activeQueueItemId: map['activeQueueItemId'] as int,
       extras: map['extras'] as Map,
     );

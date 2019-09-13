@@ -128,11 +128,14 @@ class MusicPlayerPlugin(
             "setShuffleMode" -> controls.setShuffleMode(call.arguments as Int)
             "setRepeatMode" -> controls.setRepeatMode(call.arguments as Int)
             /*media controller*/
-            "getRepeatMode" -> mediaController.repeatMode
             "isSessionReady" -> mediaController.isSessionReady
             "getPlaybackState" -> mediaController.playbackState.toMap()
             "getQueue" -> mediaController.queue.map { it.description.toMap() }
             "getQueueTitle" -> mediaController.queueTitle
+            "getPlaybackInfo" -> mediaController.playbackInfo.toString() //TODO
+            "getRepeatMode" -> mediaController.repeatMode
+            "getShuffleMode" -> mediaController.shuffleMode
+
             "addQueueItem" -> {
                 val index = call.argument<Int>("index") ?: 0
                 val item = call.argument<Map<*, *>>("item")?.toMediaMetadataCompat() ?: return
