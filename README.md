@@ -7,6 +7,16 @@ Media session framework plugin for flutter, make it easy to implement music play
 * [x] basic media control.
 * [x] tracking player status change.
 
+
+## NOTE
+
+**This project is currently under development.**
+This is the list of jobs that will be done now.
+
+* load notification cover image from dart.
+* Interception before process a media play. (can do play uri verification or get tmp play url for server)
+* ...
+
 ## Getting Started
 
 This project is a starting point for a Flutter
