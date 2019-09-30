@@ -5,7 +5,6 @@ import android.net.Uri
 import android.support.v4.media.MediaDescriptionCompat
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.view.FlutterCallbackInformation
 import io.flutter.view.FlutterMain
 import io.flutter.view.FlutterNativeView
 import io.flutter.view.FlutterRunArguments
@@ -24,17 +23,21 @@ class BackgroundCallbackChannel(
 
         /**
          * start flutter background isolate
+         *
+         *
+         * Note:
+         * The flutter background entry point should be placed in lib/main.dart (the same as main() method)
+         *
          */
         fun startBackgroundIsolate(context: Context): BackgroundCallbackChannel {
             FlutterMain.ensureInitializationComplete(context, null)
             val appBundlePath = FlutterMain.findAppBundlePath()
-            val callbackInformation = buildCallbackInformation()
             val nativeView = FlutterNativeView(context, true)
 
             val arguments = FlutterRunArguments().apply {
                 bundlePath = appBundlePath
-                entrypoint = callbackInformation.callbackName
-                libraryPath = callbackInformation.callbackLibraryPath
+                entrypoint = "playerBackgroundService"
+                libraryPath = ""
             }
             nativeView.runFromBundle(arguments)
             val channel = MethodChannel(
@@ -45,30 +48,6 @@ class BackgroundCallbackChannel(
             channel.setMethodCallHandler(helper)
             return helper
         }
-
-
-        /// create callback info by reflection
-        // this callback name and library path can not modify!!
-        private fun buildCallbackInformation(): FlutterCallbackInformation = try {
-            val constructor = FlutterCallbackInformation::class.java.getDeclaredConstructor(
-                String::class.java,
-                String::class.java,
-                String::class.java
-            )
-            constructor.isAccessible = true
-            constructor.newInstance(
-                "playerBackgroundService", //callbackName
-                "", //callbackClassName
-                "" //callbackLibraryPath
-            )
-        } catch (e: Throwable) {
-            throw IllegalStateException(
-                "error to build FlutterCallbackInformation, please report this error to me. " +
-                        "https://github.com/boyan01/flutter-music-player",
-                e
-            )
-        }
-
     }
 
 
