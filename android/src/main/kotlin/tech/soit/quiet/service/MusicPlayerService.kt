@@ -19,11 +19,11 @@ import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.ext.mediasession.DefaultPlaybackController
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Util
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import tech.soit.quiet.BackgroundCallbackChannel
+import tech.soit.quiet.BackgroundHandle
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
 import tech.soit.quiet.utils.LoggerLevel
@@ -38,16 +38,10 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     companion object {
 
-        //TODO set from method channel
-        private const val USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" +
-                    " (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/13.10586"
-
-
         private val audioAttribute = AudioAttributes.Builder()
-            .setContentType(C.CONTENT_TYPE_MUSIC)
-            .setUsage(C.USAGE_MEDIA)
-            .build()
+                .setContentType(C.CONTENT_TYPE_MUSIC)
+                .setUsage(C.USAGE_MEDIA)
+                .build()
 
         private const val ROOT = "/"
 
@@ -68,15 +62,15 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private val notificationBuilder by lazy { NotificationBuilder(this) }
 
-    val backgroundCallback: BackgroundCallbackChannel by lazy {
-        BackgroundCallbackChannel.startBackgroundIsolate(this)
-    }
+    // To interact with Dart in background
+    lateinit var backgroundHandle: BackgroundHandle
+        private set
 
 
     private val becomingNoisyReceiver by lazy {
         BecomingNoisyReceiver(
-            this,
-            mediaSession.sessionToken
+                this,
+                mediaSession.sessionToken
         )
     }
 
@@ -140,15 +134,14 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
 
     override fun onCreate() {
+        // start background handle
+        backgroundHandle = BackgroundCallbackChannel.startBackgroundIsolate(this)
         super.onCreate()
         sessionToken = mediaSession.sessionToken
         mediaController = MediaControllerCompat(this, mediaSession).apply {
             registerCallback(MediaControllerCallback())
         }
 
-        val dataSourceFactory = DefaultDataSourceFactory(
-            this, Util.getUserAgent(this, ""), null
-        )
         MediaSessionConnector(mediaSession, object : DefaultPlaybackController() {
             override fun getSupportedPlaybackActions(player: Player?): Long {
                 return ACTIONS
@@ -161,10 +154,10 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 }
 
                 override fun onCommand(
-                    player: Player?,
-                    command: String?,
-                    extras: Bundle?,
-                    cb: ResultReceiver?
+                        player: Player?,
+                        command: String?,
+                        extras: Bundle?,
+                        cb: ResultReceiver?
                 ) {
                 }
 
@@ -207,7 +200,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                         return
                     }
 
-                    val source = queue.toMediaSource(dataSourceFactory)
+                    val source = queue.toMediaSource(this@MusicPlayerService)
                     exoPlayer.prepare(source)
                     exoPlayer.seekTo(windowIndex, 0)
 
@@ -220,13 +213,13 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 private val window = Timeline.Window()
 
                 override fun getMediaDescription(
-                    player: Player,
-                    windowIndex: Int
+                        player: Player,
+                        windowIndex: Int
                 ): MediaDescriptionCompat {
                     return player.currentTimeline.getWindow(
-                        windowIndex,
-                        window,
-                        true
+                            windowIndex,
+                            window,
+                            true
                     ).tag as MediaDescriptionCompat
                 }
 
@@ -245,16 +238,16 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
         //We only have a playlist which user has played from UI
         val mediaItems =
-            mediaController.queue.orEmpty()
-                .map { MediaItem(it.description, MediaItem.FLAG_PLAYABLE) }
+                mediaController.queue.orEmpty()
+                        .map { MediaItem(it.description, MediaItem.FLAG_PLAYABLE) }
         log { "send result : $mediaItems" }
         result.sendResult(mediaItems.toMutableList())
     }
 
     override fun onGetRoot(
-        clientPackageName: String,
-        clientUid: Int,
-        rootHints: Bundle?
+            clientPackageName: String,
+            clientUid: Int,
+            rootHints: Bundle?
     ): BrowserRoot? {
         //TODO validate call of client
 

@@ -6,4 +6,5 @@ export 'src/model/queue_item.dart';
 export 'src/model/rating.dart';
 
 export 'src/player/media_controller.dart';
+export 'src/player/player_background_handle.dart';
 export 'src/player/player_channel.dart';

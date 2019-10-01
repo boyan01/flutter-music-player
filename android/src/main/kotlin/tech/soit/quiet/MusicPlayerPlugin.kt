@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -21,8 +22,8 @@ import tech.soit.quiet.utils.toMap
 import tech.soit.quiet.utils.toMediaMetadataCompat
 
 class MusicPlayerPlugin(
-    private val channel: MethodChannel,
-    private val context: Context
+        private val channel: MethodChannel,
+        private val context: Context
 ) : MethodCallHandler {
 
     companion object {
@@ -42,6 +43,7 @@ class MusicPlayerPlugin(
         }
     }
 
+    private val connectionIndicator = CompletableDeferred<Unit>()
 
     private val connectCallback = object : MediaBrowserCompat.ConnectionCallback() {
 
@@ -52,6 +54,7 @@ class MusicPlayerPlugin(
                 registerCallback(controllerCallback)
                 controllerCallback.sendInitData()
             }
+            connectionIndicator.complete(Unit)
         }
 
         override fun onConnectionSuspended() {
@@ -61,6 +64,7 @@ class MusicPlayerPlugin(
         }
 
         override fun onConnectionFailed() {
+            connectionIndicator.complete(Unit)
             log { "connect failed" }
             mediaController = null
             //TODO handle connect failed
@@ -69,10 +73,10 @@ class MusicPlayerPlugin(
     }
 
     private val mediaBrowser: MediaBrowserCompat =
-        MediaBrowserCompat(
-            context, ComponentName(context, MusicPlayerService::class.java),
-            connectCallback, null
-        )
+            MediaBrowserCompat(
+                    context, ComponentName(context, MusicPlayerService::class.java),
+                    connectCallback, null
+            )
 
 
     private var mediaController: MediaControllerCompat? = null
@@ -83,9 +87,12 @@ class MusicPlayerPlugin(
         GlobalScope.launch(Dispatchers.Main) { onMethodCallAsync(call, result) }
     }
 
-    private fun onMethodCallAsync(call: MethodCall, result: MethodChannel.Result) {
+    private suspend fun onMethodCallAsync(call: MethodCall, result: MethodChannel.Result) {
         val controls = this.controls
         val mediaController = this.mediaController
+        if (controls == null || mediaController == null) {
+            connectionIndicator.await()
+        }
         if (controls == null || mediaController == null) {
             result.error("-1", "controls is not available", -1)
             return
@@ -159,7 +166,7 @@ class MusicPlayerPlugin(
         fun sendInitData() {
             val mediaController = mediaController ?: return
             channel.invokeMethod(
-                "onInit", hashMapOf(
+                    "onInit", hashMapOf(
                     "metadata" to mediaController.metadata?.toMap(),
                     "playbackInfo" to null,
                     "playbackState" to mediaController.playbackState?.toMap(),
@@ -167,7 +174,7 @@ class MusicPlayerPlugin(
                     "queueTitle" to mediaController.queueTitle,
                     "repeatMode" to mediaController.repeatMode,
                     "shuffleMode" to mediaController.shuffleMode
-                )
+            )
             )
         }
 

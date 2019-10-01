@@ -93,17 +93,6 @@ class MusicPlayerState {
   }
 }
 
-void runBackgroundService() {
-  final backgroundChannel = MethodChannel("tech.soit.quiet/background_callback");
-  backgroundChannel.setMethodCallHandler((call) async {
-    switch (call.method) {
-      case "loadImage":
-        return null;
-      default:
-        return MissingPluginException("can not hanle : ${call.method} ");
-    }
-  });
-}
 
 class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCallback {
   MusicPlayer() : super(const MusicPlayerState.none()) {

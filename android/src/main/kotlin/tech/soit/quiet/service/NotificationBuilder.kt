@@ -117,7 +117,7 @@ class NotificationBuilder(private val context: MusicPlayerService) {
 
         updateNotificationInner(null, null)
         GlobalScope.launch(Dispatchers.Main) {
-            val artwork = context.backgroundCallback.loadImage(description, iconUri)
+            val artwork = context.backgroundHandle.loadImage(description, iconUri)
             if (artwork != null) {
                 iconCacheKey?.let { ArtworkCache.put(it, artwork) }
                 updateNotification(sessionToken)

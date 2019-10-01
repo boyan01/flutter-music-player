@@ -33,6 +33,17 @@ class ExamplePage extends StatelessWidget {
   }
 }
 
+void playerBackgroundService() {
+  runBackgroundService(
+    playUriInterceptor: (id, url) {
+      if (id == "hide") {
+        return "asset:///flutter_assets/tracks/rise.mp3";
+      }
+      return url;
+    },
+  );
+}
+
 class _ExampleMusicList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
