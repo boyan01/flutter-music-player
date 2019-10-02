@@ -48,7 +48,6 @@ Future runBackgroundService({
   backgroundChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'loadImage':
-        debugPrint("load image : $imageLoadInterceptor");
         if (imageLoadInterceptor != null) {
           final MediaDescription description = MediaDescription.fromMap(call.arguments);
           return await imageLoadInterceptor(description);
