@@ -13,9 +13,9 @@ import 'package:music_player/music_player.dart';
 ///
 /// @return media uri which should
 ///
-typedef PlayUriInterceptor = String Function(String mediaId, String fallbackUri);
+typedef PlayUriInterceptor = Future<String> Function(String mediaId, String fallbackUri);
 
-typedef ImageLoadInterceptor = List<int> Function(MediaDescription description);
+typedef ImageLoadInterceptor = Future<List<int>> Function(MediaDescription description);
 
 class Config {
   final bool enableCache;
@@ -47,14 +47,14 @@ Future runBackgroundService({
       case 'loadImage':
         if (imageLoadInterceptor != null) {
           final MediaDescription description = MediaDescription.fromMap(call.arguments);
-          return imageLoadInterceptor(description);
+          return await imageLoadInterceptor(description);
         }
         throw MissingPluginException();
       case 'getPlayUrl':
         if (playUriInterceptor != null) {
           final String id = call.arguments['id'];
           final String fallbackUrl = call.arguments['url'];
-          return playUriInterceptor(id, fallbackUrl);
+          return await playUriInterceptor(id, fallbackUrl);
         }
         throw MissingPluginException();
       default:

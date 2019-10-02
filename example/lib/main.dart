@@ -35,7 +35,7 @@ class ExamplePage extends StatelessWidget {
 
 void playerBackgroundService() {
   runBackgroundService(
-    playUriInterceptor: (id, url) {
+    playUriInterceptor: (id, url) async {
       if (id == "hide") {
         return "asset:///flutter_assets/tracks/rise.mp3";
       }
