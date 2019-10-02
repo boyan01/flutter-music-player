@@ -15,17 +15,14 @@ import 'package:music_player/music_player.dart';
 ///
 typedef PlayUriInterceptor = String Function(String mediaId, String fallbackUri);
 
-
 typedef ImageLoadInterceptor = List<int> Function(MediaDescription description);
 
-
 class Config {
-
   final bool enableCache;
 
   final String userAgent;
 
-  const Config({this.enableCache = false, this.userAgent = null});
+  const Config({this.enableCache = false, this.userAgent});
 
   Map<String, dynamic> toMap() {
     return {
@@ -33,7 +30,6 @@ class Config {
       'userAgent': this.userAgent,
     };
   }
-
 }
 
 ///
@@ -41,8 +37,8 @@ class Config {
 ///
 Future runBackgroundService({
   Config config = const Config(),
-  PlayUriInterceptor playUriInterceptor = null,
-  ImageLoadInterceptor imageLoadInterceptor = null,
+  PlayUriInterceptor playUriInterceptor,
+  ImageLoadInterceptor imageLoadInterceptor,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   final backgroundChannel = MethodChannel("tech.soit.quiet/background_callback");
@@ -50,8 +46,8 @@ Future runBackgroundService({
     switch (call.method) {
       case 'loadImage':
         if (imageLoadInterceptor != null) {
-          final MediaDescription descirption = MediaDescription.fromMap(call.arguments);
-          return imageLoadInterceptor(descirption);
+          final MediaDescription description = MediaDescription.fromMap(call.arguments);
+          return imageLoadInterceptor(description);
         }
         throw MissingPluginException();
       case 'getPlayUrl':
