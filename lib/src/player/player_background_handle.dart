@@ -65,5 +65,4 @@ Future runBackgroundService({
     }
   });
   backgroundChannel.invokeMethod('updateConfig', config.toMap());
-  debugPrint("background : runBackgroundService over");
 }
