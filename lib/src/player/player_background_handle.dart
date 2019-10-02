@@ -42,6 +42,8 @@ Future runBackgroundService({
   ImageLoadInterceptor imageLoadInterceptor,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // decrease background image memory
+  PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
   final backgroundChannel = MethodChannel("tech.soit.quiet/background_callback");
   backgroundChannel.setMethodCallHandler((call) async {
     switch (call.method) {
