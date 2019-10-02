@@ -22,7 +22,7 @@ import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import tech.soit.quiet.BackgroundCallbackChannel
+import tech.soit.quiet.MusicPlayerBackgroundPlugin
 import tech.soit.quiet.BackgroundHandle
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
@@ -135,7 +135,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     override fun onCreate() {
         // start background handle
-        backgroundHandle = BackgroundCallbackChannel.startBackgroundIsolate(this)
+        backgroundHandle = MusicPlayerBackgroundPlugin.startBackgroundIsolate(this)
         super.onCreate()
         sessionToken = mediaSession.sessionToken
         mediaController = MediaControllerCompat(this, mediaSession).apply {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -15,7 +16,7 @@ import 'package:music_player/music_player.dart';
 ///
 typedef PlayUriInterceptor = Future<String> Function(String mediaId, String fallbackUri);
 
-typedef ImageLoadInterceptor = Future<List<int>> Function(MediaDescription description);
+typedef ImageLoadInterceptor = Future<Uint8List> Function(MediaDescription description);
 
 class Config {
   final bool enableCache;
@@ -45,6 +46,7 @@ Future runBackgroundService({
   backgroundChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'loadImage':
+        debugPrint("load image : $imageLoadInterceptor");
         if (imageLoadInterceptor != null) {
           final MediaDescription description = MediaDescription.fromMap(call.arguments);
           return await imageLoadInterceptor(description);

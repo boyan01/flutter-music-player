@@ -6,6 +6,7 @@ import android.support.v4.media.MediaDescriptionCompat
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.FlutterMain
 import io.flutter.view.FlutterNativeView
 import io.flutter.view.FlutterRunArguments
@@ -40,6 +41,8 @@ interface BackgroundHandle {
 
 }
 
+typealias BackgroundRegistrarCallback = (registry: PluginRegistry) -> Unit
+
 
 private object DefaultBackgroundHandle : BackgroundHandle {
 
@@ -55,7 +58,7 @@ private object DefaultBackgroundHandle : BackgroundHandle {
 }
 
 
-class BackgroundCallbackChannel(
+class MusicPlayerBackgroundPlugin(
         private val methodChannel: MethodChannel,
         private val dartExecutor: DartExecutor
 ) : MethodChannel.MethodCallHandler, BackgroundHandle {
@@ -65,6 +68,12 @@ class BackgroundCallbackChannel(
 
 
         private const val NAME = "tech.soit.quiet/background_callback"
+
+        private var registrarCallback: BackgroundRegistrarCallback? = null
+
+        fun setOnRegisterCallback(callback: BackgroundRegistrarCallback) {
+            registrarCallback = callback
+        }
 
         /**
          * start flutter background isolate
@@ -92,10 +101,11 @@ class BackgroundCallbackChannel(
             }
             nativeView.runFromBundle(arguments)
             val channel = MethodChannel(
-                    nativeView.pluginRegistry.registrarFor(BackgroundCallbackChannel::class.java.name).messenger(),
+                    nativeView.pluginRegistry.registrarFor(MusicPlayerBackgroundPlugin::class.java.name).messenger(),
                     NAME
             )
-            val helper = BackgroundCallbackChannel(channel, nativeView.dartExecutor)
+            registrarCallback?.invoke(nativeView.pluginRegistry)
+            val helper = MusicPlayerBackgroundPlugin(channel, nativeView.dartExecutor)
             channel.setMethodCallHandler(helper)
             return helper
         }
