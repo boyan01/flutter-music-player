@@ -1,4 +1,4 @@
-# flutter_music_player
+# flutter_music_player  [![](https://github.com/boyan01/flutter-music-player/workflows/Test%20and%20Build%20Apk/badge.svg)](https://github.com/boyan01/flutter-music-player/actions)
 
 Media session framework plugin for flutter, make it easy to implement music play by flutter.
 
