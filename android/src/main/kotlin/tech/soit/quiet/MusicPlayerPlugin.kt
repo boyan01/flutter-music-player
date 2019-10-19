@@ -2,7 +2,6 @@ package tech.soit.quiet
 
 import android.content.ComponentName
 import android.content.Context
-import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -16,6 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import tech.soit.quiet.player.PlayListExt
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.log
 import tech.soit.quiet.utils.toMap
@@ -37,7 +37,7 @@ class MusicPlayerPlugin(
             channel.setMethodCallHandler(playerPlugin)
             playerPlugin.connect()
             registrar.addViewDestroyListener {
-                playerPlugin.destroy()
+                playerPlugin.disconnect()
                 false
             }
         }
@@ -105,23 +105,18 @@ class MusicPlayerPlugin(
             "pause" -> controls.pause()
             "play" -> controls.play()
             "playFromMediaId", "prepareFromMediaId" -> {
-                val mediaId = call.argument<String>("mediaId")
-                val playList = call.argument<List<Map<String, Any>>>("queue")
-                val extras = playList?.map { it.toMediaMetadataCompat() }?.let { medias ->
-                    Bundle().apply {
-                        putParcelableArrayList("queue", ArrayList(medias))
-                        putString("queueTitle", call.argument("queueTitle"))
-                    }
-                }
+                val mediaId = call.arguments<String>()
                 if (call.method == "prepareFromMediaId") {
-                    controls.prepareFromMediaId(mediaId, extras)
+                    controls.prepareFromMediaId(mediaId, null)
                 } else {
-                    controls.playFromMediaId(mediaId, extras)
+                    controls.playFromMediaId(mediaId, null)
                 }
             }
             "seekTo" -> controls.seekTo((call.arguments as Number).toLong())
-            "setShuffleMode" -> controls.setShuffleMode(call.arguments as Int)
-            "setRepeatMode" -> controls.setRepeatMode(call.arguments as Int)
+            "setPlayMode" -> {
+                //TODO
+                log { "TODO: set play mode " }
+            }
             /*media controller*/
             "isSessionReady" -> mediaController.isSessionReady
             "getPlaybackState" -> mediaController.playbackState.toMap()
@@ -131,14 +126,17 @@ class MusicPlayerPlugin(
             "getRepeatMode" -> mediaController.repeatMode
             "getShuffleMode" -> mediaController.shuffleMode
 
-            "addQueueItem" -> {
-                val index = call.argument<Int>("index") ?: 0
-                val item = call.argument<Map<*, *>>("item")?.toMediaMetadataCompat() ?: return
-                mediaController.addQueueItem(item.description, index)
+            "updatePlayList" -> {
+                val playList = call.argument<List<Map<String, Any>>>("queue")!!.map { it.toMediaMetadataCompat() }
+                val title = call.argument<String>("queueTitle")
+                val queueId = call.argument<String>("queueId")!!
+                PlayListExt.updatePlayList(mediaController, playList, title, queueId)
             }
-            "removeQueueItem" -> {
-                val item = call.arguments<Map<*, *>>().toMediaMetadataCompat()
-                mediaController.removeQueueItem(item.description)
+            /* addition */
+            "getPrevious" -> {
+            }
+            "getNext" -> {
+
             }
             else -> {
                 result.notImplemented()
@@ -148,7 +146,7 @@ class MusicPlayerPlugin(
         result.success(if (r == Unit) null else r)
     }
 
-    private fun destroy() {
+    private fun disconnect() {
         mediaController?.unregisterCallback(controllerCallback)
         mediaController = null
 
@@ -200,7 +198,7 @@ class MusicPlayerPlugin(
         }
 
         override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
-            channel.invokeMethod("onQueueChanged", queue?.map { it.toMap() })
+            // No need to update dart value
         }
 
         override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo) {

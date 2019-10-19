@@ -33,8 +33,12 @@ class PlayerWidget extends StatefulWidget {
   const PlayerWidget({Key key, this.child}) : super(key: key);
 
   static TransportControls transportControls(BuildContext context) {
+    return player(context).transportControls;
+  }
+
+  static MusicPlayer player(BuildContext context) {
     final _PlayerWidgetState state = context.ancestorStateOfType(const TypeMatcher<_PlayerWidgetState>());
-    return state.player.transportControls;
+    return state.player;
   }
 
   @override

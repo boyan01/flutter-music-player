@@ -99,58 +99,31 @@ class RepeatModelButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MusicPlayerState state = PlayerState.of(context);
-    final int shuffleMode = state.shuffleMode;
-    final int repeatMode = state.repeatMode;
-    final _PlayMode playMode = _PlayMode(shuffleMode, repeatMode);
 
     Widget icon;
-    if (playMode == shuffle) {
+    if (state.playMode == PlayMode.shuffle) {
       icon = const Icon(Icons.shuffle);
-    } else if (playMode == single) {
+    } else if (state.playMode == PlayMode.single) {
       icon = const Icon(Icons.repeat_one);
     } else {
       icon = const Icon(Icons.repeat);
-      if (playMode != sequence) {
-        _setPlayModel(context, sequence);
-      }
     }
     return IconButton(
         icon: icon,
         onPressed: () {
-          _setPlayModel(context, playMode.next());
+          PlayerWidget.transportControls(context).setPlayMode(_getNext(state.playMode));
         });
   }
 
-  void _setPlayModel(BuildContext context, _PlayMode mode) {
-    PlayerWidget.transportControls(context).setRepeatMode(mode.repeatMode);
-    PlayerWidget.transportControls(context).setShuffleMode(mode.shuffleMode);
-  }
-}
-
-const _PlayMode sequence = _PlayMode(PlaybackState.SHUFFLE_MODE_NONE, PlaybackState.REPEAT_MODE_ALL);
-const _PlayMode single = _PlayMode(PlaybackState.SHUFFLE_MODE_NONE, PlaybackState.REPEAT_MODE_ONE);
-const _PlayMode shuffle = _PlayMode(PlaybackState.SHUFFLE_MODE_ALL, PlaybackState.REPEAT_MODE_ALL);
-
-class _PlayMode {
-  final int shuffleMode;
-  final int repeatMode;
-
-  const _PlayMode(this.shuffleMode, this.repeatMode);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _PlayMode &&
-          runtimeType == other.runtimeType &&
-          shuffleMode == other.shuffleMode &&
-          repeatMode == other.repeatMode;
-
-  @override
-  int get hashCode => shuffleMode.hashCode ^ repeatMode.hashCode;
-
-  _PlayMode next() {
-    if (this == sequence) return single;
-    if (this == single) return shuffle;
-    return sequence;
+  static PlayMode _getNext(PlayMode playMode) {
+    switch (playMode) {
+      case PlayMode.sequence:
+        return PlayMode.shuffle;
+      case PlayMode.shuffle:
+        return PlayMode.single;
+      case PlayMode.single:
+        return PlayMode.sequence;
+    }
+    throw "can not reach";
   }
 }

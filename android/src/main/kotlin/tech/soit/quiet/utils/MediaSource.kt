@@ -22,23 +22,23 @@ import tech.soit.quiet.service.MusicPlayerService
  * of [MediaDescriptionCompat] objects.
  */
 fun List<MediaDescriptionCompat>.toMediaSource(
-    service: MusicPlayerService
+        service: MusicPlayerService
 ): ConcatenatingMediaSource {
     val handle = service.backgroundHandle
     val default = DefaultDataSourceFactory(
-        service,
-        handle.config.userAgent ?: Util.getUserAgent(service, service.applicationInfo.name),
-        null
+            service,
+            handle.config.userAgent ?: Util.getUserAgent(service, service.applicationInfo.name),
+            null
     )
     var factory: DataSource.Factory =
-        UrlUpdatingDataSource.Factory(default, handle)
+            UrlUpdatingDataSource.Factory(default, handle)
     if (handle.config.enableCache) {
         factory = CacheDataSourceFactory(SimpleCache(service.cacheDir, NoOpCacheEvictor()), factory)
     }
 
     val concatenatingMediaSource = ConcatenatingMediaSource(
-        true, true,
-        ShuffleOrder.DefaultShuffleOrder(0)
+            true, true,
+            ShuffleOrder.DefaultShuffleOrder(0)
     )
     forEach {
         concatenatingMediaSource.addMediaSource(it.toMediaSource(factory))
@@ -48,14 +48,30 @@ fun List<MediaDescriptionCompat>.toMediaSource(
 
 /**
  * Extension method for building an [ExtractorMediaSource] from a [MediaMetadataCompat] object.
- *
- * For convenience, place the [MediaDescriptionCompat] into the tag so it can be retrieved later.
  */
 fun MediaDescriptionCompat.toMediaSource(dataSourceFactory: DataSource.Factory): ExtractorMediaSource =
-    ExtractorMediaSource.Factory(dataSourceFactory)
-        .setTag(this)
-        .setCustomCacheKey(mediaId)
-        .createMediaSource(buildMediaUri(this))
+        ExtractorMediaSource.Factory(dataSourceFactory)
+                .setTag(this)
+                .setCustomCacheKey(mediaId)
+                .createMediaSource(buildMediaUri(this))
+
+
+fun MediaMetadataCompat.toMediaSource(service: MusicPlayerService): ExtractorMediaSource {
+    val handle = service.backgroundHandle
+    val default = DefaultDataSourceFactory(
+            service,
+            handle.config.userAgent ?: Util.getUserAgent(service, service.applicationInfo.name),
+            null
+    )
+    var factory: DataSource.Factory =
+            UrlUpdatingDataSource.Factory(default, handle)
+    if (handle.config.enableCache) {
+        factory = CacheDataSourceFactory(SimpleCache(service.cacheDir, NoOpCacheEvictor()), factory)
+    }
+    return ExtractorMediaSource.Factory(factory)
+            .setCustomCacheKey(description.mediaId)
+            .createMediaSource(buildMediaUri(description))
+}
 
 
 private const val SCHEME = "quiet"
@@ -66,9 +82,9 @@ private const val SCHEME = "quiet"
  */
 private fun buildMediaUri(description: MediaDescriptionCompat): Uri {
     return Uri.parse(
-        "$SCHEME://player?" +
-                "id=${description.mediaId}&" +
-                "uri=${description.mediaUri?.toString() ?: ""}"
+            "$SCHEME://player?" +
+                    "id=${description.mediaId}&" +
+                    "uri=${description.mediaUri?.toString() ?: ""}"
     )
 }
 
@@ -77,18 +93,18 @@ private fun buildMediaUri(description: MediaDescriptionCompat): Uri {
  * auto update url when we read data from dataSource
  */
 private class UrlUpdatingDataSource(
-    private val dataSource: DataSource,
-    private val backgroundHandle: BackgroundHandle
+        private val dataSource: DataSource,
+        private val backgroundHandle: BackgroundHandle
 ) : DataSource by dataSource {
 
     class Factory(
-        private val factory: DataSource.Factory,
-        private val backgroundHandle: BackgroundHandle
+            private val factory: DataSource.Factory,
+            private val backgroundHandle: BackgroundHandle
     ) : DataSource.Factory {
         override fun createDataSource(): DataSource {
             return UrlUpdatingDataSource(
-                factory.createDataSource(),
-                backgroundHandle
+                    factory.createDataSource(),
+                    backgroundHandle
             )
         }
     }

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:music_player/src/model/media_metadata.dart';
 import 'package:music_player/src/model/playback_info.dart';
 import 'package:music_player/src/model/playback_state.dart';
-import 'package:music_player/src/model/queue_item.dart';
 import 'package:music_player/src/player/media_controller.dart';
 
 // PlayerPlugin channel
@@ -14,32 +13,32 @@ class MusicPlayerState {
   final MediaMetadata metadata;
   final PlaybackInfo playbackInfo;
   final PlaybackState playbackState;
-  final List<QueueItem> queue;
+  final List<MediaMetadata> queue;
   final String queueTitle;
-  final int repeatMode;
+  final PlayMode playMode;
   final int ratingType;
-  final int shuffleMode;
+  final String queueId;
 
-  const MusicPlayerState({
-    this.metadata,
-    this.playbackInfo,
-    this.playbackState,
-    this.queue,
-    this.queueTitle,
-    this.repeatMode,
-    this.ratingType,
-    this.shuffleMode,
-  });
+  const MusicPlayerState(
+      {this.metadata,
+      this.playbackInfo,
+      this.playbackState,
+      this.queue,
+      this.queueTitle,
+      this.ratingType,
+      this.queueId,
+      this.playMode});
 
   MusicPlayerState copyWith({
     MediaMetadata metadata,
     PlaybackInfo playbackInfo,
     PlaybackState playbackState,
-    List<QueueItem> queue,
+    List<MediaMetadata> queue,
     String queueTitle,
     int repeatMode,
     int ratingType,
     int shuffleMode,
+    String queueId,
   }) {
     return new MusicPlayerState(
       metadata: metadata ?? this.metadata,
@@ -47,23 +46,21 @@ class MusicPlayerState {
       playbackState: playbackState ?? this.playbackState,
       queue: queue ?? this.queue,
       queueTitle: queueTitle ?? this.queueTitle,
-      repeatMode: repeatMode ?? this.repeatMode,
       ratingType: ratingType ?? this.ratingType,
-      shuffleMode: shuffleMode ?? this.shuffleMode,
+      playMode: playMode ?? this.playMode,
+      queueId: queueId ?? this.queueId,
     );
   }
 
   const MusicPlayerState.none()
       : this(
-          metadata: null,
-          playbackState: const PlaybackState.none(),
-          playbackInfo: null,
-          queue: const [],
-          queueTitle: "NONE",
-          ratingType: 0,
-          shuffleMode: PlaybackState.SHUFFLE_MODE_NONE,
-          repeatMode: PlaybackState.REPEAT_MODE_NONE,
-        );
+            metadata: null,
+            playbackState: const PlaybackState.none(),
+            playbackInfo: null,
+            queue: const [],
+            queueTitle: "NONE",
+            ratingType: 0,
+            playMode: PlayMode.sequence);
 
   Map<String, dynamic> toMap() {
     return {
@@ -72,9 +69,8 @@ class MusicPlayerState {
       'playbackState': this.playbackState.toMap(),
       'queue': this.queue,
       'queueTitle': this.queueTitle,
-      'repeatMode': this.repeatMode,
+      'playMode': this.playMode.index,
       'ratingType': this.ratingType,
-      'shuffleMode': this.shuffleMode,
     };
   }
 
@@ -84,15 +80,14 @@ class MusicPlayerState {
       metadata: MediaMetadata.fromMap(map['metadata']),
       playbackInfo: null,
       playbackState: PlaybackState.fromMap(map['playbackState']),
-      queue: (map['queue'] as List)?.map((it) => QueueItem.fromMap(it))?.toList() ?? const [],
+      queue: (map['queue'] as List)?.map((it) => MediaMetadata.fromMap(it))?.toList() ?? const [],
       queueTitle: map['queueTitle'] as String,
-      repeatMode: map['repeatMode'] as int,
+      //TODO
+      playMode: PlayMode.sequence,
       ratingType: map['ratingType'] as int,
-      shuffleMode: map['shuffleMode'] as int,
     );
   }
 }
-
 
 class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCallback {
   MusicPlayer() : super(const MusicPlayerState.none()) {
@@ -120,5 +115,14 @@ class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCa
   final MediaController mediaController = MediaController(_channel);
 
   /// Set the playlist of MusicPlayer
-  void setPlayList(List<MediaMetadata> list) {}
+  Future<void> setPlayList(List<MediaMetadata> list, String queueId, {String queueTitle}) async {
+    assert(list != null);
+    assert(queueId != null);
+    value = value.copyWith(queue: list, queueTitle: queueTitle, queueId: queueId);
+    await _channel.invokeMethod("updatePlayList", {
+      "queue": list.map((item) => item.toMap()).toList(),
+      "queueTitle": queueTitle,
+      "queueId": queueId,
+    });
+  }
 }

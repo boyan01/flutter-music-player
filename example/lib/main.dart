@@ -25,7 +25,7 @@ class ExamplePage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: <Widget>[
-          Expanded(child: _ExampleMusicList()),
+          Expanded(child: _ExampleMusicList(listId: "playlist001")),
           MusicControlBar(),
         ],
       ),
@@ -34,17 +34,16 @@ class ExamplePage extends StatelessWidget {
 }
 
 void playerBackgroundService() {
-  runBackgroundService(
-    playUriInterceptor: (id, url) async {
-      if (id == "hide") {
-        return "asset:///flutter_assets/tracks/rise.mp3";
-      }
-      return url;
-    },
-  );
+  runBackgroundService();
 }
 
 class _ExampleMusicList extends StatelessWidget {
+  final String listId;
+
+  const _ExampleMusicList({Key key, @required this.listId})
+      : assert(listId != null),
+        super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -55,8 +54,12 @@ class _ExampleMusicList extends StatelessWidget {
             title: Text(item.title),
             subtitle: Text(item.subtitle ?? ""),
             trailing: Icon(Icons.play_circle_outline),
-            onTap: () {
-              PlayerWidget.transportControls(context).playFromMediaId(item.mediaId, medias, "Example");
+            onTap: () async {
+              final player = PlayerWidget.player(context);
+              if (player.value.queueId != listId) {
+                await player.setPlayList(medias, listId, queueTitle: "Exmaple");
+              }
+              PlayerWidget.transportControls(context).playFromMediaId(item.mediaId);
             },
           );
         });

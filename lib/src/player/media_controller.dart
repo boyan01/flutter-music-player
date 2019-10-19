@@ -14,28 +14,16 @@ class TransportControls {
 
   TransportControls(this._channel);
 
-  void prepare() {
-    _channel.invokeMethod("prepare");
-  }
-
-  void prepareFromMediaId(String mediaId, List<MediaMetadata> queue, String queueTitle) {
-    _channel.invokeMethod("prepareFromMediaId", {
-      "mediaId": mediaId,
-      "queue": queue.map((it) => it.toMap()).toList(),
-      "queueTitle": queueTitle,
-    });
+  void prepareFromMediaId(String mediaId) {
+    _channel.invokeMethod("prepareFromMediaId", mediaId);
   }
 
   void play() {
     _channel.invokeMethod("play");
   }
 
-  void playFromMediaId(String mediaId, List<MediaMetadata> queue, String queueTitle) {
-    _channel.invokeMethod("playFromMediaId", {
-      "mediaId": mediaId,
-      "queue": queue.map((it) => it.toMap()).toList(),
-      "queueTitle": queueTitle,
-    });
+  void playFromMediaId(String mediaId) {
+    _channel.invokeMethod("playFromMediaId", mediaId);
   }
 
   void skipToQueueItem(int id) {
@@ -74,6 +62,11 @@ class TransportControls {
     _channel.invokeMethod("setRating", rating.toMap());
   }
 
+  void setPlayMode(PlayMode playMode) {
+    //TODO
+    _channel.invokeMethod("setPlayMode", playMode.index);
+  }
+
   void setRepeatMode(int repeatMode) {
     _channel.invokeMethod("setRepeatMode", repeatMode);
   }
@@ -81,6 +74,12 @@ class TransportControls {
   void setShuffleMode(int shuffleMode) {
     _channel.invokeMethod("setShuffleMode", shuffleMode);
   }
+}
+
+enum PlayMode {
+  sequence,
+  shuffle,
+  single,
 }
 
 class MediaController {
@@ -105,9 +104,22 @@ class MediaController {
   Future<int> get repeatMode => _channel.invokeMethod("getRepeatMode");
 
   Future<int> get shuffleMode => _channel.invokeMethod("getShuffleMode");
+
+  /// get the next media, could be null
+  Future<MediaMetadata> getNext() async {
+    final Map map = await _channel.invokeMethod("getNext");
+    return MediaMetadata.fromMap(map);
+  }
+
+  /// get the previous media, could be null
+  Future<MediaMetadata> getPrevious() async {
+    final Map map = await _channel.invokeMethod("getPreivous");
+    return MediaMetadata.fromMap(map);
+  }
 }
 
 mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
+  @protected
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {
       case "onInit":
@@ -129,18 +141,11 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
       case "onAudioInfoChanged":
         onAudioInfoChanged();
         break;
-      case "onRepeatModeChanged":
+      case "onPlayModeChanged":
         onRepeatModeChanged(call.arguments);
         break;
       case "onShuffleModeChanged":
         onShuffleModeChanged(call.arguments);
-        break;
-      case 'onQueueChanged':
-        final List list = call.arguments as List ?? const [];
-        onQueueChanged(list.cast<Map>().map((it) => QueueItem.fromMap(it.cast())).toList());
-        break;
-      case 'onQueueTitleChanged':
-        onQueueTitleChanged(call.arguments);
         break;
       default:
         return false;
@@ -178,11 +183,6 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
 
   void onRepeatModeChanged(int repeatMode) {
     value = value.copyWith(repeatMode: repeatMode);
-    notifyListeners();
-  }
-
-  void onQueueChanged(List<QueueItem> queue) {
-    value = value.copyWith(queue: queue);
     notifyListeners();
   }
 
