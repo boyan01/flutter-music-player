@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,8 @@ import 'package:music_player/src/model/media_metadata.dart';
 import 'package:music_player/src/model/playback_info.dart';
 import 'package:music_player/src/model/playback_state.dart';
 import 'package:music_player/src/player/media_controller.dart';
+
+import 'play_mode.dart';
 
 // PlayerPlugin channel
 const MethodChannel _channel = const MethodChannel('tech.soit.quiet/player');
@@ -15,9 +19,10 @@ class MusicPlayerState {
   final PlaybackState playbackState;
   final List<MediaMetadata> queue;
   final String queueTitle;
-  final PlayMode playMode;
   final int ratingType;
   final String queueId;
+
+  PlayMode get playMode => playbackState.playMode;
 
   const MusicPlayerState(
       {this.metadata,
@@ -26,8 +31,7 @@ class MusicPlayerState {
       this.queue,
       this.queueTitle,
       this.ratingType,
-      this.queueId,
-      this.playMode});
+      this.queueId});
 
   MusicPlayerState copyWith({
     MediaMetadata metadata,
@@ -35,9 +39,7 @@ class MusicPlayerState {
     PlaybackState playbackState,
     List<MediaMetadata> queue,
     String queueTitle,
-    int repeatMode,
     int ratingType,
-    int shuffleMode,
     String queueId,
   }) {
     return new MusicPlayerState(
@@ -47,7 +49,6 @@ class MusicPlayerState {
       queue: queue ?? this.queue,
       queueTitle: queueTitle ?? this.queueTitle,
       ratingType: ratingType ?? this.ratingType,
-      playMode: playMode ?? this.playMode,
       queueId: queueId ?? this.queueId,
     );
   }
@@ -59,20 +60,7 @@ class MusicPlayerState {
             playbackInfo: null,
             queue: const [],
             queueTitle: "NONE",
-            ratingType: 0,
-            playMode: PlayMode.sequence);
-
-  Map<String, dynamic> toMap() {
-    return {
-      'metadata': this.metadata.toMap(),
-      'playbackInfo': this.playbackInfo,
-      'playbackState': this.playbackState.toMap(),
-      'queue': this.queue,
-      'queueTitle': this.queueTitle,
-      'playMode': this.playMode.index,
-      'ratingType': this.ratingType,
-    };
-  }
+            ratingType: 0);
 
   factory MusicPlayerState.fromMap(Map map) {
     if (map == null) return null;
@@ -82,9 +70,8 @@ class MusicPlayerState {
       playbackState: PlaybackState.fromMap(map['playbackState']),
       queue: (map['queue'] as List)?.map((it) => MediaMetadata.fromMap(it))?.toList() ?? const [],
       queueTitle: map['queueTitle'] as String,
-      //TODO
-      playMode: PlayMode.sequence,
       ratingType: map['ratingType'] as int,
+      queueId: map['queueId'] as String,
     );
   }
 }
@@ -106,7 +93,11 @@ class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCa
         debugPrint(trace.toString());
       }
     });
-    _channel.invokeMethod("init");
+    scheduleMicrotask(() async {
+      final map = await _channel.invokeMethod<Map>("init");
+      value = MusicPlayerState.fromMap(map) ?? MusicPlayerState.none();
+      notifyListeners();
+    });
   }
 
   /// Transport controls for this player

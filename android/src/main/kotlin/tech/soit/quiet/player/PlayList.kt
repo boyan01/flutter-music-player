@@ -1,9 +1,13 @@
 package tech.soit.quiet.player
 
+import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.sendCommandAsync
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
 
 
@@ -21,12 +25,16 @@ class PlayList private constructor(
 
 
     companion object {
+
+        const val KEY_PLAYLIST = "tech.soit.quiet.PlayList"
+        const val KEY_PLAYLIST_ID = "tech.soit.quiet.QueueId"
+
+
         val empty = PlayList(emptyList(), null, "")
 
 
         private fun List<MediaMetadataCompat>.index(metadata: MediaMetadataCompat): Int {
             return indexOfFirst {
-                log { "${it.description.mediaId}  to ${metadata.description.mediaId}" }
                 it.description.mediaId == metadata.description.mediaId
             }
         }
@@ -58,6 +66,11 @@ class PlayList private constructor(
 
 
     val isEmpty get() = list.isEmpty()
+
+
+    fun getQueueID(metadata: MediaMetadataCompat): Long {
+        return queue.index(metadata).toLong()
+    }
 
 
     fun getMetadataByQueueId(queueId: Long): MediaMetadataCompat? {
@@ -176,6 +189,10 @@ class PlayList private constructor(
                 )
             }
             mediaSession.setQueue(queue)
+            mediaSession.setExtras(Bundle().apply {
+                putParcelableArrayList(KEY_PLAYLIST, ArrayList(list))
+                putString(KEY_PLAYLIST_ID, queueId)
+            })
 
         }
 
@@ -189,6 +206,41 @@ class PlayList private constructor(
         }
 
 
+    }
+
+
+}
+
+object PlayListExt {
+
+
+    private const val COMMAND_UPDATE_PLAYLIST = "updatePlayList"
+
+    private const val COMMAND_GET_PLAYLIST = "getPlayList"
+
+    val commands = arrayOf(COMMAND_UPDATE_PLAYLIST, COMMAND_GET_PLAYLIST)
+
+
+    fun updatePlayList(
+            controller: MediaControllerCompat,
+            queue: List<MediaMetadataCompat>,
+            title: String?,
+            queueId: String) {
+        val data = Bundle().apply {
+            putParcelableArrayList("queue", ArrayList(queue))
+            putString("title", title)
+            putString("queueId", queueId)
+        }
+        controller.sendCommand(COMMAND_UPDATE_PLAYLIST, data, null)
+    }
+
+
+    fun parsePlayListFromArgument(bundle: Bundle): PlayList {
+        return PlayList(
+                list = bundle.getParcelableArrayList("queue")!!,
+                title = bundle.getString("title"),
+                queueId = bundle.getString("queueId")!!
+        )
     }
 
 

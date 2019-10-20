@@ -1,5 +1,6 @@
 package tech.soit.quiet.player
 
+import android.annotation.SuppressLint
 import android.support.v4.media.session.PlaybackStateCompat
 
 /**
@@ -21,10 +22,10 @@ enum class PlayMode {
         /**
          * safely convert enum name to instance
          */
-        fun from(name: String?) = when (name) {
-            Shuffle.name -> Shuffle
-            Single.name -> Single
-            Sequence.name -> Sequence
+        @SuppressLint("DefaultLocale")
+        fun from(name: String?) = when (name?.toLowerCase()) {
+            "shuffle" -> Shuffle
+            "single" -> Single
             else -> Sequence
         }
 

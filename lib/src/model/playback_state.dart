@@ -1,4 +1,5 @@
 import 'package:music_player/music_player.dart';
+import 'package:music_player/src/player/play_mode.dart';
 
 /// Playback state of MusicPlayer.
 class PlaybackState {
@@ -16,17 +17,6 @@ class PlaybackState {
   static const int STATE_SKIPPING_TO_QUEUE_ITEM = 11;
 
   static const int PLAYBACK_POSITION_UNKNOWN = -1;
-
-  static const int REPEAT_MODE_INVALID = -1;
-  static const int REPEAT_MODE_NONE = 0;
-  static const int REPEAT_MODE_ONE = 1;
-  static const int REPEAT_MODE_ALL = 2;
-  static const int REPEAT_MODE_GROUP = 3;
-
-  static const int SHUFFLE_MODE_INVALID = -1;
-  static const int SHUFFLE_MODE_NONE = 0;
-  static const int SHUFFLE_MODE_ALL = 1;
-  static const int SHUFFLE_MODE_GROUP = 2;
 
   static const int ERROR_CODE_UNKNOWN_ERROR = 0;
   static const int ERROR_CODE_APP_ERROR = 1;
@@ -90,22 +80,8 @@ class PlaybackState {
   /// queue or a queue is not supported by the session this will be
   /// [QueueItem.UNKNOWN_ID].
   final int activeQueueItemId;
-  final Map extras;
 
-  Map<String, dynamic> toMap() {
-    return {
-      'state': this.state,
-      'position': this.position,
-      'bufferedPosition': this.bufferedPosition,
-      'playbackSpeed': this.playbackSpeed,
-      'actions': this.actions,
-      'errorCode': this.errorCode,
-      'errorMessage': this.errorMessage,
-      'lastPositionUpdateTime': this.lastPositionUpdateTime,
-      'activeQueueItemId': this.activeQueueItemId,
-      'extras': this.extras,
-    };
-  }
+  final PlayMode playMode;
 
   factory PlaybackState.fromMap(Map map) {
     if (map == null) return null;
@@ -119,23 +95,25 @@ class PlaybackState {
       errorMessage: map['errorMessage'] as String,
       lastPositionUpdateTime: map['lastPositionUpdateTime'] == 0 ? 0 : DateTime.now().millisecondsSinceEpoch,
       activeQueueItemId: map['activeQueueItemId'] as int,
-      extras: map['extras'] as Map,
+      playMode: parsePlayMode(map['playMode']),
     );
   }
 
   @override
   String toString() {
-    return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, playbackSpeed: $playbackSpeed, actions: $actions, errorCode: $errorCode, errorMessage: $errorMessage, lastPositionUpdateTime: $lastPositionUpdateTime, activeQueueItemId: $activeQueueItemId, extras: $extras}';
+    return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, playbackSpeed: $playbackSpeed, actions: $actions, errorCode: $errorCode, errorMessage: $errorMessage, lastPositionUpdateTime: $lastPositionUpdateTime, activeQueueItemId: $activeQueueItemId,}';
   }
 
   const PlaybackState.none()
       : this(
-            state: STATE_NONE,
-            position: PLAYBACK_POSITION_UNKNOWN,
-            bufferedPosition: 0,
-            playbackSpeed: 1,
-            actions: 0,
-            lastPositionUpdateTime: 0);
+          state: STATE_NONE,
+          position: PLAYBACK_POSITION_UNKNOWN,
+          bufferedPosition: 0,
+          playbackSpeed: 1,
+          actions: 0,
+          lastPositionUpdateTime: 0,
+          playMode: PlayMode.sequence,
+        );
 
   const PlaybackState({
     this.state,
@@ -147,6 +125,6 @@ class PlaybackState {
     this.errorMessage,
     this.lastPositionUpdateTime,
     this.activeQueueItemId,
-    this.extras,
+    this.playMode,
   });
 }

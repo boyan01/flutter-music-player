@@ -7,6 +7,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import com.google.android.exoplayer2.Player
 import kotlinx.coroutines.CompletableDeferred
+import tech.soit.quiet.player.PlayMode
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 

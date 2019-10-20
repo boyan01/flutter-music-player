@@ -15,7 +15,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import tech.soit.quiet.player.PlayList
 import tech.soit.quiet.player.PlayListExt
+import tech.soit.quiet.player.PlayMode
+import tech.soit.quiet.player.setPlayMode
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.log
 import tech.soit.quiet.utils.toMap
@@ -52,7 +55,7 @@ class MusicPlayerPlugin(
             mediaController?.unregisterCallback(controllerCallback)
             mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken).apply {
                 registerCallback(controllerCallback)
-                controllerCallback.sendInitData()
+                controllerCallback.getInitData()
             }
             connectionIndicator.complete(Unit)
         }
@@ -97,8 +100,8 @@ class MusicPlayerPlugin(
             result.error("-1", "controls is not available", -1)
             return
         }
-        val r: Any = when (call.method) {
-            "init" -> controllerCallback.sendInitData()
+        val r: Any? = when (call.method) {
+            "init" -> controllerCallback.getInitData()
             /*transport controller*/
             "skipToNext" -> controls.skipToNext()
             "skipToPrevious" -> controls.skipToPrevious()
@@ -113,19 +116,13 @@ class MusicPlayerPlugin(
                 }
             }
             "seekTo" -> controls.seekTo((call.arguments as Number).toLong())
-            "setPlayMode" -> {
-                //TODO
-                log { "TODO: set play mode " }
-            }
+            "setPlayMode" -> controls.setPlayMode(PlayMode.from(call.arguments()))
             /*media controller*/
             "isSessionReady" -> mediaController.isSessionReady
             "getPlaybackState" -> mediaController.playbackState.toMap()
             "getQueue" -> mediaController.queue.map { it.description.toMap() }
             "getQueueTitle" -> mediaController.queueTitle
             "getPlaybackInfo" -> mediaController.playbackInfo.toString() //TODO
-            "getRepeatMode" -> mediaController.repeatMode
-            "getShuffleMode" -> mediaController.shuffleMode
-
             "updatePlayList" -> {
                 val playList = call.argument<List<Map<String, Any>>>("queue")!!.map { it.toMediaMetadataCompat() }
                 val title = call.argument<String>("queueTitle")
@@ -161,18 +158,17 @@ class MusicPlayerPlugin(
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
 
-        fun sendInitData() {
-            val mediaController = mediaController ?: return
-            channel.invokeMethod(
-                    "onInit", hashMapOf(
+        fun getInitData(): Map<String, *>? {
+            val mediaController = mediaController ?: return null
+            val extras = mediaController.extras
+            extras.classLoader = MusicPlayerPlugin::class.java.classLoader
+            return hashMapOf(
                     "metadata" to mediaController.metadata?.toMap(),
                     "playbackInfo" to null,
                     "playbackState" to mediaController.playbackState?.toMap(),
-                    "queue" to mediaController.queue?.map { it.toMap() },
-                    "queueTitle" to mediaController.queueTitle,
-                    "repeatMode" to mediaController.repeatMode,
-                    "shuffleMode" to mediaController.shuffleMode
-            )
+                    "queueId" to extras.getString(PlayList.KEY_PLAYLIST_ID),
+                    "queue" to extras.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_PLAYLIST)?.map { it.toMap() },
+                    "queueTitle" to mediaController.queueTitle
             )
         }
 

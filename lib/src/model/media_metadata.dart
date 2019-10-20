@@ -211,4 +211,9 @@ class MediaMetadata {
       downloadStatus: map['downloadStatus'] as int,
     );
   }
+
+  @override
+  String toString() {
+    return 'MediaMetadata{ mediaId: $mediaId, title: $title, artist: $artist}';
+  }
 }

@@ -6,61 +6,68 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.RatingCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import tech.soit.quiet.player.SetPlayModeActionProvider
 
 
 /**
  * helper to convert a PlaybackState to map
  */
 fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
-    return mutableMapOf<String, Any>(
-        "state" to state,
-        "position" to position,
-        "playbackSpeed" to playbackSpeed,
-        "lastPositionUpdateTime" to lastPositionUpdateTime,
-        "bufferedPosition" to bufferedPosition,
-        "actions" to actions,
-        "errorMessage" to errorMessage,
-        "activeQueueItemId" to activeQueueItemId,
-        "errorCode" to errorCode
+    val map = mutableMapOf<String, Any>(
+            "state" to state,
+            "position" to position,
+            "playbackSpeed" to playbackSpeed,
+            "lastPositionUpdateTime" to lastPositionUpdateTime,
+            "bufferedPosition" to bufferedPosition,
+            "actions" to actions,
+            "errorMessage" to errorMessage,
+            "activeQueueItemId" to activeQueueItemId,
+            "errorCode" to errorCode
     )
+    customActions.forEach { action ->
+        SetPlayModeActionProvider.getPlayMode(action)?.let {
+            map.put("playMode", it.name)
+        }
+    }
+    return map
 }
 
 
 private val metadataKeyMapping = mapOf(
-    MediaMetadataCompat.METADATA_KEY_TITLE to "title",
-    MediaMetadataCompat.METADATA_KEY_ARTIST to "artist",
-    MediaMetadataCompat.METADATA_KEY_DURATION to "duration",
-    MediaMetadataCompat.METADATA_KEY_ALBUM to "album",
-    MediaMetadataCompat.METADATA_KEY_COMPOSER to "composer",
-    MediaMetadataCompat.METADATA_KEY_COMPILATION to "compilation",
-    MediaMetadataCompat.METADATA_KEY_DATE to "date",
-    MediaMetadataCompat.METADATA_KEY_YEAR to "year",
-    MediaMetadataCompat.METADATA_KEY_GENRE to "genre",
-    MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER to "trackNumber",
-    MediaMetadataCompat.METADATA_KEY_NUM_TRACKS to "numTracks",
-    MediaMetadataCompat.METADATA_KEY_DISC_NUMBER to "discNumber",
-    MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST to "albumArtist",
-    MediaMetadataCompat.METADATA_KEY_ART_URI to "artUri",
-    MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI to "albumArtUri",
-    MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE to "displayTitle",
-    MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE to "displaySubtitle",
-    MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION to "displayDescription",
-    MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI to "displayIconUri",
-    MediaMetadataCompat.METADATA_KEY_MEDIA_ID to "mediaId",
-    MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE to "btFolderType",
-    MediaMetadataCompat.METADATA_KEY_MEDIA_URI to "mediaUri",
-    MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT to "advertisement",
-    // Rating
-    MediaMetadataCompat.METADATA_KEY_RATING to "rating",
-    MediaMetadataCompat.METADATA_KEY_USER_RATING to "userRating"
+        MediaMetadataCompat.METADATA_KEY_TITLE to "title",
+        MediaMetadataCompat.METADATA_KEY_ARTIST to "artist",
+        MediaMetadataCompat.METADATA_KEY_DURATION to "duration",
+        MediaMetadataCompat.METADATA_KEY_ALBUM to "album",
+        MediaMetadataCompat.METADATA_KEY_COMPOSER to "composer",
+        MediaMetadataCompat.METADATA_KEY_COMPILATION to "compilation",
+        MediaMetadataCompat.METADATA_KEY_DATE to "date",
+        MediaMetadataCompat.METADATA_KEY_YEAR to "year",
+        MediaMetadataCompat.METADATA_KEY_GENRE to "genre",
+        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER to "trackNumber",
+        MediaMetadataCompat.METADATA_KEY_NUM_TRACKS to "numTracks",
+        MediaMetadataCompat.METADATA_KEY_DISC_NUMBER to "discNumber",
+        MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST to "albumArtist",
+        MediaMetadataCompat.METADATA_KEY_ART_URI to "artUri",
+        MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI to "albumArtUri",
+        MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE to "displayTitle",
+        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE to "displaySubtitle",
+        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION to "displayDescription",
+        MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI to "displayIconUri",
+        MediaMetadataCompat.METADATA_KEY_MEDIA_ID to "mediaId",
+        MediaMetadataCompat.METADATA_KEY_BT_FOLDER_TYPE to "btFolderType",
+        MediaMetadataCompat.METADATA_KEY_MEDIA_URI to "mediaUri",
+        MediaMetadataCompat.METADATA_KEY_ADVERTISEMENT to "advertisement",
+        // Rating
+        MediaMetadataCompat.METADATA_KEY_RATING to "rating",
+        MediaMetadataCompat.METADATA_KEY_USER_RATING to "userRating"
 )
 
 private val metadataKeyMappingReverse = HashMap<String, String>()
-    .also {
-        for ((key, value) in metadataKeyMapping) {
-            it[value] = key
-        }
-    }.toMap()
+        .also {
+            for ((key, value) in metadataKeyMapping) {
+                it[value] = key
+            }
+        }.toMap()
 
 
 /**
@@ -101,24 +108,24 @@ fun MediaMetadataCompat?.toMap(): Map<String, *>? {
         }
     }
     return bundle.keySet().map { it to (metadataKeyMapping[it] ?: it) }
-        .map { (nativeKey, dartKey) -> dartKey to convector(bundle[nativeKey]) }.toMap()
+            .map { (nativeKey, dartKey) -> dartKey to convector(bundle[nativeKey]) }.toMap()
 }
 
 fun MediaSessionCompat.QueueItem.toMap(): Map<String, *> {
     return mapOf(
-        "queueId" to queueId,
-        "description" to description.toMap()
+            "queueId" to queueId,
+            "description" to description.toMap()
     )
 }
 
 fun MediaDescriptionCompat.toMap(): Map<String, *> {
     return mapOf(
-        "title" to title,
-        "mediaId" to mediaId,
-        "subtitle" to subtitle,
-        "description" to description,
-        "iconUri" to iconUri?.toString(),
-        "extras" to extras?.toMap()
+            "title" to title,
+            "mediaId" to mediaId,
+            "subtitle" to subtitle,
+            "description" to description,
+            "iconUri" to iconUri?.toString(),
+            "extras" to extras?.toMap()
     )
 }
 
@@ -139,8 +146,8 @@ private fun Bundle.toMap(): Map<String, Any?> {
 
 private fun RatingCompat.toMap(): Map<String, Any?> {
     return mapOf(
-        "ratingStyle" to ratingStyle,
-        "ratingValue" to percentRating
+            "ratingStyle" to ratingStyle,
+            "ratingValue" to percentRating
     )
 }
 

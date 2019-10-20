@@ -6,6 +6,8 @@ import 'package:music_player/src/model/playback_state.dart';
 import 'package:music_player/src/model/rating.dart';
 import 'package:music_player/src/player/player_channel.dart';
 
+import 'play_mode.dart';
+
 ///
 /// Interface for controlling media playback.
 ///
@@ -63,23 +65,8 @@ class TransportControls {
   }
 
   void setPlayMode(PlayMode playMode) {
-    //TODO
-    _channel.invokeMethod("setPlayMode", playMode.index);
+    _channel.invokeMethod("setPlayMode", playModeToStr(playMode));
   }
-
-  void setRepeatMode(int repeatMode) {
-    _channel.invokeMethod("setRepeatMode", repeatMode);
-  }
-
-  void setShuffleMode(int shuffleMode) {
-    _channel.invokeMethod("setShuffleMode", shuffleMode);
-  }
-}
-
-enum PlayMode {
-  sequence,
-  shuffle,
-  single,
 }
 
 class MediaController {
@@ -122,9 +109,6 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   @protected
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {
-      case "onInit":
-        value = MusicPlayerState.fromMap(call.arguments) ?? MusicPlayerState.none();
-        break;
       case "onSessionReady":
         onSessionReady();
         break;
@@ -140,12 +124,6 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
         break;
       case "onAudioInfoChanged":
         onAudioInfoChanged();
-        break;
-      case "onPlayModeChanged":
-        onRepeatModeChanged(call.arguments);
-        break;
-      case "onShuffleModeChanged":
-        onShuffleModeChanged(call.arguments);
         break;
       default:
         return false;
@@ -165,7 +143,6 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
 
   void onPlaybackStateChanged(PlaybackState playbackState) {
     value = value.copyWith(playbackState: playbackState);
-    debugPrint("onPlaybackStateChanged: $playbackState");
     notifyListeners();
   }
 
@@ -181,18 +158,8 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
     notifyListeners();
   }
 
-  void onRepeatModeChanged(int repeatMode) {
-    value = value.copyWith(repeatMode: repeatMode);
-    notifyListeners();
-  }
-
   void onQueueTitleChanged(String title) {
     value = value.copyWith(queueTitle: title);
-    notifyListeners();
-  }
-
-  void onShuffleModeChanged(int shuffleMode) {
-    value = value.copyWith(shuffleMode: shuffleMode);
     notifyListeners();
   }
 }

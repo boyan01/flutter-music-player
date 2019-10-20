@@ -27,6 +27,7 @@ import tech.soit.quiet.BackgroundHandle
 import tech.soit.quiet.MusicPlayerBackgroundPlugin
 import tech.soit.quiet.player.PlayList
 import tech.soit.quiet.player.PlayListExt
+import tech.soit.quiet.player.SetPlayModeActionProvider
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
 import tech.soit.quiet.utils.COMMANDS
@@ -169,6 +170,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
             }
 
+
             override fun getCommands(): Array<String>? {
                 return COMMANDS
             }
@@ -198,7 +200,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                 playList.current = metadata
             }
 
-        })
+        }, SetPlayModeActionProvider(::playList))
 
         sessionConnector.setQueueNavigator(object : MediaSessionConnector.QueueNavigator {
 
@@ -212,7 +214,9 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             }
 
             override fun onCommand(player: Player?, command: String?, extras: Bundle?, cb: ResultReceiver?) {
+                val mode = playList.playMode
                 playList = PlayListExt.parsePlayListFromArgument(extras!!)
+                playList.playMode = mode
                 player?.stop()
                 playList.attach(mediaSession)
             }
@@ -232,7 +236,9 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             }
 
             override fun getActiveQueueItemId(player: Player?): Long {
-                return playList.queue.indexOf(mediaController.metadata).toLong()
+                val metadata = mediaController.metadata
+                        ?: return MediaSessionCompat.QueueItem.UNKNOWN_ID.toLong()
+                return playList.getQueueID(metadata)
             }
 
             override fun onSkipToPrevious(player: Player?) {
