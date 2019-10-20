@@ -27,6 +27,7 @@ import tech.soit.quiet.BackgroundHandle
 import tech.soit.quiet.MusicPlayerBackgroundPlugin
 import tech.soit.quiet.player.PlayList
 import tech.soit.quiet.player.PlayListExt
+import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.player.SetPlayModeActionProvider
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
@@ -223,15 +224,17 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
             override fun getSupportedQueueNavigatorActions(player: Player?): Long {
                 if (player == null) return 0L
-                //TODO determine by PlatMode and playList queue size
                 return MediaSessionConnector.QueueNavigator.ACTIONS
             }
 
             override fun onSkipToNext(player: Player?) {
-                if (playList.isEmpty) {
-                    return
+                val next = if (playList.playMode == PlayMode.Single) {
+                    // PlayNext order by user, so we should play next music even in single mode.
+                    playList.getNext(mediaController.metadata, PlayMode.Sequence)
+                } else {
+                    playList.getNext(mediaController.metadata)
                 }
-                val next = playList.getNext(mediaController.metadata) ?: return
+                next ?: return
                 player?.performPlay(next)
             }
 
@@ -242,7 +245,13 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             }
 
             override fun onSkipToPrevious(player: Player?) {
-                val previous = playList.getPrevious(mediaController.metadata) ?: return
+                val previous = if (playList.playMode == PlayMode.Single) {
+                    // Order by user, so we should play previous music even in single mode.
+                    playList.getPrevious(mediaController.metadata, PlayMode.Sequence)
+                } else {
+                    playList.getPrevious(mediaController.metadata)
+                }
+                previous ?: return
                 player?.performPlay(previous)
             }
 

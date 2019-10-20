@@ -5,7 +5,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import tech.soit.quiet.utils.log
-import tech.soit.quiet.utils.sendCommandAsync
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
@@ -94,7 +93,7 @@ class PlayList private constructor(
         observer?.sendQueueChange()
     }
 
-    fun getNext(metadata: MediaMetadataCompat?): MediaMetadataCompat? {
+    fun getNext(metadata: MediaMetadataCompat?, playMode: PlayMode = this.playMode): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "empty playlist" }
             return null
@@ -127,7 +126,7 @@ class PlayList private constructor(
     }
 
 
-    fun getPrevious(metadata: MediaMetadataCompat?): MediaMetadataCompat? {
+    fun getPrevious(metadata: MediaMetadataCompat?, playMode: PlayMode = this.playMode): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "try too play next with empty playlist!" }
             return null
