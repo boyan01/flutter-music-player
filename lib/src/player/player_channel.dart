@@ -91,12 +91,23 @@ class MusicPlayerValue {
         );
 }
 
+typedef ValueCallback<T> = void Function<T>(T value);
+
 class MusicPlayer extends ValueNotifier<MusicPlayerValue> with MediaControllerCallback {
-  final VoidCallback onServiceConnected;
+  final void Function(MusicPlayer) onServiceConnected;
 
   MusicPlayer({this.onServiceConnected}) : super(const MusicPlayerValue.none()) {
     _listenNative();
   }
+
+  PlaybackState get playbackState => value.playbackState;
+
+  PlaybackInfo get playbackInfo => value.playbackInfo;
+
+  PlayList get playList => value.playList;
+
+  /// current playing metadata
+  MediaMetadata get metadata => value.metadata;
 
   void _listenNative() {
     _channel.setMethodCallHandler((call) async {
@@ -114,7 +125,7 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with MediaControllerCa
       final map = await _channel.invokeMethod<Map>("init");
       onPlayListChanged(PlayList.fromMap(map));
       if (onServiceConnected != null) {
-        onServiceConnected();
+        onServiceConnected(this);
       }
     });
   }
@@ -149,5 +160,14 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with MediaControllerCa
     } else {
       await transportControls.play();
     }
+  }
+
+  /// Add to [playList] after [MusicPlayerValue.metadata]
+  Future<void> insertToNext(MediaMetadata metadata) async {
+    //TODO
+  }
+
+  void removeQueueItem(String mediaId) {
+    //TODO
   }
 }

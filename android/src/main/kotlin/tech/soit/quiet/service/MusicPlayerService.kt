@@ -271,6 +271,15 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
                     mediaController.transportControls.playFromMediaId(next.mediaId, null)
                 }
             }
+            if (playbackState == Player.STATE_READY) {
+                /// invalidate metadata duration
+                val metadata = requireNotNull(mediaController.metadata, { "illegal state" })
+                val duration = if (exoPlayer.duration == C.TIME_UNSET) -1 else exoPlayer.duration
+                val update = MediaMetadataCompat.Builder(metadata)
+                        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                        .build()
+                mediaSession.setMetadata(update)
+            }
         }
     }
 
