@@ -13,71 +13,88 @@ import 'play_mode.dart';
 // PlayerPlugin channel
 const MethodChannel _channel = const MethodChannel('tech.soit.quiet/player');
 
-class MusicPlayerState {
-  final MediaMetadata metadata;
-  final PlaybackInfo playbackInfo;
-  final PlaybackState playbackState;
+class PlayList {
   final List<MediaMetadata> queue;
+
+  // media id in shuffle
+  final List<String> _shuffleQueue;
   final String queueTitle;
-  final int ratingType;
   final String queueId;
 
-  PlayMode get playMode => playbackState.playMode;
+  PlayList({@required this.queue, this.queueTitle, @required this.queueId})
+      : _shuffleQueue = queue.map((e) => e.mediaId).toList(),
+        assert(queue != null),
+        assert(queueId != null);
 
-  const MusicPlayerState(
-      {this.metadata,
-      this.playbackInfo,
-      this.playbackState,
-      this.queue,
-      this.queueTitle,
-      this.ratingType,
-      this.queueId});
+  const PlayList.empty() : this._internal(const [], const [], null, "");
 
-  MusicPlayerState copyWith({
-    MediaMetadata metadata,
-    PlaybackInfo playbackInfo,
-    PlaybackState playbackState,
-    List<MediaMetadata> queue,
-    String queueTitle,
-    int ratingType,
-    String queueId,
-  }) {
-    return new MusicPlayerState(
-      metadata: metadata ?? this.metadata,
-      playbackInfo: playbackInfo ?? this.playbackInfo,
-      playbackState: playbackState ?? this.playbackState,
-      queue: queue ?? this.queue,
-      queueTitle: queueTitle ?? this.queueTitle,
-      ratingType: ratingType ?? this.ratingType,
-      queueId: queueId ?? this.queueId,
+  const PlayList._internal(this.queue, this._shuffleQueue, this.queueTitle, this.queueId);
+
+  factory PlayList.fromMap(Map map) {
+    return PlayList._internal(
+      (map['queue'] as List).cast<Map>().map(((e) => MediaMetadata.fromMap(e))).toList() ?? const [],
+      map['shuffleQueue'] as List<String> ?? const [],
+      map['queueTitle'] as String,
+      map['queueId'] as String ?? "",
     );
   }
 
-  const MusicPlayerState.none()
-      : this(
-            metadata: null,
-            playbackState: const PlaybackState.none(),
-            playbackInfo: null,
-            queue: const [],
-            queueTitle: "NONE",
-            ratingType: 0);
+  MediaMetadata _getNext(MediaMetadata metadata, {PlayMode playMode}) {
+    return null;
+  }
 
-  factory MusicPlayerState.fromMap(Map map) {
-    if (map == null) return null;
-    return new MusicPlayerState(
-      metadata: MediaMetadata.fromMap(map['metadata']),
-      playbackInfo: null,
-      playbackState: PlaybackState.fromMap(map['playbackState']),
-      queue: (map['queue'] as List)?.map((it) => MediaMetadata.fromMap(it))?.toList() ?? const [],
-      queueTitle: map['queueTitle'] as String,
-      ratingType: map['ratingType'] as int,
-      queueId: map['queueId'] as String,
-    );
+  MediaMetadata _getPrevious(MediaMetadata metadata, {PlayMode playMode}) {
+    return null;
   }
 }
 
-class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCallback {
-  MusicPlayer() : super(const MusicPlayerState.none()) {
+class MusicPlayerValue {
+  /// current playing media metadata, could be null
+  final MediaMetadata metadata;
+  final PlaybackInfo playbackInfo;
+  final PlaybackState playbackState;
+  final PlayList playList;
+
+  /// current queue play mode
+  PlayMode get playMode => playbackState.playMode;
+
+  const MusicPlayerValue({this.metadata, this.playbackInfo, this.playbackState, this.playList});
+
+  MusicPlayerValue copyWith({
+    PlaybackInfo playbackInfo,
+    PlaybackState playbackState,
+    PlayList playList,
+  }) {
+    return new MusicPlayerValue(
+      metadata: this.metadata,
+      playbackInfo: playbackInfo ?? this.playbackInfo,
+      playbackState: playbackState ?? this.playbackState,
+      playList: playList ?? this.playList,
+    );
+  }
+
+  MusicPlayerValue setMetadata(MediaMetadata metadata) {
+    return new MusicPlayerValue(
+      metadata: metadata,
+      playbackInfo: this.playbackInfo,
+      playbackState: this.playbackState,
+      playList: this.playList,
+    );
+  }
+
+  const MusicPlayerValue.none()
+      : this(
+          metadata: null,
+          playbackState: const PlaybackState.none(),
+          playbackInfo: null,
+          playList: const PlayList.empty(),
+        );
+}
+
+class MusicPlayer extends ValueNotifier<MusicPlayerValue> with MediaControllerCallback {
+  final VoidCallback onServiceConnected;
+
+  MusicPlayer({this.onServiceConnected}) : super(const MusicPlayerValue.none()) {
     _listenNative();
   }
 
@@ -95,25 +112,42 @@ class MusicPlayer extends ValueNotifier<MusicPlayerState> with MediaControllerCa
     });
     scheduleMicrotask(() async {
       final map = await _channel.invokeMethod<Map>("init");
-      value = MusicPlayerState.fromMap(map) ?? MusicPlayerState.none();
-      notifyListeners();
+      onPlayListChanged(PlayList.fromMap(map));
+      if (onServiceConnected != null) {
+        onServiceConnected();
+      }
     });
   }
 
   /// Transport controls for this player
   final TransportControls transportControls = TransportControls(_channel);
 
-  final MediaController mediaController = MediaController(_channel);
-
   /// Set the playlist of MusicPlayer
-  Future<void> setPlayList(List<MediaMetadata> list, String queueId, {String queueTitle}) async {
+  Future<void> setQueueAndId(List<MediaMetadata> list, String queueId, {String queueTitle}) async {
     assert(list != null);
     assert(queueId != null);
-    value = value.copyWith(queue: list, queueTitle: queueTitle, queueId: queueId);
+    await setPlayList(PlayList(queue: list, queueId: queueId, queueTitle: queueTitle));
+  }
+
+  Future<void> setPlayList(PlayList playList) async {
+    assert(playList != null);
     await _channel.invokeMethod("updatePlayList", {
-      "queue": list.map((item) => item.toMap()).toList(),
-      "queueTitle": queueTitle,
-      "queueId": queueId,
+      "queue": playList.queue.map((e) => e.toMap()).toList(),
+      "queueTitle": playList.queueTitle,
+      "queueId": playList.queueId,
     });
+  }
+
+  Future<void> playWithList(PlayList playList, {MediaMetadata metadata}) async {
+    assert(playList != null);
+    if (metadata != null) {
+      assert(playList.queue.contains(metadata));
+    }
+    await setPlayList(playList);
+    if (metadata != null) {
+      await transportControls.playFromMediaId(metadata.mediaId);
+    } else {
+      await transportControls.play();
+    }
   }
 }

@@ -16,96 +16,56 @@ class TransportControls {
 
   TransportControls(this._channel);
 
-  void prepareFromMediaId(String mediaId) {
-    _channel.invokeMethod("prepareFromMediaId", mediaId);
+  Future<void> prepareFromMediaId(String mediaId) async {
+    await _channel.invokeMethod("prepareFromMediaId", mediaId);
   }
 
-  void play() {
-    _channel.invokeMethod("play");
+  Future<void> play() async {
+    await _channel.invokeMethod("play");
   }
 
-  void playFromMediaId(String mediaId) {
-    _channel.invokeMethod("playFromMediaId", mediaId);
+  Future<void> playFromMediaId(String mediaId) async {
+    await _channel.invokeMethod("playFromMediaId", mediaId);
   }
 
-  void skipToQueueItem(int id) {
-    _channel.invokeMethod("skipToQueueItem", id);
+  Future<void> pause() async {
+    await _channel.invokeMethod("pause");
   }
 
-  void pause() {
-    _channel.invokeMethod("pause");
+  Future<void> stop() async {
+    await _channel.invokeMethod("stop");
   }
 
-  void stop() {
-    _channel.invokeMethod("stop");
+  Future<void> seekTo(int pos) async {
+    await _channel.invokeMethod("seekTo", pos);
   }
 
-  void seekTo(int pos) {
-    _channel.invokeMethod("seekTo", pos);
+  Future<void> fastForward() async {
+    await _channel.invokeMethod("fastForward");
   }
 
-  void fastForward() {
-    _channel.invokeMethod("fastForward");
+  Future<void> skipToNext() async {
+    await _channel.invokeMethod("skipToNext");
   }
 
-  void skipToNext() {
-    _channel.invokeMethod("skipToNext");
+  Future<void> rewind() async {
+    await _channel.invokeMethod("rewind");
   }
 
-  void rewind() {
-    _channel.invokeMethod("rewind");
+  Future<void> skipToPrevious() async {
+    await _channel.invokeMethod("skipToPrevious");
   }
 
-  void skipToPrevious() {
-    _channel.invokeMethod("skipToPrevious");
+  Future<void> setRating(Rating rating) async {
+    await _channel.invokeMethod("setRating", rating.toMap());
   }
 
-  void setRating(Rating rating) {
-    _channel.invokeMethod("setRating", rating.toMap());
-  }
-
-  void setPlayMode(PlayMode playMode) {
-    _channel.invokeMethod("setPlayMode", playModeToStr(playMode));
+  Future<void> setPlayMode(PlayMode playMode) async {
+    await _channel.invokeMethod("setPlayMode", playModeToStr(playMode));
   }
 }
 
-class MediaController {
-  final MethodChannel _channel;
-
-  MediaController(this._channel);
-
-  Future<bool> get isSessionReady => _channel.invokeMethod("isSessionReady");
-
-  Future<PlaybackState> get playbackState =>
-      _channel.invokeMethod("getPlaybackState").then((data) => PlaybackState.fromMap(data));
-
-  Future<List<QueueItem>> get queue => _channel.invokeMethod("getQueue").then((data) {
-        if (data is! List) return const [];
-        return (data as List).map((t) => QueueItem.fromMap(t)).toList(growable: false);
-      });
-
-  Future<String> get queueTitle => _channel.invokeMethod("getQueueTitle");
-
-  Future<PlaybackInfo> get playbackInfo => _channel.invokeMethod("getPlaybackInfo");
-
-  Future<int> get repeatMode => _channel.invokeMethod("getRepeatMode");
-
-  Future<int> get shuffleMode => _channel.invokeMethod("getShuffleMode");
-
-  /// get the next media, could be null
-  Future<MediaMetadata> getNext() async {
-    final Map map = await _channel.invokeMethod("getNext");
-    return MediaMetadata.fromMap(map);
-  }
-
-  /// get the previous media, could be null
-  Future<MediaMetadata> getPrevious() async {
-    final Map map = await _channel.invokeMethod("getPreivous");
-    return MediaMetadata.fromMap(map);
-  }
-}
-
-mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
+mixin MediaControllerCallback on ValueNotifier<MusicPlayerValue> {
   @protected
   bool handleMediaControllerCallbackMethod(MethodCall call) {
     switch (call.method) {
@@ -125,6 +85,9 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
       case "onAudioInfoChanged":
         onAudioInfoChanged();
         break;
+      case "onPlayListChanged":
+        onPlayListChanged(PlayList.fromMap(call.arguments));
+        break;
       default:
         return false;
     }
@@ -132,12 +95,11 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   }
 
   void onSessionReady() {
-    value = value.copyWith();
     notifyListeners();
   }
 
   void onSessionDestroyed() {
-    value = const MusicPlayerState.none();
+    value = const MusicPlayerValue.none();
     notifyListeners();
   }
 
@@ -147,8 +109,7 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
   }
 
   void onMetadataChanged(MediaMetadata metadata) {
-    //FIXME metadata be null
-    value = value.copyWith(metadata: metadata);
+    value = value.setMetadata(metadata);
     notifyListeners();
   }
 
@@ -158,8 +119,8 @@ mixin MediaControllerCallback on ValueNotifier<MusicPlayerState> {
     notifyListeners();
   }
 
-  void onQueueTitleChanged(String title) {
-    value = value.copyWith(queueTitle: title);
+  void onPlayListChanged(PlayList playList) {
+    value = value.copyWith(playList: playList);
     notifyListeners();
   }
 }

@@ -70,7 +70,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 }
 
 class PlayerState extends InheritedWidget {
-  final MusicPlayerState state;
+  final MusicPlayerValue state;
 
   const PlayerState({
     Key key,
@@ -79,7 +79,7 @@ class PlayerState extends InheritedWidget {
   })  : assert(child != null),
         super(key: key, child: child);
 
-  static MusicPlayerState of(BuildContext context) {
+  static MusicPlayerValue of(BuildContext context) {
     final widget = context.inheritFromWidgetOfExactType(PlayerState) as PlayerState;
     return widget.state;
   }

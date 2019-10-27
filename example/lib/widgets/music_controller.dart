@@ -5,7 +5,7 @@ class MusicControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-    final MusicPlayerState state = PlayerState.of(context);
+    final MusicPlayerValue state = PlayerState.of(context);
     var description = state.metadata?.getDescription();
     if (state.playbackState.state == PlaybackState.STATE_NONE) {
       return Container();
@@ -21,8 +21,8 @@ class MusicControlBar extends StatelessWidget {
             TextSpan(text: description?.title),
           ])),
           Text.rich(TextSpan(children: [
-            TextSpan(text: state.queueTitle + "\n"),
-            TextSpan(text: state.queue.join()),
+            TextSpan(text: state.playList.queueTitle ?? "" + "\n"),
+            TextSpan(text: state.playList.queue.join()),
           ])),
           Text.rich(TextSpan(children: [
             TextSpan(text: "playback state : \n"),
@@ -98,7 +98,7 @@ class PlayPauseButton extends StatelessWidget {
 class RepeatModelButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final MusicPlayerState state = PlayerState.of(context);
+    final MusicPlayerValue state = PlayerState.of(context);
 
     Widget icon;
     if (state.playMode == PlayMode.shuffle) {

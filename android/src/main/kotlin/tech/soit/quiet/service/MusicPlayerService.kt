@@ -25,22 +25,18 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import tech.soit.quiet.BackgroundHandle
 import tech.soit.quiet.MusicPlayerBackgroundPlugin
-import tech.soit.quiet.player.PlayList
-import tech.soit.quiet.player.PlayListExt
-import tech.soit.quiet.player.PlayMode
-import tech.soit.quiet.player.SetPlayModeActionProvider
+import tech.soit.quiet.player.*
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
-import tech.soit.quiet.utils.COMMANDS
-import tech.soit.quiet.utils.LoggerLevel
-import tech.soit.quiet.utils.log
-import tech.soit.quiet.utils.toMediaSource
+import tech.soit.quiet.utils.*
+import kotlin.properties.Delegates
 
 
 /**
  * music player service of Application
  */
-class MusicPlayerService : MediaBrowserServiceCompat() {
+class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
+
 
     companion object {
 
@@ -53,7 +49,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     }
 
-    private val mediaSession by lazy {
+    val mediaSession by lazy {
         val sessionIntent = packageManager?.getLaunchIntentForPackage(packageName)
         if (sessionIntent == null) {
             log(level = LoggerLevel.WARN) { "application do not have launcher intent ??" }
@@ -91,13 +87,6 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         ExoPlayerFactory.newSimpleInstance(this).apply {
             setAudioAttributes(audioAttribute, true)
         }
-    }
-
-    private fun Player.performPlay(mediaMetadata: MediaMetadataCompat) {
-        this as ExoPlayer
-        prepare(mediaMetadata.toMediaSource(this@MusicPlayerService))
-        playWhenReady = true
-        playList.current = mediaMetadata
     }
 
     private fun handleNotification() = GlobalScope.launch(Dispatchers.Main) {
@@ -144,6 +133,12 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     }
 
+
+    override var playMode: PlayMode by Delegates.observable(PlayMode.Sequence) { _, _, newValue ->
+        mediaSession.setRepeatMode(newValue.repeatMode())
+        mediaSession.setShuffleMode(newValue.shuffleMode())
+    }
+
     // The playlist which set from Dart. only Dart can update player's playlist
     private var playList = PlayList.empty
 
@@ -152,7 +147,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         backgroundHandle = MusicPlayerBackgroundPlugin.startBackgroundIsolate(this)
         super.onCreate()
         sessionToken = mediaSession.sessionToken
-        playList.attach(mediaSession)
+        playList.attach(this)
         mediaController = MediaControllerCompat(this, mediaSession).apply {
             registerCallback(MediaControllerCallback())
         }
@@ -198,16 +193,16 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
                 val mediaSource = metadata.toMediaSource(this@MusicPlayerService)
                 exoPlayer.prepare(mediaSource)
-                playList.current = metadata
+                mediaSession.setMetadata(metadata)
             }
 
-        }, SetPlayModeActionProvider(::playList))
+        }, SetPlayModeActionProvider(this))
 
         sessionConnector.setQueueNavigator(object : MediaSessionConnector.QueueNavigator {
 
             override fun onSkipToQueueItem(player: Player, id: Long) {
                 val metadata = playList.getMetadataByQueueId(id) ?: return
-                player.performPlay(metadata)
+                mediaController.transportControls.playFromMediaId(metadata.mediaId, null)
             }
 
             override fun onCurrentWindowIndexChanged(player: Player) {
@@ -215,11 +210,11 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             }
 
             override fun onCommand(player: Player?, command: String?, extras: Bundle?, cb: ResultReceiver?) {
-                val mode = playList.playMode
-                playList = PlayListExt.parsePlayListFromArgument(extras!!)
-                playList.playMode = mode
-                player?.stop()
-                playList.attach(mediaSession)
+                if (command == PlayListExt.COMMAND_UPDATE_PLAYLIST) {
+                    playList = PlayListExt.parsePlayListFromArgument(extras!!)
+                    player?.stop()
+                    playList.attach(this@MusicPlayerService)
+                }
             }
 
             override fun getSupportedQueueNavigatorActions(player: Player?): Long {
@@ -235,7 +230,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                     playList.getNext(mediaController.metadata)
                 }
                 next ?: return
-                player?.performPlay(next)
+                mediaController.transportControls.playFromMediaId(next.mediaId, null)
             }
 
             override fun getActiveQueueItemId(player: Player?): Long {
@@ -252,7 +247,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
                     playList.getPrevious(mediaController.metadata)
                 }
                 previous ?: return
-                player?.performPlay(previous)
+                mediaController.transportControls.playFromMediaId(previous.mediaId, null)
             }
 
             override fun getCommands(): Array<String> {
@@ -273,7 +268,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
             if (playbackState == Player.STATE_ENDED) {
                 val next = playList.getNext(mediaController.metadata)
                 next?.let {
-                    exoPlayer.performPlay(next)
+                    mediaController.transportControls.playFromMediaId(next.mediaId, null)
                 }
             }
         }
@@ -285,9 +280,7 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
         if (parentId != ROOT) return
 
         //We only have a playlist which user has played from UI
-        val mediaItems =
-                mediaController.queue.orEmpty()
-                        .map { MediaItem(it.description, MediaItem.FLAG_PLAYABLE) }
+        val mediaItems = playList.queue.map { MediaItem(it.description, MediaItem.FLAG_PLAYABLE) }
         log { "send result : $mediaItems" }
         result.sendResult(mediaItems.toMutableList())
     }
@@ -306,13 +299,27 @@ class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private inner class MediaControllerCallback : MediaControllerCompat.Callback() {
 
+
+        override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
+            super.onQueueChanged(queue)
+            backgroundHandle.onPlayListChanged(playList)
+        }
+
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             log { "onMetadataChanged : ${metadata?.description}" }
             mediaController.playbackState?.let { updateNotification(it) }
+            backgroundHandle.onMetadataChanged(metadata)
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            state?.let { updateNotification(it) }
+            state?.let {
+                updateNotification(it)
+                backgroundHandle.onPlayModeChanged(it.getPlayMode())
+            }
+        }
+
+        override fun onExtrasChanged(extras: Bundle?) {
+            backgroundHandle.onPlayListChanged(playList)
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {

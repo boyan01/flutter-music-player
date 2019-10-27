@@ -56,10 +56,8 @@ class _ExampleMusicList extends StatelessWidget {
             trailing: Icon(Icons.play_circle_outline),
             onTap: () async {
               final player = PlayerWidget.player(context);
-              if (player.value.queueId != listId) {
-                await player.setPlayList(medias, listId, queueTitle: "Exmaple");
-              }
-              PlayerWidget.transportControls(context).playFromMediaId(item.mediaId);
+              player.playWithList(PlayList(queue: medias, queueId: listId, queueTitle: "Exmaple PlayList"),
+                  metadata: medias[index]);
             },
           );
         });

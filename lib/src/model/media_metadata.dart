@@ -216,4 +216,11 @@ class MediaMetadata {
   String toString() {
     return 'MediaMetadata{ mediaId: $mediaId, title: $title, artist: $artist}';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is MediaMetadata && runtimeType == other.runtimeType && mediaId == other.mediaId;
+
+  @override
+  int get hashCode => mediaId.hashCode;
 }

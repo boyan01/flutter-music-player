@@ -19,32 +19,38 @@ fun MediaControllerCompat.TransportControls.setPlayMode(playMode: PlayMode) {
 }
 
 
-class SetPlayModeActionProvider(private val playListProvider: () -> PlayList) : MediaSessionConnector.CustomActionProvider {
-
-    companion object {
-
-        fun getPlayMode(action: PlaybackStateCompat.CustomAction): PlayMode? {
-            return if (action.action == ACTION_SET_PLAY_MODE) {
-                action.extras.getSerializable("playMode") as? PlayMode
-                        ?: PlayMode.Sequence
-            } else {
-                null
-            }
+fun PlaybackStateCompat.getPlayMode(): PlayMode {
+    var mode = PlayMode.Sequence
+    customActions.forEach {
+        if (it.action == ACTION_SET_PLAY_MODE) {
+            mode = it.extras.getSerializable("playMode") as? PlayMode
+                    ?: PlayMode.Sequence
+            return@forEach
         }
-
     }
+    return mode
+}
+
+
+/**
+ * custom play mode action provide
+ *
+ * state will be auto attach to [PlaybackStateCompat]
+ *
+ */
+class SetPlayModeActionProvider(private val playModeContainer: PlayModeContainer) : MediaSessionConnector.CustomActionProvider {
 
     override fun getCustomAction(): PlaybackStateCompat.CustomAction {
         return PlaybackStateCompat.CustomAction.Builder(
-                ACTION_SET_PLAY_MODE, playListProvider().playMode.name, -1 //TODO icon
+                ACTION_SET_PLAY_MODE, playModeContainer.playMode.name, -1 //TODO icon
         ).setExtras(Bundle().apply {
-            putSerializable("playMode", playListProvider().playMode)
+            putSerializable("playMode", playModeContainer.playMode)
         }).build()
     }
 
     override fun onCustomAction(action: String?, extras: Bundle?) {
         val playMode = extras?.getSerializable("playMode") as? PlayMode
-        playListProvider().playMode = playMode ?: PlayMode.Sequence
+        playModeContainer.playMode = playMode ?: PlayMode.Sequence
     }
 
 }

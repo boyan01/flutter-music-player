@@ -4,10 +4,12 @@ import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import tech.soit.quiet.service.MusicPlayerService
+import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.mediaId
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.properties.Delegates
 
 
 /**
@@ -18,16 +20,20 @@ import kotlin.properties.Delegates
  */
 class PlayList private constructor(
         private val list: LinkedList<MediaMetadataCompat>,
-        private val title: String?,
-        private val queueId: String
+        val title: String?,
+        val queueId: String
 ) {
 
 
     companion object {
 
-        const val KEY_PLAYLIST = "tech.soit.quiet.PlayList"
-        const val KEY_PLAYLIST_ID = "tech.soit.quiet.QueueId"
+        private const val prefix = "tech.soit.quiet"
 
+        const val KEY_QUEUE = "$prefix.Queue"
+        const val KEY_QUEUE_SHUFFLE = "$prefix.QueueShuffle"
+
+        const val KEY_QUEUE_ID = "$prefix.QueueId"
+        const val KEY_QUEUE_TITLE = "$prefix.QueueTitle"
 
         val empty = PlayList(emptyList(), null, "")
 
@@ -43,21 +49,23 @@ class PlayList private constructor(
     constructor(list: List<MediaMetadataCompat>, title: String?, queueId: String)
             : this(LinkedList(list), title, queueId)
 
-    private var observer: PlayListObserver? = null
+    private var service: MusicPlayerService? = null
 
-    var current: MediaMetadataCompat? by Delegates.observable<MediaMetadataCompat?>(null) { _, _, newValue ->
-        observer?.sendMetadataChange(newValue)
-    }
+    val current: MediaMetadataCompat?
+        get() = service?.mediaSession?.controller?.metadata
 
-    var playMode by Delegates.observable(PlayMode.Sequence) { _, _, newValue ->
-        observer?.sendPlayModeChange(newValue)
-    }
+    val playMode: PlayMode
+        get() {
+            if (service == null) {
+                log(LoggerLevel.ERROR) { "service is null" }
+            }
+            return service?.playMode ?: PlayMode.Sequence
+        }
 
-    fun attach(mediaSession: MediaSessionCompat) {
+    fun attach(service: MusicPlayerService) {
+        this.service = service
         generateShuffleList() // generate shuffle when attached session
-        observer = PlayListObserver(mediaSession)
         publishChange()
-        mediaSession.setQueueTitle(title)
     }
 
 
@@ -90,7 +98,22 @@ class PlayList private constructor(
     }
 
     private fun publishChange() {
-        observer?.sendQueueChange()
+        service?.mediaSession?.let { mediaSession ->
+            val queue = list.mapIndexed { index, metadata ->
+                MediaSessionCompat.QueueItem(
+                        metadata.description,
+                        index.toLong()
+                )
+            }
+            mediaSession.setQueue(queue)
+            mediaSession.setExtras(Bundle().apply {
+                putParcelableArrayList(KEY_QUEUE, ArrayList(list))
+                putString(KEY_QUEUE_ID, queueId)
+                putString(KEY_QUEUE_TITLE, title)
+                putStringArrayList(KEY_QUEUE_SHUFFLE, ArrayList(shuffleMusicList.map { it.mediaId }))
+            })
+            mediaSession.setQueueTitle(title)
+        }
     }
 
     fun getNext(metadata: MediaMetadataCompat?, playMode: PlayMode = this.playMode): MediaMetadataCompat? {
@@ -178,42 +201,13 @@ class PlayList private constructor(
         shuffleMusicList.addAll(list)
     }
 
-    private inner class PlayListObserver(private val mediaSession: MediaSessionCompat) {
-
-        fun sendQueueChange() {
-            val queue = list.mapIndexed { index, metadata ->
-                MediaSessionCompat.QueueItem(
-                        metadata.description,
-                        index.toLong()
-                )
-            }
-            mediaSession.setQueue(queue)
-            mediaSession.setExtras(Bundle().apply {
-                putParcelableArrayList(KEY_PLAYLIST, ArrayList(list))
-                putString(KEY_PLAYLIST_ID, queueId)
-            })
-
-        }
-
-        fun sendPlayModeChange(playMode: PlayMode) {
-            mediaSession.setShuffleMode(playMode.shuffleMode())
-            mediaSession.setRepeatMode(playMode.repeatMode())
-        }
-
-        fun sendMetadataChange(metadata: MediaMetadataCompat?) {
-            mediaSession.setMetadata(metadata)
-        }
-
-
-    }
-
 
 }
 
 object PlayListExt {
 
 
-    private const val COMMAND_UPDATE_PLAYLIST = "updatePlayList"
+    const val COMMAND_UPDATE_PLAYLIST = "updatePlayList"
 
     private const val COMMAND_GET_PLAYLIST = "getPlayList"
 

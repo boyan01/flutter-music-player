@@ -6,14 +6,14 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.RatingCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import tech.soit.quiet.player.SetPlayModeActionProvider
+import tech.soit.quiet.player.getPlayMode
 
 
 /**
  * helper to convert a PlaybackState to map
  */
 fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
-    val map = mutableMapOf<String, Any>(
+    return mutableMapOf(
             "state" to state,
             "position" to position,
             "playbackSpeed" to playbackSpeed,
@@ -22,14 +22,9 @@ fun PlaybackStateCompat.toMap(): MutableMap<String, *> {
             "actions" to actions,
             "errorMessage" to errorMessage,
             "activeQueueItemId" to activeQueueItemId,
-            "errorCode" to errorCode
+            "errorCode" to errorCode,
+            "playMode" to getPlayMode().name
     )
-    customActions.forEach { action ->
-        SetPlayModeActionProvider.getPlayMode(action)?.let {
-            map.put("playMode", it.name)
-        }
-    }
-    return map
 }
 
 

@@ -45,3 +45,10 @@ enum class PlayMode {
 
 
 }
+
+
+interface PlayModeContainer {
+
+    var playMode: PlayMode
+
+}

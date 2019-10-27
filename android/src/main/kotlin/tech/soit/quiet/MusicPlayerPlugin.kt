@@ -2,10 +2,10 @@ package tech.soit.quiet
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
-import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -55,7 +55,6 @@ class MusicPlayerPlugin(
             mediaController?.unregisterCallback(controllerCallback)
             mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken).apply {
                 registerCallback(controllerCallback)
-                controllerCallback.getInitData()
             }
             connectionIndicator.complete(Unit)
         }
@@ -67,11 +66,9 @@ class MusicPlayerPlugin(
         }
 
         override fun onConnectionFailed() {
-            connectionIndicator.complete(Unit)
             log { "connect failed" }
+            connectionIndicator.completeExceptionally(IllegalStateException("service connect failed"))
             mediaController = null
-            //TODO handle connect failed
-
         }
     }
 
@@ -94,14 +91,20 @@ class MusicPlayerPlugin(
         val controls = this.controls
         val mediaController = this.mediaController
         if (controls == null || mediaController == null) {
-            connectionIndicator.await()
+            try {
+                connectionIndicator.await()
+            } catch (e: IllegalStateException) {
+                //connect to remote service failed.
+                result.error("-1", e.message, null)
+                return
+            }
         }
         if (controls == null || mediaController == null) {
             result.error("-1", "controls is not available", -1)
             return
         }
         val r: Any? = when (call.method) {
-            "init" -> controllerCallback.getInitData()
+            "init" -> doInit()
             /*transport controller*/
             "skipToNext" -> controls.skipToNext()
             "skipToPrevious" -> controls.skipToPrevious()
@@ -118,22 +121,11 @@ class MusicPlayerPlugin(
             "seekTo" -> controls.seekTo((call.arguments as Number).toLong())
             "setPlayMode" -> controls.setPlayMode(PlayMode.from(call.arguments()))
             /*media controller*/
-            "isSessionReady" -> mediaController.isSessionReady
-            "getPlaybackState" -> mediaController.playbackState.toMap()
-            "getQueue" -> mediaController.queue.map { it.description.toMap() }
-            "getQueueTitle" -> mediaController.queueTitle
-            "getPlaybackInfo" -> mediaController.playbackInfo.toString() //TODO
             "updatePlayList" -> {
                 val playList = call.argument<List<Map<String, Any>>>("queue")!!.map { it.toMediaMetadataCompat() }
                 val title = call.argument<String>("queueTitle")
                 val queueId = call.argument<String>("queueId")!!
                 PlayListExt.updatePlayList(mediaController, playList, title, queueId)
-            }
-            /* addition */
-            "getPrevious" -> {
-            }
-            "getNext" -> {
-
             }
             else -> {
                 result.notImplemented()
@@ -156,25 +148,35 @@ class MusicPlayerPlugin(
         mediaBrowser.connect()
     }
 
+    // init from dart
+    // return current media session [PlayList] and dispatch all state to dart
+    private fun doInit(): Map<String, *>? {
+        val mediaController = requireNotNull(mediaController, { "media controller is null" })
+        val extras = requireNotNull(mediaController.extras, { " media extras is null ,something wrong!" })
+
+        controllerCallback.onMetadataChanged(mediaController.metadata)
+        controllerCallback.onExtrasChanged(mediaController.extras)
+        controllerCallback.onPlaybackStateChanged(mediaController.playbackState)
+        controllerCallback.onAudioInfoChanged(mediaController.playbackInfo)
+
+        extras.classLoader = MusicPlayerPlugin::class.java.classLoader
+        return hashMapOf(
+                "queueId" to extras.getString(PlayList.KEY_QUEUE_ID),
+                "queue" to extras.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_QUEUE)?.map { it.toMap() },
+                "queueTitle" to extras.getString(PlayList.KEY_QUEUE_TITLE),
+                "queueShuffle" to extras.getStringArrayList(PlayList.KEY_QUEUE_SHUFFLE)
+        )
+    }
+
+
     private val controllerCallback = object : MediaControllerCompat.Callback() {
-
-        fun getInitData(): Map<String, *>? {
-            val mediaController = mediaController ?: return null
-            val extras = mediaController.extras
-            extras.classLoader = MusicPlayerPlugin::class.java.classLoader
-            return hashMapOf(
-                    "metadata" to mediaController.metadata?.toMap(),
-                    "playbackInfo" to null,
-                    "playbackState" to mediaController.playbackState?.toMap(),
-                    "queueId" to extras.getString(PlayList.KEY_PLAYLIST_ID),
-                    "queue" to extras.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_PLAYLIST)?.map { it.toMap() },
-                    "queueTitle" to mediaController.queueTitle
-            )
-        }
-
 
         override fun onSessionReady() {
             channel.invokeMethod("onSessionReady", null)
+        }
+
+        override fun onSessionDestroyed() {
+            channel.invokeMethod("onSessionDestroyed", null)
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
@@ -185,28 +187,22 @@ class MusicPlayerPlugin(
             channel.invokeMethod("onMetadataChanged", metadata.toMap())
         }
 
-        override fun onRepeatModeChanged(repeatMode: Int) {
-            channel.invokeMethod("onRepeatModeChanged", repeatMode)
-        }
-
-        override fun onShuffleModeChanged(shuffleMode: Int) {
-            channel.invokeMethod("onShuffleModeChanged", shuffleMode)
-        }
-
-        override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
-            // No need to update dart value
+        override fun onExtrasChanged(extras: Bundle?) {
+            extras?.classLoader = MusicPlayerPlugin::class.java.classLoader
+            val queue = extras?.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_QUEUE)
+            val queueTitle = extras?.getString(PlayList.KEY_QUEUE_TITLE)
+            val queueId = extras?.getString(PlayList.KEY_QUEUE_ID)
+            val queueShuffle = extras?.getStringArrayList(PlayList.KEY_QUEUE_SHUFFLE)
+            channel.invokeMethod("onPlayListChanged", mapOf(
+                    "queue" to queue?.map { it.toMap() },
+                    "queueTitle" to queueTitle,
+                    "queueId" to queueId,
+                    "queueShuffle" to queueShuffle
+            ))
         }
 
         override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo) {
             channel.invokeMethod("onAudioInfoChanged", null)
-        }
-
-        override fun onSessionDestroyed() {
-            channel.invokeMethod("onSessionDestroyed", null)
-        }
-
-        override fun onQueueTitleChanged(title: CharSequence?) {
-            channel.invokeMethod("onQueueTitleChanged", title.toString())
         }
 
     }

@@ -3,6 +3,7 @@ package tech.soit.quiet
 import android.content.Context
 import android.net.Uri
 import android.support.v4.media.MediaDescriptionCompat
+import android.support.v4.media.MediaMetadataCompat
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -11,6 +12,8 @@ import io.flutter.view.FlutterMain
 import io.flutter.view.FlutterNativeView
 import io.flutter.view.FlutterRunArguments
 import kotlinx.coroutines.withTimeout
+import tech.soit.quiet.player.PlayList
+import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.utils.*
 
 
@@ -39,12 +42,25 @@ interface BackgroundHandle {
 
     suspend fun getPlayUrl(id: String, fallback: String?): Uri
 
+
+    fun onPlayListChanged(playList: PlayList)
+
+    fun onPlayModeChanged(playMode: PlayMode)
+
+    fun onMetadataChanged(metadata: MediaMetadataCompat?)
+
 }
 
 typealias BackgroundRegistrarCallback = (registry: PluginRegistry) -> Unit
 
 
 private object DefaultBackgroundHandle : BackgroundHandle {
+
+    override fun onPlayListChanged(playList: PlayList) = Unit
+
+    override fun onPlayModeChanged(playMode: PlayMode) = Unit
+
+    override fun onMetadataChanged(metadata: MediaMetadataCompat?) = Unit
 
     override suspend fun loadImage(description: MediaDescriptionCompat, uri: Uri): Artwork? {
         val bytes = loadArtworkFromUri(uri) ?: return null
@@ -161,6 +177,23 @@ class MusicPlayerBackgroundPlugin(
                 "getPlayUrl", mapOf("id" to id, "url" to fallback)
         ) { fallback }
         return Uri.parse(url)
+    }
+
+
+    override fun onPlayListChanged(playList: PlayList) {
+        methodChannel.invokeMethod("onQueueChanged", mapOf(
+                "queue" to playList.queue.map { it.toMap() },
+                "queueTitle" to playList.title,
+                "token" to playList.queueId
+        ))
+    }
+
+    override fun onPlayModeChanged(playMode: PlayMode) {
+        methodChannel.invokeMethod("onPlayModeChanged", playMode.name)
+    }
+
+    override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+        methodChannel.invokeMethod("onMetadataChanged", metadata?.toMap())
     }
 
 
