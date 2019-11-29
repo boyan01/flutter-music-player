@@ -113,7 +113,6 @@ class MusicPlayerBackgroundPlugin(
             val arguments = FlutterRunArguments().apply {
                 bundlePath = appBundlePath
                 entrypoint = "playerBackgroundService"
-                libraryPath = ""
             }
             nativeView.runFromBundle(arguments)
             val channel = MethodChannel(
