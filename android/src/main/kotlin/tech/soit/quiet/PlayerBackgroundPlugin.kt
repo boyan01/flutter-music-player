@@ -4,13 +4,15 @@ import android.content.Context
 import android.net.Uri
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterJNI
 import io.flutter.embedding.engine.dart.DartExecutor
+import io.flutter.embedding.engine.loader.FlutterLoader
+import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.FlutterMain
-import io.flutter.view.FlutterNativeView
-import io.flutter.view.FlutterRunArguments
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.PlayList
 import tech.soit.quiet.player.PlayMode
@@ -18,8 +20,8 @@ import tech.soit.quiet.utils.*
 
 
 data class Config(
-        val enableCache: Boolean = false,
-        val userAgent: String?
+    val enableCache: Boolean = false,
+    val userAgent: String?
 ) {
 
     companion object {
@@ -27,8 +29,8 @@ data class Config(
     }
 
     constructor(map: Map<String, Any>) : this(
-            enableCache = map["enableCache"] as? Boolean ?: false,
-            userAgent = map["userAgent"] as? String
+        enableCache = map["enableCache"] as? Boolean ?: false,
+        userAgent = map["userAgent"] as? String
     )
 
 }
@@ -75,8 +77,8 @@ private object DefaultBackgroundHandle : BackgroundHandle {
 
 
 class MusicPlayerBackgroundPlugin(
-        private val methodChannel: MethodChannel,
-        private val dartExecutor: DartExecutor
+    private val methodChannel: MethodChannel,
+    private val dartExecutor: DartExecutor
 ) : MethodChannel.MethodCallHandler, BackgroundHandle {
 
 
@@ -107,20 +109,24 @@ class MusicPlayerBackgroundPlugin(
                 return DefaultBackgroundHandle
             }
             FlutterMain.ensureInitializationComplete(context, null)
-            val appBundlePath = FlutterMain.findAppBundlePath()
-            val nativeView = FlutterNativeView(context, true)
 
-            val arguments = FlutterRunArguments().apply {
-                bundlePath = appBundlePath
-                entrypoint = "playerBackgroundService"
-            }
-            nativeView.runFromBundle(arguments)
-            val channel = MethodChannel(
-                    nativeView.pluginRegistry.registrarFor(MusicPlayerBackgroundPlugin::class.java.name).messenger(),
-                    NAME
+
+            val engine = FlutterEngine(context, FlutterLoader(), FlutterJNI())
+            engine.dartExecutor.executeDartEntrypoint(
+                DartExecutor.DartEntrypoint(
+                    FlutterMain.findAppBundlePath(),
+                    "playerBackgroundService"
+                )
             )
-            registrarCallback?.invoke(nativeView.pluginRegistry)
-            val helper = MusicPlayerBackgroundPlugin(channel, nativeView.dartExecutor)
+            val registry = ShimPluginRegistry(engine)
+            registrarCallback?.invoke(registry)
+
+            val channel = MethodChannel(
+                registry.registrarFor(MusicPlayerBackgroundPlugin::class.java.name).messenger(),
+                NAME
+            )
+
+            val helper = MusicPlayerBackgroundPlugin(channel, engine.dartExecutor)
             channel.setMethodCallHandler(helper)
             return helper
         }
@@ -141,9 +147,9 @@ class MusicPlayerBackgroundPlugin(
 
 
     private suspend inline fun <reified T> MethodChannel.invokeAsyncCast(
-            method: String,
-            arguments: Any?,
-            noinline onNotImplement: suspend () -> T
+        method: String,
+        arguments: Any?,
+        noinline onNotImplement: suspend () -> T
     ): T {
         if (dartExecutor.isolateServiceId == null) {
             // run background entry point failed
@@ -173,18 +179,20 @@ class MusicPlayerBackgroundPlugin(
 
     override suspend fun getPlayUrl(id: String, fallback: String?): Uri {
         val url = methodChannel.invokeAsyncCast(
-                "getPlayUrl", mapOf("id" to id, "url" to fallback)
+            "getPlayUrl", mapOf("id" to id, "url" to fallback)
         ) { fallback }
         return Uri.parse(url)
     }
 
 
     override fun onPlayListChanged(playList: PlayList) {
-        methodChannel.invokeMethod("onQueueChanged", mapOf(
+        methodChannel.invokeMethod(
+            "onQueueChanged", mapOf(
                 "queue" to playList.queue.map { it.toMap() },
                 "queueTitle" to playList.title,
                 "token" to playList.queueId
-        ))
+            )
+        )
     }
 
     override fun onPlayModeChanged(playMode: PlayMode) {

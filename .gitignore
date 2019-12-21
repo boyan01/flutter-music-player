@@ -7,3 +7,5 @@
 build/
 
 .idea/
+example/.flutter-plugins-dependencies
+pubspec.lock
