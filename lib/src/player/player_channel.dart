@@ -39,12 +39,64 @@ class PlayList {
     );
   }
 
-  MediaMetadata _getNext(MediaMetadata metadata, {PlayMode playMode}) {
-    return null;
+  /// get [metadata] next [MediaMetadata]
+  /// [shuffle] get next item in shuffle list
+  MediaMetadata getNext(MediaMetadata metadata, {bool shuffle = false}) {
+    assert(metadata != null);
+
+    if (shuffle) {
+      final next = _shuffleQueue.getNext(metadata.mediaId, true);
+      // TODO more effective
+      return queue.firstWhere((e) => e.mediaId == next);
+    } else {
+      return queue.getNext(metadata, true);
+    }
   }
 
-  MediaMetadata _getPrevious(MediaMetadata metadata, {PlayMode playMode}) {
-    return null;
+  MediaMetadata getPrevious(MediaMetadata metadata, {bool shuffle = false}) {
+    assert(metadata != null);
+    if (shuffle) {
+      final next = _shuffleQueue.getPrevious(metadata.mediaId, true);
+      // TODO more effective
+      return queue.firstWhere((e) => e.mediaId == next);
+    } else {
+      return queue.getPrevious(metadata, true);
+    }
+  }
+}
+
+@visibleForTesting
+extension GetNext<T> on List<T> {
+  T getNext(T anchor, bool circle) {
+    int index = this.indexOf(anchor);
+    if (index == -1) {
+      assert(() {
+        throw "element$anchor not exist";
+      }());
+      return null;
+    }
+    index++;
+    if (index == this.length) {
+      if (!circle) return null;
+      index = 0;
+    }
+    return this[index];
+  }
+
+  T getPrevious(T anchor, bool circle) {
+    int index = this.indexOf(anchor);
+    if (index == -1) {
+      assert(() {
+        throw "element$anchor not exist";
+      }());
+      return null;
+    }
+    index--;
+    if (index == -1) {
+      if (!circle) return null;
+      index = this.length - 1;
+    }
+    return this[index];
   }
 }
 
