@@ -23,8 +23,8 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import tech.soit.quiet.BackgroundHandle
-import tech.soit.quiet.MusicPlayerBackgroundPlugin
+import tech.soit.quiet.BackgroundChannel
+import tech.soit.quiet.MusicPlayerBackgroundChannel
 import tech.soit.quiet.player.*
 import tech.soit.quiet.receiver.BecomingNoisyReceiver
 import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
@@ -65,7 +65,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
     private val notificationBuilder by lazy { NotificationBuilder(this) }
 
     // To interact with Dart in background
-    lateinit var backgroundHandle: BackgroundHandle
+    lateinit var backgroundChannel: BackgroundChannel
         private set
 
 
@@ -144,7 +144,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
 
     override fun onCreate() {
         // start background handle
-        backgroundHandle = MusicPlayerBackgroundPlugin.startBackgroundIsolate(this)
+        backgroundChannel = MusicPlayerBackgroundChannel.startBackgroundIsolate(this)
         super.onCreate()
         sessionToken = mediaSession.sessionToken
         playList.attach(this)
@@ -311,24 +311,24 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
 
         override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
             super.onQueueChanged(queue)
-            backgroundHandle.onPlayListChanged(playList)
+            backgroundChannel.onPlayListChanged(playList)
         }
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             log { "onMetadataChanged : ${metadata?.description}" }
             mediaController.playbackState?.let { updateNotification(it) }
-            backgroundHandle.onMetadataChanged(metadata)
+            backgroundChannel.onMetadataChanged(metadata)
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
             state?.let {
                 updateNotification(it)
-                backgroundHandle.onPlayModeChanged(it.getPlayMode())
+                backgroundChannel.onPlayModeChanged(it.getPlayMode())
             }
         }
 
         override fun onExtrasChanged(extras: Bundle?) {
-            backgroundHandle.onPlayListChanged(playList)
+            backgroundChannel.onPlayListChanged(playList)
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {

@@ -14,7 +14,7 @@ import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
 import com.google.android.exoplayer2.util.Util
 import kotlinx.coroutines.runBlocking
-import tech.soit.quiet.BackgroundHandle
+import tech.soit.quiet.BackgroundChannel
 import tech.soit.quiet.service.MusicPlayerService
 
 /**
@@ -24,7 +24,7 @@ import tech.soit.quiet.service.MusicPlayerService
 fun List<MediaDescriptionCompat>.toMediaSource(
         service: MusicPlayerService
 ): ConcatenatingMediaSource {
-    val handle = service.backgroundHandle
+    val handle = service.backgroundChannel
     val default = DefaultDataSourceFactory(
             service,
             handle.config.userAgent ?: Util.getUserAgent(service, service.applicationInfo.name),
@@ -57,7 +57,7 @@ fun MediaDescriptionCompat.toMediaSource(dataSourceFactory: DataSource.Factory):
 
 
 fun MediaMetadataCompat.toMediaSource(service: MusicPlayerService): ExtractorMediaSource {
-    val handle = service.backgroundHandle
+    val handle = service.backgroundChannel
     val default = DefaultDataSourceFactory(
             service,
             handle.config.userAgent ?: Util.getUserAgent(service, service.applicationInfo.name),
@@ -94,17 +94,17 @@ private fun buildMediaUri(description: MediaDescriptionCompat): Uri {
  */
 private class UrlUpdatingDataSource(
         private val dataSource: DataSource,
-        private val backgroundHandle: BackgroundHandle
+        private val backgroundChannel: BackgroundChannel
 ) : DataSource by dataSource {
 
     class Factory(
             private val factory: DataSource.Factory,
-            private val backgroundHandle: BackgroundHandle
+            private val backgroundChannel: BackgroundChannel
     ) : DataSource.Factory {
         override fun createDataSource(): DataSource {
             return UrlUpdatingDataSource(
                     factory.createDataSource(),
-                    backgroundHandle
+                    backgroundChannel
             )
         }
     }
@@ -115,7 +115,7 @@ private class UrlUpdatingDataSource(
             val id = former.getQueryParameter("id")!!
             val fallback = former.getQueryParameter("uri")
             val uri = runBlocking {
-                backgroundHandle.getPlayUrl(id, fallback)
+                backgroundChannel.getPlayUrl(id, fallback)
             }
             val newSpec = dataSpec.withUri(uri)
             dataSource.open(newSpec)

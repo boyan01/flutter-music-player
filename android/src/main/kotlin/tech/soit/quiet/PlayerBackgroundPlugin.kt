@@ -11,7 +11,6 @@ import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.FlutterMain
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.PlayList
@@ -36,7 +35,7 @@ data class Config(
 }
 
 
-interface BackgroundHandle {
+interface BackgroundChannel {
 
     val config: Config get() = Config.Default
 
@@ -53,10 +52,8 @@ interface BackgroundHandle {
 
 }
 
-typealias BackgroundRegistrarCallback = (registry: PluginRegistry) -> Unit
 
-
-private object DefaultBackgroundHandle : BackgroundHandle {
+private object DefaultBackgroundChannel : BackgroundChannel {
 
     override fun onPlayListChanged(playList: PlayList) = Unit
 
@@ -76,21 +73,23 @@ private object DefaultBackgroundHandle : BackgroundHandle {
 }
 
 
-class MusicPlayerBackgroundPlugin(
+
+typealias BackgroundRegistrar = (registry: FlutterEngine) -> Unit
+
+class MusicPlayerBackgroundChannel(
     private val methodChannel: MethodChannel,
     private val dartExecutor: DartExecutor
-) : MethodChannel.MethodCallHandler, BackgroundHandle {
+) : MethodChannel.MethodCallHandler, BackgroundChannel {
 
 
     companion object {
 
-
         private const val NAME = "tech.soit.quiet/background_callback"
 
-        private var registrarCallback: BackgroundRegistrarCallback? = null
+        private var registrar: BackgroundRegistrar? = null
 
-        fun setOnRegisterCallback(callback: BackgroundRegistrarCallback) {
-            registrarCallback = callback
+        fun setOnRegisterCallback(callback: BackgroundRegistrar) {
+            registrar = callback
         }
 
         /**
@@ -101,12 +100,12 @@ class MusicPlayerBackgroundPlugin(
          * The flutter background entry point should be placed in lib/main.dart (the same as main() method)
          *
          */
-        fun startBackgroundIsolate(context: Context): BackgroundHandle {
+        fun startBackgroundIsolate(context: Context): BackgroundChannel {
             try {
                 FlutterMain.startInitialization(context)
             } catch (e: UnsatisfiedLinkError) {
                 // in android test mode, we don't have libflutter.so in apk
-                return DefaultBackgroundHandle
+                return DefaultBackgroundChannel
             }
             FlutterMain.ensureInitializationComplete(context, null)
 
@@ -118,15 +117,14 @@ class MusicPlayerBackgroundPlugin(
                     "playerBackgroundService"
                 )
             )
-            val registry = ShimPluginRegistry(engine)
-            registrarCallback?.invoke(registry)
+            registrar?.invoke(engine)
 
             val channel = MethodChannel(
-                registry.registrarFor(MusicPlayerBackgroundPlugin::class.java.name).messenger(),
+                ShimPluginRegistry(engine).registrarFor(MusicPlayerBackgroundChannel::class.java.name).messenger(),
                 NAME
             )
 
-            val helper = MusicPlayerBackgroundPlugin(channel, engine.dartExecutor)
+            val helper = MusicPlayerBackgroundChannel(channel, engine.dartExecutor)
             channel.setMethodCallHandler(helper)
             return helper
         }
