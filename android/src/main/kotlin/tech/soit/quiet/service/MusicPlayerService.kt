@@ -1,7 +1,6 @@
 package tech.soit.quiet.service
 
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -20,14 +19,9 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.ext.mediasession.DefaultPlaybackController
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import tech.soit.quiet.BackgroundChannel
 import tech.soit.quiet.MusicPlayerBackgroundChannel
 import tech.soit.quiet.player.*
-import tech.soit.quiet.receiver.BecomingNoisyReceiver
-import tech.soit.quiet.service.NotificationBuilder.Companion.NOW_PLAYING_NOTIFICATION
 import tech.soit.quiet.utils.*
 import kotlin.properties.Delegates
 
@@ -41,9 +35,9 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
     companion object {
 
         private val audioAttribute = AudioAttributes.Builder()
-                .setContentType(C.CONTENT_TYPE_MUSIC)
-                .setUsage(C.USAGE_MEDIA)
-                .build()
+            .setContentType(C.CONTENT_TYPE_MUSIC)
+            .setUsage(C.USAGE_MEDIA)
+            .build()
 
         private const val ROOT = "/"
 
@@ -62,19 +56,11 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
         }
     }
 
-    private val notificationBuilder by lazy { NotificationBuilder(this) }
 
     // To interact with Dart in background
     lateinit var backgroundChannel: BackgroundChannel
         private set
 
-
-    private val becomingNoisyReceiver by lazy {
-        BecomingNoisyReceiver(
-                this,
-                mediaSession.sessionToken
-        )
-    }
 
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
 
@@ -87,50 +73,6 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
         ExoPlayerFactory.newSimpleInstance(this).apply {
             setAudioAttributes(audioAttribute, true)
         }
-    }
-
-    private fun handleNotification() = GlobalScope.launch(Dispatchers.Main) {
-
-        for (notification in notificationBuilder.notificationGenerator) {
-
-            val playbackState = mediaController.playbackState ?: return@launch
-            when (val updatedState = playbackState.state) {
-                PlaybackStateCompat.STATE_BUFFERING,
-                PlaybackStateCompat.STATE_PLAYING -> {
-
-                    /**
-                     * This may look strange, but the documentation for [Service.startForeground]
-                     * notes that "calling this method does *not* put the service in the started
-                     * state itself, even though the name sounds like it."
-                     */
-                    if (!isForegroundService) {
-                        startService(Intent(applicationContext, this@MusicPlayerService.javaClass))
-                        startForeground(NOW_PLAYING_NOTIFICATION, notification)
-                        isForegroundService = true
-                    } else if (notification != null) {
-                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                    }
-                }
-                else -> {
-                    if (isForegroundService) {
-                        stopForeground(false)
-                        isForegroundService = false
-
-                        // If playback has ended, also stop the service.
-                        if (updatedState == PlaybackStateCompat.STATE_NONE) {
-                            stopSelf()
-                        }
-
-                        if (notification != null) {
-                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                        } else {
-                            stopForeground(true)
-                        }
-                    }
-                }
-            }
-        }
-
     }
 
 
@@ -149,20 +91,25 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
         sessionToken = mediaSession.sessionToken
         playList.attach(this)
         mediaController = MediaControllerCompat(this, mediaSession).apply {
-            registerCallback(MediaControllerCallback())
         }
 
-        val sessionConnector = MediaSessionConnector(mediaSession, object : DefaultPlaybackController() {
-            override fun getSupportedPlaybackActions(player: Player?): Long {
-                return ACTIONS
-            }
+        val sessionConnector =
+            MediaSessionConnector(mediaSession, object : DefaultPlaybackController() {
+                override fun getSupportedPlaybackActions(player: Player?): Long {
+                    return ACTIONS
+                }
 
-        }, null /*remove default metadata provider*/)
+            }, null /*remove default metadata provider*/)
         exoPlayer.addListener(autoPlayNextListener)
         sessionConnector.setPlayer(exoPlayer, object : MediaSessionConnector.PlaybackPreparer {
             override fun onPrepareFromSearch(query: String?, extras: Bundle?) = Unit
 
-            override fun onCommand(player: Player?, command: String, extras: Bundle?, cb: ResultReceiver?) {
+            override fun onCommand(
+                player: Player?,
+                command: String,
+                extras: Bundle?,
+                cb: ResultReceiver?
+            ) {
 
             }
 
@@ -209,7 +156,12 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
                 log { "onCurrentWindowIndexChanged : ${player.currentWindowIndex}" }
             }
 
-            override fun onCommand(player: Player?, command: String?, extras: Bundle?, cb: ResultReceiver?) {
+            override fun onCommand(
+                player: Player?,
+                command: String?,
+                extras: Bundle?,
+                cb: ResultReceiver?
+            ) {
                 if (command == PlayListExt.COMMAND_UPDATE_PLAYLIST) {
                     playList = PlayListExt.parsePlayListFromArgument(extras!!)
                     player?.stop()
@@ -235,7 +187,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
 
             override fun getActiveQueueItemId(player: Player?): Long {
                 val metadata = mediaController.metadata
-                        ?: return MediaSessionCompat.QueueItem.UNKNOWN_ID.toLong()
+                    ?: return MediaSessionCompat.QueueItem.UNKNOWN_ID.toLong()
                 return playList.getQueueID(metadata)
             }
 
@@ -258,9 +210,6 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
 
         })
 
-        handleNotification()
-
-
     }
 
     private val autoPlayNextListener = object : Player.EventListener {
@@ -276,8 +225,8 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
                 val metadata = requireNotNull(mediaController.metadata, { "illegal state" })
                 val duration = if (exoPlayer.duration == C.TIME_UNSET) -1 else exoPlayer.duration
                 val update = MediaMetadataCompat.Builder(metadata)
-                        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                        .build()
+                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                    .build()
                 mediaSession.setMetadata(update)
             }
         }
@@ -295,9 +244,9 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
     }
 
     override fun onGetRoot(
-            clientPackageName: String,
-            clientUid: Int,
-            rootHints: Bundle?
+        clientPackageName: String,
+        clientUid: Int,
+        rootHints: Bundle?
     ): BrowserRoot? {
         //TODO validate call of client
 
@@ -306,46 +255,6 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
         return BrowserRoot(ROOT, null)
     }
 
-    private inner class MediaControllerCallback : MediaControllerCompat.Callback() {
-
-
-        override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
-            super.onQueueChanged(queue)
-            backgroundChannel.onPlayListChanged(playList)
-        }
-
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            log { "onMetadataChanged : ${metadata?.description}" }
-            mediaController.playbackState?.let { updateNotification(it) }
-            backgroundChannel.onMetadataChanged(metadata)
-        }
-
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            state?.let {
-                updateNotification(it)
-                backgroundChannel.onPlayModeChanged(it.getPlayMode())
-            }
-        }
-
-        override fun onExtrasChanged(extras: Bundle?) {
-            backgroundChannel.onPlayListChanged(playList)
-        }
-
-        private fun updateNotification(state: PlaybackStateCompat) {
-            when (state.state) {
-                PlaybackStateCompat.STATE_BUFFERING,
-                PlaybackStateCompat.STATE_PLAYING -> {
-                    becomingNoisyReceiver.register()
-                }
-                else -> {
-                    becomingNoisyReceiver.unregister()
-                }
-            }
-            notificationBuilder.updateNotification(mediaSession.sessionToken)
-        }
-
-
-    }
 
     override fun onTaskRemoved(rootIntent: Intent) {
         super.onTaskRemoved(rootIntent)
@@ -365,7 +274,6 @@ class MusicPlayerService : MediaBrowserServiceCompat(), PlayModeContainer {
             isActive = false
             release()
         }
-        notificationBuilder.destroy()
         super.onDestroy()
     }
 

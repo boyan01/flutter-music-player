@@ -110,13 +110,20 @@ class PlayList private constructor(
                 putParcelableArrayList(KEY_QUEUE, ArrayList(list))
                 putString(KEY_QUEUE_ID, queueId)
                 putString(KEY_QUEUE_TITLE, title)
-                putStringArrayList(KEY_QUEUE_SHUFFLE, ArrayList(shuffleMusicList.map { it.mediaId }))
+                putStringArrayList(
+                        KEY_QUEUE_SHUFFLE,
+                        ArrayList(shuffleMusicList.map { it.mediaId })
+                )
+                classLoader = MediaSessionCompat::class.java.classLoader
             })
             mediaSession.setQueueTitle(title)
         }
     }
 
-    fun getNext(metadata: MediaMetadataCompat?, playMode: PlayMode = this.playMode): MediaMetadataCompat? {
+    fun getNext(
+            metadata: MediaMetadataCompat?,
+            playMode: PlayMode = this.playMode
+    ): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "empty playlist" }
             return null
@@ -149,7 +156,10 @@ class PlayList private constructor(
     }
 
 
-    fun getPrevious(metadata: MediaMetadataCompat?, playMode: PlayMode = this.playMode): MediaMetadataCompat? {
+    fun getPrevious(
+            metadata: MediaMetadataCompat?,
+            playMode: PlayMode = this.playMode
+    ): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "try too play next with empty playlist!" }
             return null
@@ -218,7 +228,8 @@ object PlayListExt {
             controller: MediaControllerCompat,
             queue: List<MediaMetadataCompat>,
             title: String?,
-            queueId: String) {
+            queueId: String
+    ) {
         val data = Bundle().apply {
             putParcelableArrayList("queue", ArrayList(queue))
             putString("title", title)
