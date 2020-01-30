@@ -47,8 +47,8 @@ class MusicPlayerPlugin : FlutterPlugin {
 
 
 class MusicPlayerUiChannel(
-    val channel: MethodChannel,
-    private val context: Context
+        val channel: MethodChannel,
+        private val context: Context
 ) : MethodCallHandler {
 
     private val connectionIndicator = CompletableDeferred<Unit>()
@@ -78,10 +78,10 @@ class MusicPlayerUiChannel(
     }
 
     private val mediaBrowser: MediaBrowserCompat =
-        MediaBrowserCompat(
-            context, ComponentName(context, MusicPlayerService::class.java),
-            connectCallback, null
-        )
+            MediaBrowserCompat(
+                    context, ComponentName(context, MusicPlayerService::class.java),
+                    connectCallback, null
+            )
 
 
     private var mediaController: MediaControllerCompat? = null
@@ -128,7 +128,7 @@ class MusicPlayerUiChannel(
             /*media controller*/
             "updatePlayList" -> {
                 val playList =
-                    call.argument<List<Map<String, Any>>>("queue")!!.map { it.toMediaMetadataCompat() }
+                        call.argument<List<Map<String, Any>>>("queue")!!.map { it.toMediaMetadataCompat() }
                 val title = call.argument<String>("queueTitle")
                 val queueId = call.argument<String>("queueId")!!
                 PlayListExt.updatePlayList(mediaController, playList, title, queueId)
@@ -159,7 +159,7 @@ class MusicPlayerUiChannel(
     private fun doInit(): Map<String, *>? {
         val mediaController = requireNotNull(mediaController, { "media controller is null" })
         val extras =
-            requireNotNull(mediaController.extras, { " media extras is null ,something wrong!" })
+                requireNotNull(mediaController.extras, { " media extras is null ,something wrong!" })
 
         controllerCallback.onMetadataChanged(mediaController.metadata)
         controllerCallback.onExtrasChanged(mediaController.extras)
@@ -168,10 +168,10 @@ class MusicPlayerUiChannel(
 
         extras.classLoader = MusicPlayerUiChannel::class.java.classLoader
         return hashMapOf(
-            "queueId" to extras.getString(PlayList.KEY_QUEUE_ID),
-            "queue" to extras.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_QUEUE)?.map { it.toMap() },
-            "queueTitle" to extras.getString(PlayList.KEY_QUEUE_TITLE),
-            "queueShuffle" to extras.getStringArrayList(PlayList.KEY_QUEUE_SHUFFLE)
+                "queueId" to extras.getString(PlayList.KEY_QUEUE_ID),
+                "queue" to extras.getSerializable(PlayList.KEY_QUEUE) as List<*>?,
+                "queueTitle" to extras.getString(PlayList.KEY_QUEUE_TITLE),
+                "queueShuffle" to extras.getStringArrayList(PlayList.KEY_QUEUE_SHUFFLE)
         )
     }
 
@@ -196,17 +196,17 @@ class MusicPlayerUiChannel(
 
         override fun onExtrasChanged(extras: Bundle?) {
             extras?.classLoader = MusicPlayerUiChannel::class.java.classLoader
-            val queue = extras?.getParcelableArrayList<MediaMetadataCompat>(PlayList.KEY_QUEUE)
+            val queue = extras?.getSerializable(PlayList.KEY_QUEUE)
             val queueTitle = extras?.getString(PlayList.KEY_QUEUE_TITLE)
             val queueId = extras?.getString(PlayList.KEY_QUEUE_ID)
             val queueShuffle = extras?.getStringArrayList(PlayList.KEY_QUEUE_SHUFFLE)
             channel.invokeMethod(
-                "onPlayListChanged", mapOf(
-                    "queue" to queue?.map { it.toMap() },
+                    "onPlayListChanged", mapOf(
+                    "queue" to queue,
                     "queueTitle" to queueTitle,
                     "queueId" to queueId,
                     "queueShuffle" to queueShuffle
-                )
+            )
             )
         }
 

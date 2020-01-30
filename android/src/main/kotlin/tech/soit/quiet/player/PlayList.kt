@@ -8,6 +8,7 @@ import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
 import tech.soit.quiet.utils.mediaId
+import tech.soit.quiet.utils.toMap
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -107,7 +108,8 @@ class PlayList private constructor(
             }
             mediaSession.setQueue(queue)
             mediaSession.setExtras(Bundle().apply {
-                putParcelableArrayList(KEY_QUEUE, ArrayList(list))
+                // detail see: https://github.com/boyan01/flutter-music-player/issues/7
+                putSerializable(KEY_QUEUE, ArrayList(list.map { it.toMap() }))
                 putString(KEY_QUEUE_ID, queueId)
                 putString(KEY_QUEUE_TITLE, title)
                 putStringArrayList(KEY_QUEUE_SHUFFLE, ArrayList(shuffleMusicList.map { it.mediaId }))
@@ -207,6 +209,13 @@ class PlayList private constructor(
 object PlayListExt {
 
 
+    private const val KEY_PREFIX = "tech.soit.quiet.playList"
+
+    private const val KEY_QUEUE = "$KEY_PREFIX/queue"
+    private const val KEY_TITLE = "$KEY_PREFIX/title"
+    private const val KEY_QUEUE_ID = "$KEY_PREFIX/queueId"
+
+
     const val COMMAND_UPDATE_PLAYLIST = "updatePlayList"
 
     private const val COMMAND_GET_PLAYLIST = "getPlayList"
@@ -220,9 +229,9 @@ object PlayListExt {
             title: String?,
             queueId: String) {
         val data = Bundle().apply {
-            putParcelableArrayList("queue", ArrayList(queue))
-            putString("title", title)
-            putString("queueId", queueId)
+            putParcelableArrayList(KEY_QUEUE, ArrayList(queue))
+            putString(KEY_TITLE, title)
+            putString(KEY_QUEUE_ID, queueId)
         }
         controller.sendCommand(COMMAND_UPDATE_PLAYLIST, data, null)
     }
@@ -230,11 +239,10 @@ object PlayListExt {
 
     fun parsePlayListFromArgument(bundle: Bundle): PlayList {
         return PlayList(
-                list = bundle.getParcelableArrayList("queue")!!,
-                title = bundle.getString("title"),
-                queueId = bundle.getString("queueId")!!
+                list = bundle.getParcelableArrayList(KEY_QUEUE)!!,
+                title = bundle.getString(KEY_TITLE),
+                queueId = bundle.getString(KEY_QUEUE_ID)!!
         )
     }
-
 
 }
