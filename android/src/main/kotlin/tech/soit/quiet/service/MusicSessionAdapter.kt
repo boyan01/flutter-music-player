@@ -92,7 +92,7 @@ class MusicSessionCallbackAdapter(
 private fun MusicMetadata.toMediaMetadata(): MediaMetadataCompat {
     return MediaMetadataCompat.Builder()
             .putText(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
-            .putText(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, subTitle)
+            .putText(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, subtitle)
             .build()
 }
 

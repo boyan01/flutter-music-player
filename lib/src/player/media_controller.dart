@@ -3,10 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/model/media_metadata.dart';
 import 'package:music_player/src/model/playback_state.dart';
-import 'package:music_player/src/model/rating.dart';
 import 'package:music_player/src/player/player_channel.dart';
-
-import 'play_mode.dart';
 
 ///
 /// Interface for controlling media playback.
@@ -15,10 +12,6 @@ class TransportControls {
   final MethodChannel _channel;
 
   TransportControls(this._channel);
-
-  Future<void> prepareFromMediaId(String mediaId) async {
-    await _channel.invokeMethod("prepareFromMediaId", mediaId);
-  }
 
   Future<void> play() async {
     await _channel.invokeMethod("play");
@@ -40,28 +33,16 @@ class TransportControls {
     await _channel.invokeMethod("seekTo", pos);
   }
 
-  Future<void> fastForward() async {
-    await _channel.invokeMethod("fastForward");
-  }
-
   Future<void> skipToNext() async {
     await _channel.invokeMethod("skipToNext");
-  }
-
-  Future<void> rewind() async {
-    await _channel.invokeMethod("rewind");
   }
 
   Future<void> skipToPrevious() async {
     await _channel.invokeMethod("skipToPrevious");
   }
 
-  Future<void> setRating(Rating rating) async {
-    await _channel.invokeMethod("setRating", rating.toMap());
-  }
-
-  Future<void> setPlayMode(PlayMode playMode) async {
-    await _channel.invokeMethod("setPlayMode", playModeToStr(playMode));
+  Future<void> setPlayMode(int playMode) async {
+    await _channel.invokeMethod("setPlayMode", playMode);
   }
 }
 

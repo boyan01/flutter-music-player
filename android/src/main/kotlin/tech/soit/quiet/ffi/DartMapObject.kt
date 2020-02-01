@@ -9,8 +9,9 @@ import kotlin.reflect.KProperty
 data class DartMapObject(
     val map: Map<String, @RawValue Any?>
 ) : Parcelable {
-    
-    inline operator fun <reified T : Any?> getValue(any: Any, property: KProperty<*>): T {
-        return map.getValue(any, property) as T
+
+
+    inline operator fun <reified T : Any?> getValue(any: Any, property: KProperty<*>): T? {
+        return map.getValue(any, property) as T?
     }
 }

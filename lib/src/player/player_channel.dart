@@ -145,10 +145,10 @@ class MusicPlayerValue {
 
 typedef ValueCallback<T> = void Function<T>(T value);
 
-class MusicPlayer extends ValueNotifier<MusicPlayerValue> with MediaControllerCallback {
-  final void Function(MusicPlayer) onServiceConnected;
+class MusicPlayer1 extends ValueNotifier<MusicPlayerValue> with MediaControllerCallback {
+  final void Function(MusicPlayer1) onServiceConnected;
 
-  MusicPlayer({this.onServiceConnected}) : super(const MusicPlayerValue.none()) {
+  MusicPlayer1({this.onServiceConnected}) : super(const MusicPlayerValue.none()) {
     _listenNative();
   }
 

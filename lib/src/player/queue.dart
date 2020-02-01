@@ -7,11 +7,26 @@ class PlayQueue {
 
   PlayQueue(this.queueId, this.items, this.queueTitle);
 
-  Future<MediaMetadata> getNext(MediaMetadata metadata) {
+  Future<MediaMetadata> getNext(MediaMetadata metadata) {}
 
+  Future<MediaMetadata> getPrevious(MediaMetadata metadata) {}
+}
+
+abstract class PlaySequenceDelegate {
+  /// [anchor] could be null
+  Future<MediaMetadata> getNext(PlayQueue queue, int playMode, MediaMetadata anchor);
+
+  Future<MediaMetadata> getPrevious(PlayQueue queue, int playMode, MediaMetadata anchor);
+}
+
+class DefaultPlaySequenceDelegate extends PlaySequenceDelegate {
+  @override
+  Future<MediaMetadata> getNext(PlayQueue queue, int playMode, MediaMetadata anchor) {
+    return null;
   }
 
-  Future<MediaMetadata> getPrevious(MediaMetadata metadata) {
-
+  @override
+  Future<MediaMetadata> getPrevious(PlayQueue queue, int playMode, MediaMetadata anchor) {
+    return null;
   }
 }

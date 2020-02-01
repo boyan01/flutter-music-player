@@ -6,13 +6,13 @@ import tech.soit.quiet.ffi.DartMapObject
 
 data class MusicMetadata(val obj: DartMapObject) : Parcelable {
 
-    val mediaId: String by obj
+    val mediaId: String? by obj
 
-    val title: String by obj
+    val title: String? by obj
 
-    val subTitle: String by obj
+    val subtitle: String? by obj
 
-    val duration: Long by obj
+    val duration: Long? by obj
 
     val iconUri: String? by obj
 

@@ -258,7 +258,7 @@ class NotificationBuilder(
             .setShowCancelButton(true)
 
         return builder.setContentIntent(sessionActivity)
-            .setContentText(metadata.subTitle)
+            .setContentText(metadata.subtitle)
             .setContentTitle(metadata.title)
             .setDeleteIntent(stopPendingIntent)
             .setLargeIcon(largeIcon)
