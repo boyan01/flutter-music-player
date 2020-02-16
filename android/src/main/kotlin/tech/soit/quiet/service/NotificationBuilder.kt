@@ -98,8 +98,6 @@ class NotificationAdapter(
                                 NotificationBuilder.NOW_PLAYING_NOTIFICATION,
                                 notification
                             )
-                        } else {
-                            context.stopForeground(true)
                         }
                     }
                 }

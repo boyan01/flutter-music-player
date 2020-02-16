@@ -96,8 +96,7 @@ class MusicPlayerServicePlugin(
     }
 
 
-    var config = Config(false, null)
-
+    var config = Config.Default
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         if (call.method == "updateConfig") {
@@ -127,6 +126,8 @@ class MusicPlayerServicePlugin(
             withTimeout(10000) {
                 invokeAsync(method, arguments, onNotImplement)
             }
+        }.onFailure {
+            logError(it)
         }.getOrElse { onNotImplement() }
 
     }
@@ -143,7 +144,7 @@ class MusicPlayerServicePlugin(
     suspend fun getPlayUrl(id: String, fallback: String?): Uri {
         val url = methodChannel.invokeAsyncCast(
             "getPlayUrl", mapOf("id" to id, "url" to fallback)
-        ) { fallback }
+        ) { fallback } ?: throw IllegalStateException("can not get play uri for $id .")
         return Uri.parse(url)
     }
 
