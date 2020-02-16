@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - music_player (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - music_player (from `.symlinks/plugins/music_player/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  music_player:
+    :path: ".symlinks/plugins/music_player/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  music_player: 2134293a5d7a68d15057159215a882061c5c97bf
+
+PODFILE CHECKSUM: 083258d7f5e80b42ea9bfee905fe93049bc04c64
+
+COCOAPODS: 1.8.4

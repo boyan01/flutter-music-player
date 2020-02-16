@@ -1,10 +1,10 @@
 import Flutter
 import UIKit
 
-public class SwiftFlutterMusicPlayerPlugin: NSObject, FlutterPlugin {
+public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "flutter_music_player", binaryMessenger: registrar.messenger())
-    let instance = SwiftFlutterMusicPlayerPlugin()
+    let channel = FlutterMethodChannel(name: "music_player", binaryMessenger: registrar.messenger())
+    let instance = SwiftMusicPlayerUiPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
