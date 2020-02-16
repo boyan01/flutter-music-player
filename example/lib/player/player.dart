@@ -15,7 +15,6 @@ final medias = [
     title: "Rise",
     subtitle: "Rise - The Glitch Mob",
     mediaId: "rise",
-    mediaUri: "asset:///flutter_assets/tracks/rise.mp3",
     iconUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
   ),
   MusicMetadata(

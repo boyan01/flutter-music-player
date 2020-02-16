@@ -2,10 +2,11 @@
     package="tech.soit.quiet">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application>
         <service
-            android:name=".service.MusicPlayerService2"
+            android:name=".service.MusicPlayerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />

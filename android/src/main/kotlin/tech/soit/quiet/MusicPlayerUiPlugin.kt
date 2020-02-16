@@ -9,7 +9,7 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import tech.soit.quiet.player.PlayQueue
-import tech.soit.quiet.service.MusicPlayerService2
+import tech.soit.quiet.service.MusicPlayerService
 
 
 private const val UI_PLUGIN_NAME = "tech.soit.quiet/player.ui"
@@ -64,8 +64,8 @@ private class MusicPlayerUiChannel1(
 
 
 private fun Context.startMusicService(): RemotePlayer {
-    val intent = Intent(this, MusicPlayerService2::class.java)
-    intent.action = MusicPlayerService2.ACTION_MUSIC_PLAYER_SERVICE
+    val intent = Intent(this, MusicPlayerService::class.java)
+    intent.action = MusicPlayerService.ACTION_MUSIC_PLAYER_SERVICE
     startService(intent)
     val player = RemotePlayer()
     if (!bindService(intent, player, Context.BIND_AUTO_CREATE)) {

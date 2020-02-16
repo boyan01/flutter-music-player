@@ -1,6 +1,5 @@
 package tech.soit.quiet.service
 
-import android.content.Intent
 import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -36,24 +35,16 @@ class MediaSessionCallbackAdapter(
     }
 
     override fun onSkipToNext() {
-        log { }
         playerSession.skipToNext()
     }
 
     override fun onSkipToPrevious() {
-        log { }
         playerSession.skipToPrevious()
     }
 
     override fun onStop() {
         playerSession.stop()
     }
-
-    override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
-        log { mediaButtonEvent }
-        return super.onMediaButtonEvent(mediaButtonEvent)
-    }
-
 
 }
 

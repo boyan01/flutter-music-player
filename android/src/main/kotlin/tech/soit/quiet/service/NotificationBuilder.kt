@@ -74,7 +74,7 @@ class NotificationAdapter(
                      * state itself, even though the name sounds like it."
                      */
                     if (!isForegroundService) {
-                        context.startService(Intent(context, MusicPlayerService2::class.java))
+                        context.startService(Intent(context, MusicPlayerService::class.java))
                         context.startForeground(
                             NotificationBuilder.NOW_PLAYING_NOTIFICATION,
                             notification
@@ -119,9 +119,7 @@ class NotificationAdapter(
  * Helper class to encapsulate code for building notifications.
  *
  */
-class NotificationBuilder(
-    private val context: Service
-) {
+class NotificationBuilder(private val context: Service) {
 
     companion object {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
@@ -226,7 +224,7 @@ class NotificationBuilder(
     }
 
     private fun MusicMetadata.key(): Int? {
-        return arrayOf(iconUri, mediaUri).contentHashCode()
+        return iconUri?.hashCode() ?: mediaId.hashCode()
     }
 
 

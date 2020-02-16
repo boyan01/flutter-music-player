@@ -15,6 +15,24 @@ import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.utils.*
 
+typealias BackgroundRegistrar = (registry: FlutterEngine) -> Unit
+
+data class Config(
+    val enableCache: Boolean = false,
+    val userAgent: String?
+) {
+
+    companion object {
+        val Default = Config(enableCache = false, userAgent = null)
+    }
+
+    constructor(map: Map<String, Any>) : this(
+        enableCache = map["enableCache"] as? Boolean ?: false,
+        userAgent = map["userAgent"] as? String
+    )
+
+}
+
 class MusicPlayerServicePlugin(
     private val methodChannel: MethodChannel,
     private val dartExecutor: DartExecutor,
@@ -63,7 +81,7 @@ class MusicPlayerServicePlugin(
             registrar?.invoke(engine)
 
             val channel = MethodChannel(
-                ShimPluginRegistry(engine).registrarFor(MusicPlayerBackgroundChannel::class.java.name).messenger(),
+                ShimPluginRegistry(engine).registrarFor(MusicPlayerServicePlugin::class.java.name).messenger(),
                 NAME
             )
 

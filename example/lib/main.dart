@@ -34,7 +34,10 @@ class ExamplePage extends StatelessWidget {
 }
 
 void playerBackgroundService() {
-  runBackgroundService();
+  runBackgroundService(playUriInterceptor: (mediaId, fallbackUrl) async {
+    if (mediaId == 'rise') return "asset:///flutter_assets/tracks/rise.mp3";
+    return fallbackUrl;
+  });
 }
 
 class _ExampleMusicList extends StatelessWidget {
