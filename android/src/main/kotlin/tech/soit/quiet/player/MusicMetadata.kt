@@ -2,46 +2,39 @@ package tech.soit.quiet.player
 
 import android.os.Parcel
 import android.os.Parcelable
-import tech.soit.quiet.ffi.DartMapObject
 
-data class MusicMetadata(val obj: DartMapObject) : Parcelable {
+data class MusicMetadata constructor(val obj: Map<String, Any?>) : Parcelable {
 
-    val mediaId: String? by obj
+    val mediaId: String get() = obj["mediaId"] as String
 
-    val title: String? by obj
+    val title: String? get() = obj["title"] as String?
 
-    val subtitle: String? by obj
+    val subtitle: String? get() = obj["subtitle"] as String
 
-    val duration: Long? by obj
+    val duration: Long? get() = (obj["duration"] as Number?)?.toLong()
 
-    val iconUri: String? by obj
+    val iconUri: String? get() = obj["iconUri"] as String?
 
-    val mediaUri: String? by obj
+    val mediaUri: String? get() = obj["mediaUri"] as String?
 
+    constructor(source: Parcel) : this(
+            mutableMapOf<String, Any?>().apply {
+                source.readMap(this, MusicMetadata::class.java.classLoader)
+            }.toMap()
+    )
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        obj.writeToParcel(parcel, flags)
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeMap(obj)
     }
 
-    override fun describeContents(): Int {
-        return 0
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<MusicMetadata> =
+                object : Parcelable.Creator<MusicMetadata> {
+                    override fun createFromParcel(source: Parcel): MusicMetadata = MusicMetadata(source)
+                    override fun newArray(size: Int): Array<MusicMetadata?> = arrayOfNulls(size)
+                }
     }
-
-    companion object CREATOR : Parcelable.Creator<MusicMetadata> {
-        override fun createFromParcel(parcel: Parcel): MusicMetadata {
-            return MusicMetadata(
-                requireNotNull(
-                    parcel.readParcelable(
-                        MusicMetadata::class.java.classLoader
-                    )
-                )
-            )
-        }
-
-        override fun newArray(size: Int): Array<MusicMetadata?> {
-            return arrayOfNulls(size)
-        }
-    }
-
-
 }

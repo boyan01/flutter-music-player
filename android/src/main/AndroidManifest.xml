@@ -5,10 +5,13 @@
 
     <application>
         <service
-            android:name=".service.MusicPlayerService"
+            android:name=".service.MusicPlayerService2"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="tech.soit.quiet.session.MusicSessionService" />
             </intent-filter>
         </service>
 

@@ -3,24 +3,35 @@ package tech.soit.quiet.player
 import android.os.Parcel
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
-import tech.soit.quiet.ffi.DartObject
 
-data class PlaybackState(
-        val state: State,
-        val position: Long,
-        val bufferedPosition: Long,
-        val speed: Float,
-        val error: PlayerError?,
-        val updateTime: Long
-) : Parcelable, DartObject {
+data class PlaybackState constructor(
+    val state: State,
+    val position: Long,
+    val bufferedPosition: Long,
+    val speed: Float,
+    val error: PlayerError?,
+    val updateTime: Long
+) : Parcelable {
     constructor(source: Parcel) : this(
-            State.values()[source.readInt()],
-            source.readLong(),
-            source.readLong(),
-            source.readFloat(),
-            source.readParcelable<PlayerError>(PlayerError::class.java.classLoader),
-            source.readLong()
+        State.values()[source.readInt()],
+        source.readLong(),
+        source.readLong(),
+        source.readFloat(),
+        source.readParcelable<PlayerError>(PlayerError::class.java.classLoader),
+        source.readLong()
     )
+
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "state" to state.ordinal,
+            "position" to position,
+            "bufferedPosition" to bufferedPosition,
+            "speed" to speed,
+            "error" to null,
+            "updateTime" to updateTime
+        )
+    }
+
 
     override fun describeContents() = 0
 
@@ -36,10 +47,10 @@ data class PlaybackState(
     companion object {
         @JvmField
         val CREATOR: Parcelable.Creator<PlaybackState> =
-                object : Parcelable.Creator<PlaybackState> {
-                    override fun createFromParcel(source: Parcel): PlaybackState = PlaybackState(source)
-                    override fun newArray(size: Int): Array<PlaybackState?> = arrayOfNulls(size)
-                }
+            object : Parcelable.Creator<PlaybackState> {
+                override fun createFromParcel(source: Parcel): PlaybackState = PlaybackState(source)
+                override fun newArray(size: Int): Array<PlaybackState?> = arrayOfNulls(size)
+            }
     }
 }
 

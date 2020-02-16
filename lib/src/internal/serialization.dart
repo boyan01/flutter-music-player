@@ -24,6 +24,7 @@ extension MusicMetadataJson on MusicMetadata {
       "subtitle": subtitle,
       "duration": duration,
       "iconUri": iconUri,
+      "mediaUri": mediaUri,
     };
   }
 }
@@ -45,13 +46,14 @@ MusicMetadata createMusicMetadata(Map map) {
     subtitle: map["subtitle"],
     duration: map["duration"],
     iconUri: map["iconUri"],
+    mediaUri: map['mediaUri'],
   );
 }
 
 PlaybackState createPlaybackState(Map map) {
   DateTime.now();
   return PlaybackState(
-    state: State.values[map['state'] as int],
+    state: PlayerState.values[map['state'] as int],
     position: map['position'] as int,
     bufferedPosition: map['bufferedPosition'] as int,
     speed: map['speed'] as double,

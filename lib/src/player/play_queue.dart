@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+
 import 'music_metadata.dart';
 
 class PlayQueue {
@@ -11,5 +13,12 @@ class PlayQueue {
 
   final List<MusicMetadata> queue;
 
-  PlayQueue({this.queueId, this.queueTitle, this.extras, this.queue}) : assert(queueId != null);
+  bool get isEmpty => queue.isEmpty;
+
+  const PlayQueue({@required this.queueId, @required this.queueTitle, this.extras, @required this.queue})
+      : assert(queueId != null),
+        assert(queueTitle != null),
+        assert(queue != null);
+
+  const PlayQueue.empty() : this(queueId: "empty", queueTitle: "empty", queue: const [], extras: const {});
 }

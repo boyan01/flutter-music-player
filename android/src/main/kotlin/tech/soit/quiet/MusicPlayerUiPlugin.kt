@@ -8,7 +8,6 @@ import android.os.IBinder
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import tech.soit.quiet.ext.mapArguments
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.service.MusicPlayerService2
 
@@ -51,12 +50,12 @@ private class MusicPlayerUiChannel1(
                 }
                 "play" -> session.play()
                 "pause" -> session.pause()
-                "playFromMediaId" -> session.playFromMediaId("")
+                "playFromMediaId" -> session.playFromMediaId(call.arguments())
                 "skipToNext" -> session.skipToNext()
                 "skipToPrevious" -> session.skipToPrevious()
                 "seekTo" -> session.seekTo(call.arguments<Number>().toLong())
                 "setPlayMode" -> session.setPlayMode(call.arguments())
-                "setPlayList" -> session.setPlayQueue(PlayQueue(call.mapArguments))
+                "setPlayQueue" -> session.setPlayQueue(PlayQueue(call.arguments<Map<String, Any>>()))
                 else -> result.notImplemented()
             }
         }
@@ -66,6 +65,7 @@ private class MusicPlayerUiChannel1(
 
 private fun Context.startMusicService(): RemotePlayer {
     val intent = Intent(this, MusicPlayerService2::class.java)
+    intent.action = MusicPlayerService2.ACTION_MUSIC_PLAYER_SERVICE
     startService(intent)
     val player = RemotePlayer()
     if (!bindService(intent, player, Context.BIND_AUTO_CREATE)) {

@@ -5,7 +5,7 @@ import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.player.PlaybackState
 
-class MusicPlayerCallbackPlugin(
+class MusicPlayerCallbackPlugin constructor(
     private val methodChannel: MethodChannel
 ) : MusicSessionCallback.Stub() {
 
@@ -13,12 +13,16 @@ class MusicPlayerCallbackPlugin(
         methodChannel.invokeMethod("onPlaybackStateChanged", state.toMap())
     }
 
-    override fun onMetadataChanged(metadata: MusicMetadata?) {
-        methodChannel.invokeMethod("onMetadataChanged", metadata?.obj?.map)
+    override fun onMetadataChanged(
+        metadata: MusicMetadata?,
+        previous: MusicMetadata?,
+        next: MusicMetadata?
+    ) {
+        methodChannel.invokeMethod("onMetadataChanged", metadata?.obj)
     }
 
     override fun onPlayQueueChanged(queue: PlayQueue) {
-        methodChannel.invokeMethod("onPlayQueueChanged", queue.obj.map)
+        methodChannel.invokeMethod("onPlayQueueChanged", queue.toDartMapObject())
     }
 
     override fun onPlayModeChanged(playMode: Int) {

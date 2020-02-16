@@ -5,7 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -14,8 +17,13 @@ import tech.soit.quiet.player.MusicPlayerSessionImpl
 import tech.soit.quiet.receiver.BecomingNoisyReceiverAdapter
 import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.toMap
 
 class MusicPlayerService2 : MediaBrowserServiceCompat(), LifecycleOwner {
+
+    companion object {
+        const val ACTION_MUSIC_PLAYER_SERVICE = "tech.soit.quiet.session.MusicSessionService"
+    }
 
     private val lifecycle = LifecycleRegistry(this)
 
@@ -50,7 +58,11 @@ class MusicPlayerService2 : MediaBrowserServiceCompat(), LifecycleOwner {
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        return playerSession.asBinder()
+        log { intent?.action }
+        if (intent?.action == ACTION_MUSIC_PLAYER_SERVICE) {
+            return playerSession.asBinder()
+        }
+        return super.onBind(intent)
     }
 
 
@@ -66,12 +78,11 @@ class MusicPlayerService2 : MediaBrowserServiceCompat(), LifecycleOwner {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot? {
-        return null
+        return BrowserRoot("ROOT", null)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-
         playerSession.stop()
     }
 

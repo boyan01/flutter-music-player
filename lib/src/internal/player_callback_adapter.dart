@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:music_player/music_player.dart';
 import 'package:music_player/src/channel_ui.dart';
 import 'package:music_player/src/player/music_metadata.dart';
 import 'package:music_player/src/player/music_player_callback.dart';
@@ -13,6 +14,7 @@ mixin ChannelPlayerCallbackAdapter on ValueNotifier<MusicPlayerValue> implements
   bool handleRemoteCall(MethodCall call) {
     switch (call.method) {
       case 'onPlaybackStateChanged':
+        onPlaybackStateChanged(createPlaybackState(call.arguments));
         break;
       case 'onMetadataChanged':
         onMetadataChange(createMusicMetadata(call.arguments));
@@ -35,7 +37,7 @@ mixin ChannelPlayerCallbackAdapter on ValueNotifier<MusicPlayerValue> implements
   }
 
   @override
-  void onPlayModeChanged(int playMode) {
+  void onPlayModeChanged(PlayMode playMode) {
     value = value.copy(playMode: playMode);
   }
 

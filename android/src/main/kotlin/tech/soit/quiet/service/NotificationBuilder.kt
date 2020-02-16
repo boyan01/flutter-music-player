@@ -34,7 +34,11 @@ class NotificationAdapter(
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
 
-    override fun onMetadataChanged(metadata: MusicMetadata?) {
+    override fun onMetadataChanged(
+        metadata: MusicMetadata?,
+        previous: MusicMetadata?,
+        next: MusicMetadata?
+    ) {
         updateNotification()
     }
 
@@ -60,8 +64,7 @@ class NotificationAdapter(
 
     private fun startNotificationRunner() = GlobalScope.launch(Dispatchers.Main) {
 
-        for (notification in notificationBuilder.notificationGenerator) {
-            val playbackState = playerSession.playbackState
+        for ((playbackState, notification) in notificationBuilder.notificationGenerator) {
             when (val updatedState = playbackState.state) {
                 State.Buffering, State.Playing -> {
 
@@ -159,7 +162,7 @@ class NotificationBuilder(
         MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_STOP)
 
 
-    val notificationGenerator = Channel<Notification?>()
+    val notificationGenerator = Channel<Pair<PlaybackState, Notification?>>()
 
 
     fun updateNotification(
@@ -173,13 +176,13 @@ class NotificationBuilder(
 
         val playbackState = playerSession.playbackState
         if (playbackState.state == State.None) {
-            notificationGenerator.offer(null)
+            notificationGenerator.offer(playbackState to null)
             return
         }
 
         fun updateNotificationInner(artwork: Bitmap?, color: Int?) {
             notificationGenerator.offer(
-                buildNotificationWithIcon(
+                playbackState to buildNotificationWithIcon(
                     mediaSessionCompat.sessionToken,
                     metadata,
                     playbackState,

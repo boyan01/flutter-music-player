@@ -9,7 +9,7 @@ interface MusicSessionCallback {
 
     void onPlaybackStateChanged(in PlaybackState state);
 
-    void onMetadataChanged(in MusicMetadata metadata);
+    void onMetadataChanged(in MusicMetadata metadata, in MusicMetadata previous, in MusicMetadata next);
 
     void onPlayQueueChanged(in PlayQueue queue);
 

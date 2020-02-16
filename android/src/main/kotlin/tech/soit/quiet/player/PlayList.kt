@@ -19,9 +19,9 @@ import kotlin.collections.ArrayList
  *
  */
 class PlayList private constructor(
-        private val list: LinkedList<MediaMetadataCompat>,
-        val title: String?,
-        val queueId: String
+    private val list: LinkedList<MediaMetadataCompat>,
+    val title: String?,
+    val queueId: String
 ) {
 
 
@@ -101,8 +101,8 @@ class PlayList private constructor(
         service?.mediaSession?.let { mediaSession ->
             val queue = list.mapIndexed { index, metadata ->
                 MediaSessionCompat.QueueItem(
-                        metadata.description,
-                        index.toLong()
+                    metadata.description,
+                    index.toLong()
                 )
             }
             mediaSession.setQueue(queue)
@@ -111,8 +111,8 @@ class PlayList private constructor(
                 putString(KEY_QUEUE_ID, queueId)
                 putString(KEY_QUEUE_TITLE, title)
                 putStringArrayList(
-                        KEY_QUEUE_SHUFFLE,
-                        ArrayList(shuffleMusicList.map { it.mediaId })
+                    KEY_QUEUE_SHUFFLE,
+                    ArrayList(shuffleMusicList.map { it.mediaId })
                 )
                 classLoader = MediaSessionCompat::class.java.classLoader
             })
@@ -121,8 +121,8 @@ class PlayList private constructor(
     }
 
     fun getNext(
-            metadata: MediaMetadataCompat?,
-            playMode: PlayMode = this.playMode
+        metadata: MediaMetadataCompat?,
+        playMode: PlayMode = this.playMode
     ): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "empty playlist" }
@@ -157,8 +157,8 @@ class PlayList private constructor(
 
 
     fun getPrevious(
-            metadata: MediaMetadataCompat?,
-            playMode: PlayMode = this.playMode
+        metadata: MediaMetadataCompat?,
+        playMode: PlayMode = this.playMode
     ): MediaMetadataCompat? {
         if (list.isEmpty()) {
             log { "try too play next with empty playlist!" }
@@ -225,10 +225,10 @@ object PlayListExt {
 
 
     fun updatePlayList(
-            controller: MediaControllerCompat,
-            queue: List<MediaMetadataCompat>,
-            title: String?,
-            queueId: String
+        controller: MediaControllerCompat,
+        queue: List<MediaMetadataCompat>,
+        title: String?,
+        queueId: String
     ) {
         val data = Bundle().apply {
             putParcelableArrayList("queue", ArrayList(queue))
@@ -241,9 +241,9 @@ object PlayListExt {
 
     fun parsePlayListFromArgument(bundle: Bundle): PlayList {
         return PlayList(
-                list = bundle.getParcelableArrayList("queue")!!,
-                title = bundle.getString("title"),
-                queueId = bundle.getString("queueId")!!
+            list = bundle.getParcelableArrayList("queue")!!,
+            title = bundle.getString("title"),
+            queueId = bundle.getString("queueId")!!
         )
     }
 

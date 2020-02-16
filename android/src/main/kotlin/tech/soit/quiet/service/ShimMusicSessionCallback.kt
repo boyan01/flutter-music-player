@@ -27,8 +27,12 @@ internal class ShimMusicSessionCallback : MusicSessionCallback {
         callbacks.forEach { it.onPlayQueueChanged(queue) }
     }
 
-    override fun onMetadataChanged(metadata: MusicMetadata?) {
-        callbacks.forEach { it.onMetadataChanged(metadata) }
+    override fun onMetadataChanged(
+        metadata: MusicMetadata?,
+        previous: MusicMetadata?,
+        next: MusicMetadata?
+    ) {
+        callbacks.forEach { it.onMetadataChanged(metadata, previous, next) }
     }
 
     override fun onPlayModeChanged(playMode: Int) {

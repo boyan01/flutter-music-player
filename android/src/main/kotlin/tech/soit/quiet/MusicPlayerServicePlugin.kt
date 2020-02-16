@@ -115,7 +115,7 @@ class MusicPlayerServicePlugin(
 
 
     suspend fun loadImage(metadata: MusicMetadata, uri: String): Artwork? {
-        val bytes = methodChannel.invokeAsyncCast("loadImage", metadata.obj.map) {
+        val bytes = methodChannel.invokeAsyncCast("loadImage", metadata.obj) {
             loadArtworkFromUri(Uri.parse(uri))
         } ?: return null
         return createArtworkFromByteArray(bytes)
@@ -130,16 +130,24 @@ class MusicPlayerServicePlugin(
     }
 
 
-    fun getNextMusic(queue: PlayQueue, current: MusicMetadata?, playMode: Int): MusicMetadata? {
-        TODO()
+    suspend fun getNextMusic(
+        queue: PlayQueue,
+        current: MusicMetadata?,
+        playMode: Int
+    ): MusicMetadata? {
+        return null
     }
 
-    fun getPreviousMusic(queue: PlayQueue, current: MusicMetadata?, playMode: Int): MusicMetadata? {
-        TODO()
+    suspend fun getPreviousMusic(
+        queue: PlayQueue,
+        current: MusicMetadata?,
+        playMode: Int
+    ): MusicMetadata? {
+        return null
     }
 
-    fun getMusicByMediaId(playQueue: PlayQueue, mediaId: String): MusicMetadata? {
-        TODO()
+    suspend fun getMusicByMediaId(playQueue: PlayQueue, mediaId: String): MusicMetadata? {
+        return null
     }
 
 

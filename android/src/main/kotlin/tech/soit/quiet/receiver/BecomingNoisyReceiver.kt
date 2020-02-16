@@ -22,7 +22,11 @@ class BecomingNoisyReceiverAdapter(
     }
 
 
-    override fun onMetadataChanged(metadata: MusicMetadata?) {
+    override fun onMetadataChanged(
+        metadata: MusicMetadata?,
+        previous: MusicMetadata?,
+        next: MusicMetadata?
+    ) {
         checkShouldRegisterReceiver()
     }
 

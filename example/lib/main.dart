@@ -49,14 +49,14 @@ class _ExampleMusicList extends StatelessWidget {
     return ListView.builder(
         itemCount: medias.length,
         itemBuilder: (context, index) {
-          final item = medias[index].getDescription();
+          final item = medias[index];
           return ListTile(
             title: Text(item.title),
             subtitle: Text(item.subtitle ?? ""),
             trailing: Icon(Icons.play_circle_outline),
             onTap: () async {
               final player = PlayerWidget.player(context);
-              player.playWithList(PlayList(queue: medias, queueId: listId, queueTitle: "Exmaple PlayList"),
+              player.playWithQueue(PlayQueue(queue: medias, queueId: listId, queueTitle: "Exmaple PlayList"),
                   metadata: medias[index]);
             },
           );

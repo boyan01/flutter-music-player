@@ -14,8 +14,9 @@ import tech.soit.quiet.ext.mapPlaybackState
 import tech.soit.quiet.ext.playbackError
 import tech.soit.quiet.ext.toMediaSource
 import tech.soit.quiet.service.ShimMusicSessionCallback
+import tech.soit.quiet.utils.log
 
-class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.Stub(),
+class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPlayerSession.Stub(),
     CoroutineScope by MainScope() {
 
     companion object {
@@ -34,20 +35,23 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
         }
     }
 
-
-    internal val servicePlugin = MusicPlayerServicePlugin.startServiceIsolate(context, this)
+    @Suppress("JoinDeclarationAndAssignment")
+    internal val servicePlugin: MusicPlayerServicePlugin
 
     private val shimSessionCallback = ShimMusicSessionCallback()
 
     private var playMode: Int = -1
 
-    private var playQueue: PlayQueue? = null
+    private lateinit var playQueue: PlayQueue
 
     var metadata: MusicMetadata? = null
         private set
 
+    private var next: MusicMetadata? = null
+    private var previous: MusicMetadata? = null
 
-    private fun performPlay(metadata: MusicMetadata?) {
+
+    private suspend fun performPlay(metadata: MusicMetadata?) {
         this.metadata = metadata
         if (metadata == null) {
             player.stop()
@@ -55,21 +59,25 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
         }
         player.prepare(metadata.toMediaSource(context, servicePlugin))
         player.playWhenReady = true
+
+        previous = servicePlugin.getNextMusic(playQueue, metadata, playMode)
+        next = servicePlugin.getPreviousMusic(playQueue, metadata, playMode)
+        invalidateMetadata()
     }
 
 
     override fun skipToNext() {
-        skipTo { servicePlugin.getNextMusic(it, metadata, playMode) }
+        skipTo { it.getNext(metadata, PlayMode.Sequence) }
     }
 
 
     override fun skipToPrevious() {
-        skipTo { servicePlugin.getPreviousMusic(it, metadata, playMode) }
+        skipTo { it.getPrevious(metadata, PlayMode.Sequence) }
     }
 
     private fun skipTo(call: suspend (PlayQueue) -> MusicMetadata?) {
         player.stop()
-        val queue = playQueue ?: return
+        val queue = playQueue
         launch {
             val next = runCatching { call(queue) }.getOrNull()
             performPlay(next)
@@ -108,7 +116,7 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
     }
 
     override fun playFromMediaId(mediaId: String) {
-        skipTo { servicePlugin.getMusicByMediaId(it, mediaId) }
+        skipTo { it.getByMediaId(mediaId)/* TODO 向 service plugin 继续请求*/ }
     }
 
 
@@ -116,7 +124,6 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
         this.playMode = playMode
         shimSessionCallback.onPlayModeChanged(playMode)
     }
-
 
     private var playbackStateBackup: PlaybackState =
         PlaybackState(State.None, 0, 0, 1F, null, System.currentTimeMillis())
@@ -135,12 +142,13 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
             error = playerError,
             updateTime = System.currentTimeMillis()
         )
-        shimSessionCallback.onPlaybackStateChanged(playbackState)
+        log { playbackState }
         this.playbackStateBackup = playbackState
+        shimSessionCallback.onPlaybackStateChanged(playbackState)
     }
 
     private fun invalidateMetadata() {
-        shimSessionCallback.onMetadataChanged(metadata)
+        shimSessionCallback.onMetadataChanged(metadata, previous, next)
     }
 
 
@@ -169,6 +177,11 @@ class MusicPlayerSessionImpl(private val context: Context) : MusicPlayerSession.
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
             invalidatePlaybackState()
         }
+    }
+
+
+    init {
+        servicePlugin = MusicPlayerServicePlugin.startServiceIsolate(context, this)
     }
 
 }

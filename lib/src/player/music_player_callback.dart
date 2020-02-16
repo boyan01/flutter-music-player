@@ -1,6 +1,7 @@
 import 'music_metadata.dart';
 import 'play_queue.dart';
 import 'playback_state.dart';
+import 'play_mode.dart';
 
 abstract class MusicPlayerCallback {
   void onPlaybackStateChanged(PlaybackState state);
@@ -9,5 +10,5 @@ abstract class MusicPlayerCallback {
 
   void onPlayQueueChanged(PlayQueue queue);
 
-  void onPlayModeChanged(int playMode);
+  void onPlayModeChanged(PlayMode playMode);
 }

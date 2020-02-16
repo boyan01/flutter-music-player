@@ -1,9 +1,9 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:music_player/music_player.dart';
+import 'package:music_player/src/internal/serialization.dart';
 
 ///
 /// Interceptor when player try to load a media source
@@ -16,7 +16,7 @@ import 'package:music_player/music_player.dart';
 ///
 typedef PlayUriInterceptor = Future<String> Function(String mediaId, String fallbackUri);
 
-typedef ImageLoadInterceptor = Future<Uint8List> Function(MediaDescription description);
+typedef ImageLoadInterceptor = Future<Uint8List> Function(MusicMetadata metadata);
 
 class Config {
   final bool enableCache;
@@ -49,8 +49,7 @@ Future runBackgroundService({
     switch (call.method) {
       case 'loadImage':
         if (imageLoadInterceptor != null) {
-          final MediaDescription description = MediaDescription.fromMap(call.arguments);
-          return await imageLoadInterceptor(description);
+          return await imageLoadInterceptor(createMusicMetadata(call.arguments));
         }
         throw MissingPluginException();
       case 'getPlayUrl':
