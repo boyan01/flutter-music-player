@@ -15,8 +15,6 @@ class PlaybackState {
 
   final int updateTime;
 
-  final PlayMode playMode;
-
   const PlaybackState({
     @required this.state,
     this.position,
@@ -24,7 +22,6 @@ class PlaybackState {
     this.speed,
     this.error,
     this.updateTime,
-    this.playMode,
   }) : assert(state != null);
 
   const PlaybackState.none()
@@ -34,7 +31,6 @@ class PlaybackState {
           bufferedPosition: 0,
           speed: 1,
           updateTime: 0,
-          playMode: PlayMode.sequence,
         );
 }
 

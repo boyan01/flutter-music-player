@@ -17,6 +17,7 @@ fun ExoPlayer.mapPlaybackState(): State {
         Player.STATE_BUFFERING -> State.Buffering
         Player.STATE_READY -> if (playWhenReady) State.Playing else State.Paused
         Player.STATE_ENDED -> State.Paused
-        else -> State.None
+        Player.STATE_IDLE -> State.None
+        else -> State.Paused
     }
 }

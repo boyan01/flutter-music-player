@@ -34,11 +34,7 @@ class NotificationAdapter(
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
 
-    override fun onMetadataChanged(
-        metadata: MusicMetadata?,
-        previous: MusicMetadata?,
-        next: MusicMetadata?
-    ) {
+    override fun onMetadataChanged(metadata: MusicMetadata?) {
         updateNotification()
     }
 
@@ -170,7 +166,7 @@ class NotificationBuilder(private val context: Service) {
         if (shouldCreateNowPlayingChannel()) {
             createNowPlayingChannel()
         }
-        val metadata = playerSession.metadata ?: return
+        val metadata = playerSession.current ?: return
 
         val playbackState = playerSession.playbackState
         if (playbackState.state == State.None) {
@@ -198,7 +194,7 @@ class NotificationBuilder(private val context: Service) {
             return
         }
 
-        val iconCacheKey = metadata.key()
+        val iconCacheKey = ArtworkCache.key(metadata)
 
         if (iconCacheKey != null && ArtworkCache[iconCacheKey] != null) {
             val artworkCache = ArtworkCache.get(iconCacheKey)
@@ -222,11 +218,6 @@ class NotificationBuilder(private val context: Service) {
 
         notificationGenerator.close()
     }
-
-    private fun MusicMetadata.key(): Int? {
-        return iconUri?.hashCode() ?: mediaId.hashCode()
-    }
-
 
     private fun buildNotificationWithIcon(
         sessionToken: MediaSessionCompat.Token,

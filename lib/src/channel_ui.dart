@@ -23,6 +23,7 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCall
       }
       throw new UnimplementedError();
     });
+    _uiChannel.invokeMethod("init");
   }
 
   factory MusicPlayer() {
@@ -36,19 +37,37 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCall
     _uiChannel.invokeMethod("setPlayQueue", queue.toMap());
   }
 
-  PlaybackState get playbackState => value.playbackState;
-
-  MusicMetadata get metadata => value.metadata;
-
-  PlayQueue get queue => value.queue;
-
-  TransportControls transportControls = TransportControls(_uiChannel);
-
-  void insertToNext(MusicMetadata metadata) {
-    //TODO
+  Future<MusicMetadata> getNextMusic(@nonNull MusicMetadata anchor) async {
+    assert(anchor != null);
+    final Map map = await _uiChannel.invokeMethod("getNext", metadata.toMap());
+    return createMusicMetadata(map);
   }
 
-  void playWithQueue(PlayQueue playQueue, {MusicMetadata metadata}) {
+  Future<MusicMetadata> getPreviousMusic(@nonNull MusicMetadata metadata) async {
+    assert(metadata != null);
+    final Map map = await _uiChannel.invokeMethod("getPrevious", metadata.toMap());
+    return createMusicMetadata(map);
+  }
+
+  @nonNull
+  PlaybackState get playbackState => value.playbackState;
+
+  @nullable
+  MusicMetadata get metadata => value.metadata;
+
+  @nonNull
+  PlayQueue get queue => value.queue;
+
+  @nonNull
+  TransportControls transportControls = TransportControls(_uiChannel);
+
+  void insertToNext(@nonNull MusicMetadata metadata) {
+    assert(metadata != null);
+    _uiChannel.invokeMethod("insertToNext", metadata.toMap());
+  }
+
+  void playWithQueue(@nonNull PlayQueue playQueue, {MusicMetadata metadata}) {
+    assert(playQueue != null);
     setPlayQueue(playQueue);
     if (playQueue.isEmpty) {
       return;

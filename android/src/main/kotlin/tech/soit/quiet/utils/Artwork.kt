@@ -8,6 +8,7 @@ import androidx.annotation.WorkerThread
 import androidx.palette.graphics.Palette
 import androidx.palette.graphics.Target
 import kotlinx.coroutines.*
+import tech.soit.quiet.player.MusicMetadata
 import java.net.HttpURLConnection
 import java.net.URI
 
@@ -19,6 +20,9 @@ private const val MEMORY_CACHE_SIZE = 40 * 1024 * 1024 // 20MB
  */
 object ArtworkCache : LruCache<Int, Artwork>(MEMORY_CACHE_SIZE) {
 
+    fun key(metadata: MusicMetadata): Int? {
+        return metadata.iconUri?.hashCode() ?: metadata.mediaId.hashCode()
+    }
     override fun sizeOf(key: Int?, value: Artwork?): Int {
         return value?.bitmap?.byteCount ?: 0
     }

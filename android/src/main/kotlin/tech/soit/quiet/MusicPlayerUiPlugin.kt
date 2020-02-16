@@ -8,6 +8,7 @@ import android.os.IBinder
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.service.MusicPlayerService
 
@@ -38,15 +39,20 @@ private class MusicPlayerUiChannel1(
 
     private val remotePlayer = context.startMusicService()
 
+    private val uiPlaybackPlugin = MusicPlayerCallbackPlugin(channel)
+
     init {
-        remotePlayer.doWhenSessionReady { it.addCallback(MusicPlayerCallbackPlugin(channel)) }
+        remotePlayer.doWhenSessionReady { it.addCallback(uiPlaybackPlugin) }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) =
         remotePlayer.doWhenSessionReady { session ->
-            when (call.method) {
+            val r: Any? = when (call.method) {
                 "init" -> {
-                    //TODO bring music player to last status
+                    uiPlaybackPlugin.onMetadataChanged(session.current)
+                    uiPlaybackPlugin.onPlayModeChanged(session.playMode)
+                    uiPlaybackPlugin.onPlayQueueChanged(session.playQueue)
+                    uiPlaybackPlugin.onPlaybackStateChanged(session.playbackState)
                 }
                 "play" -> session.play()
                 "pause" -> session.pause()
@@ -54,9 +60,21 @@ private class MusicPlayerUiChannel1(
                 "skipToNext" -> session.skipToNext()
                 "skipToPrevious" -> session.skipToPrevious()
                 "seekTo" -> session.seekTo(call.arguments<Number>().toLong())
-                "setPlayMode" -> session.setPlayMode(call.arguments())
-                "setPlayQueue" -> session.setPlayQueue(PlayQueue(call.arguments<Map<String, Any>>()))
-                else -> result.notImplemented()
+                "setPlayMode" -> session.playMode = call.arguments()
+                "setPlayQueue" -> session.playQueue = PlayQueue(call.arguments<Map<String, Any>>())
+                "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments())).obj
+                "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments())).obj
+                "insertToNext" -> session.addMetadata(
+                    MusicMetadata.fromMap(call.arguments()),
+                    session.current?.mediaId
+                )
+                else -> null
+            }
+
+            when (r) {
+                Unit -> result.success(null)
+                null -> result.notImplemented()
+                else -> result.success(r)
             }
         }
 

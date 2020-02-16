@@ -13,11 +13,7 @@ class MusicPlayerCallbackPlugin constructor(
         methodChannel.invokeMethod("onPlaybackStateChanged", state.toMap())
     }
 
-    override fun onMetadataChanged(
-        metadata: MusicMetadata?,
-        previous: MusicMetadata?,
-        next: MusicMetadata?
-    ) {
+    override fun onMetadataChanged(metadata: MusicMetadata?) {
         methodChannel.invokeMethod("onMetadataChanged", metadata?.obj)
     }
 

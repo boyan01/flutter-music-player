@@ -6,11 +6,7 @@ abstract class BaseMusicSessionCallback : MusicSessionCallback.Stub() {
     override fun onPlaybackStateChanged(state: PlaybackState) {
     }
 
-    override fun onMetadataChanged(
-        metadata: MusicMetadata?,
-        previous: MusicMetadata?,
-        next: MusicMetadata?
-    ) {
+    override fun onMetadataChanged(metadata: MusicMetadata?) {
     }
 
     override fun onPlayQueueChanged(queue: PlayQueue) {

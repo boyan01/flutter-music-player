@@ -14,7 +14,6 @@ import tech.soit.quiet.ext.mapPlaybackState
 import tech.soit.quiet.ext.playbackError
 import tech.soit.quiet.ext.toMediaSource
 import tech.soit.quiet.service.ShimMusicSessionCallback
-import tech.soit.quiet.utils.log
 
 class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPlayerSession.Stub(),
     CoroutineScope by MainScope() {
@@ -40,18 +39,13 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private val shimSessionCallback = ShimMusicSessionCallback()
 
-    private var playMode: Int = -1
+    private var playMode: PlayMode = PlayMode.Sequence
 
-    private lateinit var playQueue: PlayQueue
+    private var playQueue: PlayQueue = PlayQueue.Empty
 
-    var metadata: MusicMetadata? = null
-        private set
+    private var metadata: MusicMetadata? = null
 
-    private var next: MusicMetadata? = null
-    private var previous: MusicMetadata? = null
-
-
-    private suspend fun performPlay(metadata: MusicMetadata?) {
+    private fun performPlay(metadata: MusicMetadata?) {
         this.metadata = metadata
         if (metadata == null) {
             player.stop()
@@ -59,20 +53,20 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         }
         player.prepare(metadata.toMediaSource(context, servicePlugin))
         player.playWhenReady = true
-
-        previous = servicePlugin.getNextMusic(playQueue, metadata, playMode)
-        next = servicePlugin.getPreviousMusic(playQueue, metadata, playMode)
         invalidateMetadata()
     }
 
 
     override fun skipToNext() {
-        skipTo { it.getNext(metadata, PlayMode.Sequence) }
+        skipTo { getNext(current) }
     }
 
-
     override fun skipToPrevious() {
-        skipTo { it.getPrevious(metadata, PlayMode.Sequence) }
+        skipTo { getPrevious(current) }
+    }
+
+    override fun getPrevious(anchor: MusicMetadata?): MusicMetadata? {
+        return playQueue.getPrevious(anchor, playMode)
     }
 
     private fun skipTo(call: suspend (PlayQueue) -> MusicMetadata?) {
@@ -93,18 +87,29 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         player.playWhenReady = false
     }
 
+    override fun getPlayQueue(): PlayQueue {
+        return playQueue
+    }
+
+    override fun getNext(anchor: MusicMetadata?): MusicMetadata? {
+        return playQueue.getNext(current, playMode)
+    }
+
     override fun setPlayQueue(queue: PlayQueue) {
         playQueue = queue
-        shimSessionCallback.onPlayQueueChanged(queue)
+        invalidatePlayQueue()
     }
 
     override fun seekTo(pos: Long) {
         player.seekTo(pos)
     }
 
-
     override fun removeCallback(callback: MusicSessionCallback) {
         shimSessionCallback.removeCallback(callback)
+    }
+
+    override fun getPlaybackState(): PlaybackState {
+        return playbackStateBackup
     }
 
     override fun stop() {
@@ -119,17 +124,31 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         skipTo { it.getByMediaId(mediaId)/* TODO 向 service plugin 继续请求*/ }
     }
 
+    override fun getPlayMode(): Int {
+        return playMode.ordinal
+    }
+
+    override fun getCurrent(): MusicMetadata? {
+        return metadata
+    }
 
     override fun setPlayMode(playMode: Int) {
-        this.playMode = playMode
+        this.playMode = PlayMode.values()[playMode]
         shimSessionCallback.onPlayModeChanged(playMode)
+    }
+
+    override fun addMetadata(metadata: MusicMetadata, anchorMediaId: String?) {
+        playQueue.add(anchorMediaId, metadata)
+        invalidatePlayQueue()
+    }
+
+    override fun removeMetadata(mediaId: String) {
+        playQueue.remove(mediaId)
+        invalidatePlayQueue()
     }
 
     private var playbackStateBackup: PlaybackState =
         PlaybackState(State.None, 0, 0, 1F, null, System.currentTimeMillis())
-
-
-    val playbackState get() = playbackStateBackup
 
     private fun invalidatePlaybackState() {
         val playerError = player.playbackError()
@@ -142,15 +161,18 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             error = playerError,
             updateTime = System.currentTimeMillis()
         )
-        log { playbackState }
         this.playbackStateBackup = playbackState
         shimSessionCallback.onPlaybackStateChanged(playbackState)
     }
 
     private fun invalidateMetadata() {
-        shimSessionCallback.onMetadataChanged(metadata, previous, next)
+        val duration = if (player.duration == C.TIME_UNSET) 0 else player.duration
+        shimSessionCallback.onMetadataChanged(metadata?.copyWith(duration = duration))
     }
 
+    private fun invalidatePlayQueue() {
+        shimSessionCallback.onPlayQueueChanged(playQueue)
+    }
 
     override fun destroy() {
         cancel()
@@ -172,11 +194,20 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackStateInt: Int) {
             invalidatePlaybackState()
+            // auto play next
+            if (playbackStateInt == Player.STATE_ENDED) {
+                skipTo { if (playMode == PlayMode.Single) current else getNext(current) }
+            }
         }
 
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
             invalidatePlaybackState()
         }
+
+        override fun onTimelineChanged(timeline: Timeline?, manifest: Any?, reason: Int) {
+            invalidateMetadata()
+        }
+
     }
 
 

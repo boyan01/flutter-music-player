@@ -6,6 +6,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import tech.soit.quiet.MusicSessionCallback
 import tech.soit.quiet.player.*
+import tech.soit.quiet.utils.ArtworkCache
 import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
 
@@ -73,16 +74,17 @@ class MusicSessionCallbackAdapter(
         mediaSession.setPlaybackState(builder.build())
     }
 
-    override fun onMetadataChanged(
-        metadata: MusicMetadata?,
-        previous: MusicMetadata?,
-        next: MusicMetadata?
-    ) {
+    override fun onMetadataChanged(metadata: MusicMetadata?) {
         mediaSession.setMetadata(metadata?.toMediaMetadata())
     }
 
-    override fun onPlayQueueChanged(queue: PlayQueue?) {
-
+    override fun onPlayQueueChanged(queue: PlayQueue) {
+        mediaSession.setQueueTitle(queue.queueTitle)
+        mediaSession.setQueue(queue.getQueue()
+            .map { it.toMediaMetadata() }
+            .mapIndexed { index, metadata ->
+                MediaSessionCompat.QueueItem(metadata.description, index.toLong())
+            })
     }
 
     override fun onPlayModeChanged(playMode: Int) {
@@ -96,6 +98,13 @@ private fun MusicMetadata.toMediaMetadata(): MediaMetadataCompat {
     return MediaMetadataCompat.Builder()
         .putText(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
         .putText(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, subtitle)
+        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration ?: 0L)
+        .putText(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaId)
+        .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, iconUri)
+        .putBitmap(
+            MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON,
+            ArtworkCache.get(ArtworkCache.key(this))?.bitmap
+        )
         .build()
 }
 

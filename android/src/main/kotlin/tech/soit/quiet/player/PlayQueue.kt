@@ -5,6 +5,8 @@ import android.os.Parcelable
 import androidx.annotation.UiThread
 import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
+import tech.soit.quiet.utils.logError
+import java.lang.IllegalStateException
 
 
 private typealias MusicItem = MusicMetadata
@@ -20,6 +22,14 @@ class PlayQueue(
 ) : Parcelable {
 
     companion object {
+
+        val Empty = PlayQueue(
+            queueId = "",
+            queueTitle = "",
+            queue = emptyList(),
+            extras = null,
+            shuffleQueue = null
+        )
 
         private fun List<MusicItem>.index(metadata: MusicItem): Int {
             return indexOfFirst { it.mediaId == metadata.mediaId }
@@ -57,28 +67,17 @@ class PlayQueue(
     )
 
     @UiThread
-    fun add(index: Int, music: MusicItem) {
-        if (index < 0 || index > queue.size) {
-            return
-        }
-        val anchor = if (index == 0) null else queue[index - 1]
+    fun add(anchorMediaId: String?, music: MusicItem) {
+        val index = queue.indexOfFirst { it.mediaId == anchorMediaId } + 1
         queue.add(index, music)
-
-        if (anchor != null) {
-            val i = shuffleMusicList.indexOf(anchor.mediaId)
-            shuffleMusicList.add(i, music.mediaId)
-        } else {
-            shuffleMusicList.add(music.mediaId)
-        }
+        val i = shuffleMusicList.indexOf(anchorMediaId) + 1
+        shuffleMusicList.add(i, music.mediaId)
     }
 
     @UiThread
-    fun remove(index: Int) {
-        if (index < 0 || index >= queue.size) {
-            log(LoggerLevel.ERROR) { "can not remove index $index , current size is ${queue.size}" }
-        }
-        val item = queue.removeAt(index)
-        shuffleMusicList.remove(item.mediaId)
+    fun remove(mediaId: String) {
+        queue.removeAll { it.mediaId == mediaId }
+        shuffleMusicList.removeAll { it == mediaId }
     }
 
     @UiThread
@@ -95,6 +94,8 @@ class PlayQueue(
         return requireMusicItem(mediaId)
     }
 
+    fun getQueue(): List<MusicItem> = queue
+
     private fun getMusicInternal(
         anchor: MusicItem?,
         playMode: PlayMode,
@@ -109,12 +110,11 @@ class PlayQueue(
             return if (playMode == PlayMode.Shuffle) requireMusicItem(shuffleMusicList[0]) else queue[0]
         }
         return when (playMode) {
-            PlayMode.Single -> anchor
-            PlayMode.Sequence -> {
+            PlayMode.Single, PlayMode.Sequence -> {
                 val index = queue.index(anchor) + if (next) 1 else -1
                 if (index == queue.size && next) {
                     queue.first()
-                } else if (index == 0 && !next) {
+                } else if (index == -1 && !next) {
                     queue.last()
                 } else {
                     queue[index]
