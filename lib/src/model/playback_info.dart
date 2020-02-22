@@ -1,3 +1,0 @@
-class PlaybackInfo {
-  //TODO
-}

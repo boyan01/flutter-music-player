@@ -1,32 +1,119 @@
 package tech.soit.quiet.service
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
-import android.support.v4.media.MediaDescriptionCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import androidx.media.session.MediaButtonReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import tech.soit.quiet.R
-import tech.soit.quiet.utils.*
+import tech.soit.quiet.player.*
+import tech.soit.quiet.utils.ArtworkCache
+
+
+class NotificationAdapter(
+    private val context: Service,
+    private val playerSession: MusicPlayerSessionImpl,
+    private val mediaSession: MediaSessionCompat
+) : BaseMusicSessionCallback(), LifecycleObserver {
+
+    private val notificationBuilder = NotificationBuilder(context)
+
+    private val notificationManager by lazy { NotificationManagerCompat.from(context) }
+
+
+    override fun onMetadataChanged(metadata: MusicMetadata?) {
+        updateNotification()
+    }
+
+    override fun onPlaybackStateChanged(state: PlaybackState) {
+        updateNotification()
+    }
+
+    private fun updateNotification() {
+        notificationBuilder.updateNotification(mediaSession, playerSession)
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    fun onCreate() {
+        startNotificationRunner()
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    fun onDestroy() {
+        notificationBuilder.destroy()
+    }
+
+    private var isForegroundService = false
+
+    private fun startNotificationRunner() = GlobalScope.launch(Dispatchers.Main) {
+
+        for ((playbackState, notification) in notificationBuilder.notificationGenerator) {
+            when (val updatedState = playbackState.state) {
+                State.Buffering, State.Playing -> {
+
+                    /**
+                     * This may look strange, but the documentation for [Service.startForeground]
+                     * notes that "calling this method does *not* put the service in the started
+                     * state itself, even though the name sounds like it."
+                     */
+                    if (!isForegroundService) {
+                        context.startService(Intent(context, MusicPlayerService::class.java))
+                        context.startForeground(
+                            NotificationBuilder.NOW_PLAYING_NOTIFICATION,
+                            notification
+                        )
+                        isForegroundService = true
+                    } else if (notification != null) {
+                        notificationManager.notify(
+                            NotificationBuilder.NOW_PLAYING_NOTIFICATION,
+                            notification
+                        )
+                    }
+                }
+                else -> {
+                    if (isForegroundService) {
+                        context.stopForeground(false)
+                        isForegroundService = false
+
+                        // If playback has ended, also stop the service.
+                        if (updatedState == State.None) {
+                            context.stopSelf()
+                        }
+
+                        if (notification != null) {
+                            notificationManager.notify(
+                                NotificationBuilder.NOW_PLAYING_NOTIFICATION,
+                                notification
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+}
 
 
 /**
  * Helper class to encapsulate code for building notifications.
  *
  */
-class NotificationBuilder(private val context: MusicPlayerService) {
+class NotificationBuilder(private val context: Service) {
 
     companion object {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
@@ -67,47 +154,45 @@ class NotificationBuilder(private val context: MusicPlayerService) {
         MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_STOP)
 
 
-    val notificationGenerator = Channel<Notification?>()
+    val notificationGenerator = Channel<Pair<PlaybackState, Notification?>>()
 
 
-    fun updateNotification(sessionToken: MediaSessionCompat.Token) {
+    fun updateNotification(
+        mediaSessionCompat: MediaSessionCompat,
+        playerSession: MusicPlayerSessionImpl
+    ) {
         if (shouldCreateNowPlayingChannel()) {
             createNowPlayingChannel()
         }
+        val metadata = playerSession.current ?: return
 
-
-        val controller = MediaControllerCompat(context, sessionToken)
-        if (controller.metadata == null) return
-
-        val playbackState = controller.playbackState
-        val description = controller.metadata.description
-        if (playbackState.state == PlaybackStateCompat.STATE_NONE) {
-            notificationGenerator.offer(null)
+        val playbackState = playerSession.playbackState
+        if (playbackState.state == State.None) {
+            notificationGenerator.offer(playbackState to null)
             return
         }
 
         fun updateNotificationInner(artwork: Bitmap?, color: Int?) {
             notificationGenerator.offer(
-                buildNotificationWithIcon(
-                    sessionToken,
-                    description,
+                playbackState to buildNotificationWithIcon(
+                    mediaSessionCompat.sessionToken,
+                    metadata,
                     playbackState,
-                    controller.sessionActivity,
+                    mediaSessionCompat.controller.sessionActivity,
                     artwork,
                     color
                 )
             )
         }
 
-        val iconUri = description.iconUri
+        val iconUri = metadata.iconUri
         if (iconUri == null) {
             // this description haven't artwork. create notification without image cover
             updateNotificationInner(null, null)
             return
         }
 
-
-        val iconCacheKey = description.key()
+        val iconCacheKey = ArtworkCache.key(metadata)
 
         if (iconCacheKey != null && ArtworkCache[iconCacheKey] != null) {
             val artworkCache = ArtworkCache.get(iconCacheKey)
@@ -117,10 +202,10 @@ class NotificationBuilder(private val context: MusicPlayerService) {
 
         updateNotificationInner(null, null)
         GlobalScope.launch(Dispatchers.Main) {
-            val artwork = context.backgroundChannel.loadImage(description, iconUri)
+            val artwork = playerSession.servicePlugin.loadImage(metadata, iconUri)
             if (artwork != null) {
                 iconCacheKey?.let { ArtworkCache.put(it, artwork) }
-                updateNotification(sessionToken)
+                updateNotification(mediaSessionCompat, playerSession)
             }
         }
     }
@@ -132,16 +217,10 @@ class NotificationBuilder(private val context: MusicPlayerService) {
         notificationGenerator.close()
     }
 
-    private fun MediaDescriptionCompat.key(): Int? {
-        if (iconUri == null && mediaId == null) return null
-        return arrayOf(iconUri, mediaUri).contentHashCode()
-    }
-
-
     private fun buildNotificationWithIcon(
         sessionToken: MediaSessionCompat.Token,
-        description: MediaDescriptionCompat,
-        playbackState: PlaybackStateCompat,
+        metadata: MusicMetadata,
+        playbackState: PlaybackState,
         sessionActivity: PendingIntent?,
         largeIcon: Bitmap? = null,
         color: Int? = null
@@ -154,29 +233,23 @@ class NotificationBuilder(private val context: MusicPlayerService) {
         )
 
         // Only add actions for skip back, play/pause, skip forward, based on what's enabled.
-        var playPauseIndex = 0
-        if (playbackState.isSkipToPreviousEnabled) {
-            builder.addAction(skipToPreviousAction)
-            ++playPauseIndex
-        }
-        if (playbackState.isPlaying) {
+        builder.addAction(skipToPreviousAction)
+        if (playbackState.state == State.Playing) {
             builder.addAction(pauseAction)
-        } else if (playbackState.isPlayEnabled) {
+        } else {
             builder.addAction(playAction)
         }
-        if (playbackState.isSkipToNextEnabled) {
-            builder.addAction(skipToNextAction)
-        }
+        builder.addAction(skipToNextAction)
 
         val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
             .setCancelButtonIntent(stopPendingIntent)
             .setMediaSession(sessionToken)
-            .setShowActionsInCompactView(playPauseIndex)
+            .setShowActionsInCompactView(1)
             .setShowCancelButton(true)
 
         return builder.setContentIntent(sessionActivity)
-            .setContentText(description.subtitle)
-            .setContentTitle(description.title)
+            .setContentText(metadata.subtitle)
+            .setContentTitle(metadata.title)
             .setDeleteIntent(stopPendingIntent)
             .setLargeIcon(largeIcon)
             .setOnlyAlertOnce(true)

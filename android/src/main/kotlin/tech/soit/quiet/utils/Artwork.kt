@@ -4,13 +4,13 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
+import androidx.annotation.WorkerThread
 import androidx.palette.graphics.Palette
 import androidx.palette.graphics.Target
 import kotlinx.coroutines.*
+import tech.soit.quiet.player.MusicMetadata
 import java.net.HttpURLConnection
 import java.net.URI
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 private const val MEMORY_CACHE_SIZE = 40 * 1024 * 1024 // 20MB
 
@@ -20,6 +20,9 @@ private const val MEMORY_CACHE_SIZE = 40 * 1024 * 1024 // 20MB
  */
 object ArtworkCache : LruCache<Int, Artwork>(MEMORY_CACHE_SIZE) {
 
+    fun key(metadata: MusicMetadata): Int? {
+        return metadata.iconUri?.hashCode() ?: metadata.mediaId.hashCode()
+    }
     override fun sizeOf(key: Int?, value: Artwork?): Int {
         return value?.bitmap?.byteCount ?: 0
     }
@@ -66,19 +69,20 @@ suspend fun createArtworkFromByteArray(byteArray: ByteArray): Artwork? =
 suspend fun loadArtworkFromUri(uri: Uri): ByteArray? {
     val image = pendingUriRequests.getOrPut(uri) {
         GlobalScope.async(Dispatchers.IO) {
-            runCatching { loadDataFormUriInternal(uri) }.getOrNull()
+            runCatching { loadDataFormUriInternal(uri) }.onFailure { logError(it) }.getOrNull()
         }
     }
     return image.await()
 }
 
 
-private suspend fun loadDataFormUriInternal(uri: Uri): ByteArray? =
-    suspendCoroutine { continuation ->
-        val urlConnection = URI.create(uri.toString()).toURL().openConnection() as HttpURLConnection
-        urlConnection.connect()
-        val bytes = urlConnection.inputStream.use { stream ->
-            stream.readBytes()
-        }
-        continuation.resume(bytes)
+@WorkerThread
+private fun loadDataFormUriInternal(uri: Uri): ByteArray? {
+    val urlConnection = URI.create(uri.toString()).toURL().openConnection() as HttpURLConnection
+    urlConnection.connect()
+    val bytes = urlConnection.inputStream.use { stream ->
+        stream.readBytes()
     }
+    urlConnection.disconnect()
+    return bytes
+}

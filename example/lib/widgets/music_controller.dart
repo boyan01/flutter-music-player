@@ -5,9 +5,9 @@ class MusicControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-    final MusicPlayerValue state = PlayerState.of(context);
-    var description = state.metadata?.getDescription();
-    if (state.playbackState.state == PlaybackState.STATE_NONE) {
+    final MusicPlayerValue playerValue = PlayerStateWidget.of(context);
+    final metadata = playerValue.metadata;
+    if (playerValue.playbackState.state == PlayerState.None) {
       return Container();
     }
     return Container(
@@ -18,21 +18,20 @@ class MusicControlBar extends StatelessWidget {
           _ControllerBar(),
           Text.rich(TextSpan(children: [
             TextSpan(text: 'current metadata:'),
-            TextSpan(text: description?.title),
+            TextSpan(text: metadata?.title),
           ])),
           Text.rich(TextSpan(children: [
-            TextSpan(text: state.playList.queueTitle ?? "" + "\n"),
-            TextSpan(text: state.playList.queue.join()),
+            TextSpan(text: playerValue.queue.queueTitle ?? "" + "\n"),
+            TextSpan(text: playerValue.queue.queue.join()),
           ])),
           Text.rich(TextSpan(children: [
             TextSpan(text: "playback state : \n"),
             TextSpan(text: """
-speed:  ${state.playbackState.playbackSpeed} 
-bufferedPosition:  ${state.playbackState.bufferedPosition} 
-position:  ${state.playbackState.position} 
-errorCode:  ${state.playbackState.errorCode} 
-updateTime:  ${DateTime.fromMillisecondsSinceEpoch(state.playbackState.lastPositionUpdateTime).toIso8601String()} 
-activeItemId:  ${state.playbackState.activeQueueItemId} 
+speed:  ${playerValue.playbackState.speed} 
+bufferedPosition:  ${playerValue.playbackState.bufferedPosition} 
+position:  ${playerValue.playbackState.position} 
+errorCode:  ${playerValue.playbackState.error} 
+updateTime:  ${DateTime.fromMillisecondsSinceEpoch(playerValue.playbackState.updateTime).toIso8601String()} 
           """),
           ])),
         ],
@@ -66,14 +65,14 @@ class _ControllerBar extends StatelessWidget {
 class PlayPauseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final playbackState = PlayerState.of(context).playbackState;
-    if (playbackState.state == PlaybackState.STATE_PLAYING) {
+    final playbackState = PlayerStateWidget.of(context).playbackState;
+    if (playbackState.state == PlayerState.Playing) {
       return IconButton(
           icon: Icon(Icons.pause),
           onPressed: () {
             PlayerWidget.transportControls(context).pause();
           });
-    } else if (playbackState.state == PlaybackState.STATE_BUFFERING) {
+    } else if (playbackState.state == PlayerState.Buffering) {
       return Container(
         height: 24,
         width: 24,
@@ -82,7 +81,7 @@ class PlayPauseButton extends StatelessWidget {
         padding: EdgeInsets.all(4),
         child: CircularProgressIndicator(),
       );
-    } else if (playbackState.state == PlaybackState.STATE_NONE) {
+    } else if (playbackState.state == PlayerState.None) {
       return Container();
     } else {
       return IconButton(
@@ -98,7 +97,7 @@ class PlayPauseButton extends StatelessWidget {
 class RepeatModelButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final MusicPlayerValue state = PlayerState.of(context);
+    final MusicPlayerValue state = PlayerStateWidget.of(context);
 
     Widget icon;
     if (state.playMode == PlayMode.shuffle) {

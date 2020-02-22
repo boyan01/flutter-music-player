@@ -1,0 +1,29 @@
+PODS:
+  - Flutter (1.0.0)
+  - music_player (0.0.1):
+    - Flutter
+    - SwiftAudio (~> 0.11.2)
+  - SwiftAudio (0.11.2)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - music_player (from `.symlinks/plugins/music_player/ios`)
+
+SPEC REPOS:
+  trunk:
+    - SwiftAudio
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  music_player:
+    :path: ".symlinks/plugins/music_player/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  music_player: 9c268ba7e6f092ffd11fea0510ffdf5ebe6716de
+  SwiftAudio: 217f5f184b27a0e25ff0fe7647021f05a21c06c9
+
+PODFILE CHECKSUM: ad40d2b43cf3d5d91b9831bfc01677774180a9ad
+
+COCOAPODS: 1.8.4

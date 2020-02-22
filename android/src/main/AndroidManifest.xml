@@ -2,6 +2,7 @@
     package="tech.soit.quiet">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application>
         <service
@@ -9,6 +10,9 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="tech.soit.quiet.session.MusicSessionService" />
             </intent-filter>
         </service>
 

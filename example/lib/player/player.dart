@@ -4,26 +4,26 @@ import 'package:music_player/music_player.dart';
 export 'package:music_player/music_player.dart';
 
 final medias = [
-  MediaMetadata(
+  MusicMetadata(
     title: "Zhu Lin Jian",
-    artist: "SanWu marblue",
+    subtitle: "Zhu Lin Jian - SanWu marblue",
     mediaId: "bamboo",
-    mediaUri: "asset:///flutter_assets/tracks/bamboo.mp3",
-    artUri: "https://via.placeholder.com/150/FFCA28/000000/?text=bamboo",
+    mediaUri: "asset:///tracks/bamboo.mp3",
+    iconUri: "https://via.placeholder.com/150/FFCA28/000000/?text=bamboo",
   ),
-  MediaMetadata(
+  MusicMetadata(
     title: "Rise",
-    artist: "The Glitch Mob",
+    subtitle: "Rise - The Glitch Mob",
     mediaId: "rise",
-    mediaUri: "asset:///flutter_assets/tracks/rise.mp3",
-    artUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
+    mediaUri: "asset:///tracks/rise.mp3",
+    iconUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
   ),
-  MediaMetadata(
+  MusicMetadata(
     title: "Cang",
-    artist: "xu meng yuan",
+    subtitle: "Cang - xu meng yuan",
     mediaId: "hide",
-    mediaUri: "asset:///flutter_assets/tracks/hide.mp3",
-    artUri: "https://via.placeholder.com/150/03A9F4/000000/?text=Cang",
+    mediaUri: "asset:///tracks/hide.mp3",
+    iconUri: "https://via.placeholder.com/150/03A9F4/000000/?text=Cang",
   ),
 ];
 
@@ -37,7 +37,7 @@ class PlayerWidget extends StatefulWidget {
   }
 
   static MusicPlayer player(BuildContext context) {
-    final _PlayerWidgetState state = context.ancestorStateOfType(const TypeMatcher<_PlayerWidgetState>());
+    final _PlayerWidgetState state = context.findAncestorStateOfType<_PlayerWidgetState>();
     return state.player;
   }
 
@@ -65,14 +65,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return PlayerState(child: widget.child, state: player.value);
+    return PlayerStateWidget(child: widget.child, state: player.value);
   }
 }
 
-class PlayerState extends InheritedWidget {
+class PlayerStateWidget extends InheritedWidget {
   final MusicPlayerValue state;
 
-  const PlayerState({
+  const PlayerStateWidget({
     Key key,
     @required this.state,
     @required Widget child,
@@ -80,12 +80,12 @@ class PlayerState extends InheritedWidget {
         super(key: key, child: child);
 
   static MusicPlayerValue of(BuildContext context) {
-    final widget = context.inheritFromWidgetOfExactType(PlayerState) as PlayerState;
+    final widget = context.dependOnInheritedWidgetOfExactType<PlayerStateWidget>();
     return widget.state;
   }
 
   @override
-  bool updateShouldNotify(PlayerState old) {
+  bool updateShouldNotify(PlayerStateWidget old) {
     return old.state != state;
   }
 }

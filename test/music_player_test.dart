@@ -2,7 +2,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const MethodChannel channel = MethodChannel('flutter_music_player');
+  const MethodChannel channel = MethodChannel('music_player');
+
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
     channel.setMockMethodCallHandler((MethodCall methodCall) async {
@@ -14,7 +16,5 @@ void main() {
     channel.setMockMethodCallHandler(null);
   });
 
-  test('getPlatformVersion', () async {
-    expect('42', '42');
-  });
+  test('getPlatformVersion', () async {});
 }
