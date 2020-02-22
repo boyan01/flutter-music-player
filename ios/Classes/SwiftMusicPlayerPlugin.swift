@@ -65,10 +65,10 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "getNext":
-            result(player.getNext(anchor: MusicMetadata(any: call.arguments)))
+            result(player.getNext(anchor: MusicMetadata(any: call.arguments))?.toMap())
             break
         case "getPrevious":
-            result(player.getPrevious(anchor: MusicMetadata(any: call.arguments)))
+            result(player.getPrevious(anchor: MusicMetadata(any: call.arguments))?.toMap())
             break
         case "insertToNext":
             player.addMetadata(MusicMetadata(any: call.arguments)!, anchorMediaId: player.metadata?.mediaId)
