@@ -74,7 +74,12 @@ private class UrlUpdatingDataSource(
             val id = former.getQueryParameter("id")!!
             val fallback = former.getQueryParameter("uri")
             val uri = runBlocking {
-                backgroundChannel.getPlayUrl(id, fallback)
+                val playUrl = backgroundChannel.getPlayUrl(id, fallback)
+                if ("asset".equals(playUrl.scheme, true)) {
+                    return@runBlocking Uri.parse("asset:///flutter_assets${playUrl.path}")
+                } else {
+                    playUrl
+                }
             }
             val newSpec = dataSpec.withUri(uri)
             dataSource.open(newSpec)
