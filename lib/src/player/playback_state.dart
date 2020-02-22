@@ -1,7 +1,5 @@
 import 'package:flutter/cupertino.dart';
 
-import 'play_mode.dart';
-
 class PlaybackState {
   final PlayerState state;
 

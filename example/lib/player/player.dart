@@ -8,20 +8,21 @@ final medias = [
     title: "Zhu Lin Jian",
     subtitle: "Zhu Lin Jian - SanWu marblue",
     mediaId: "bamboo",
-    mediaUri: "asset:///flutter_assets/tracks/bamboo.mp3",
+    mediaUri: "asset:///tracks/bamboo.mp3",
     iconUri: "https://via.placeholder.com/150/FFCA28/000000/?text=bamboo",
   ),
   MusicMetadata(
     title: "Rise",
     subtitle: "Rise - The Glitch Mob",
     mediaId: "rise",
+    mediaUri: "asset:///tracks/rise.mp3",
     iconUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
   ),
   MusicMetadata(
     title: "Cang",
     subtitle: "Cang - xu meng yuan",
     mediaId: "hide",
-    mediaUri: "asset:///flutter_assets/tracks/hide.mp3",
+    mediaUri: "asset:///tracks/hide.mp3",
     iconUri: "https://via.placeholder.com/150/03A9F4/000000/?text=Cang",
   ),
 ];
