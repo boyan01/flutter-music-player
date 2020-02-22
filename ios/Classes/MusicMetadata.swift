@@ -55,19 +55,39 @@ class MusicMetadata: Equatable {
 }
 
 
-class MetadataAudioItem: AudioItem {
+class MetadataAudioItem: AudioItem, RemoteCommandable {
+    func getCommands() -> [RemoteCommand] {
+        [.pause, .play, .stop, .next, .previous]
+    }
 
     private let metadata: MusicMetadata
 
-    private let uri: URL
+    private let uri: String
 
-    public init(metadata: MusicMetadata, uri: URL) {
+    private let registrar: FlutterPluginRegistrar
+
+    private let servicePlugin: MusicPlayerServicePlugin
+
+    public init(metadata: MusicMetadata, uri: String, registrar: FlutterPluginRegistrar, servicePlugin: MusicPlayerServicePlugin) {
         self.metadata = metadata
         self.uri = uri
+        self.registrar = registrar
+        self.servicePlugin = servicePlugin
     }
 
     func getSourceUrl() -> String {
-        uri.absoluteString
+        guard let url = URL(string: uri) else {
+            return uri
+        }
+        if "asset".caseInsensitiveCompare(url.scheme ?? "") == .orderedSame {
+            let assetKey = registrar.lookupKey(forAsset: url.path)
+            guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
+                debugPrint("resource not found : \(assetKey)")
+                return uri
+            }
+            return URL(fileURLWithPath: path).absoluteString
+        }
+        return uri
     }
 
     func getArtist() -> String? {
@@ -87,6 +107,6 @@ class MetadataAudioItem: AudioItem {
     }
 
     func getArtwork(_ handler: @escaping (UIImage?) -> ()) {
-        handler(nil)
+        servicePlugin.loadImage(metadata: metadata, completion: handler)
     }
 }

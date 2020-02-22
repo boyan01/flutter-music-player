@@ -107,3 +107,57 @@ private class ChannelPlayerCallback: MusicPlayerCallback {
     }
 
 }
+
+public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
+
+
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        fatalError("do not call register!")
+    }
+
+    public static func start() -> MusicPlayerServicePlugin {
+        let engine = FlutterEngine(name: "player-service-engine")
+        if (!engine.run(withEntrypoint: "playerBackgroundService")) {
+            debugPrint("run 'playerBackgroundService' failed.")
+        }
+        let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))
+        let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
+        let plugin = MusicPlayerServicePlugin(channel)
+        registrar.addMethodCallDelegate(plugin, channel: channel)
+        return plugin
+    }
+
+    private let channel: FlutterMethodChannel
+
+    private init(_ channel: FlutterMethodChannel) {
+        self.channel = channel
+        super.init()
+    }
+
+    public func handle(_ call: FlutterMethodCall, result: FlutterResult) {
+
+    }
+
+    func getPlayUrl(mediaId: String, fallback: String?, completion: @escaping (String?) -> Void) {
+        channel.invokeMethod("getPlayUrl", arguments: ["id": mediaId, "url": fallback]) { any in
+            if let result = any as? String {
+                completion(result)
+            } else if (FlutterMethodNotImplemented.isEqual(any)) {
+                completion(fallback)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    func loadImage(metadata: MusicMetadata, completion: @escaping (UIImage?) -> Void) {
+        channel.invokeMethod("loadImage", arguments: metadata.toMap()) { result in
+            if let result = result as? FlutterStandardTypedData {
+                completion(UIImage(data: result.data))
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+}

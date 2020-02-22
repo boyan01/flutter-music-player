@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 import 'player/player.dart';
@@ -35,8 +38,16 @@ class ExamplePage extends StatelessWidget {
 
 void playerBackgroundService() {
   runBackgroundService(playUriInterceptor: (mediaId, fallbackUrl) async {
-    if (mediaId == 'rise') return "asset:///flutter_assets/tracks/rise.mp3";
+    debugPrint("get media play uri : $mediaId , $fallbackUrl");
+    if (mediaId == 'rise') return "asset:///tracks/rise.mp3";
     return fallbackUrl;
+  }, imageLoadInterceptor: (metadata) async {
+    debugPrint("load image for ${metadata.mediaId} , ${metadata.title}");
+    if (metadata.mediaId == "bamboo") {
+      final data = await rootBundle.load("images/bamboo.jpg");
+      return Uint8List.view(data.buffer);
+    }
+    return null;
   });
 }
 

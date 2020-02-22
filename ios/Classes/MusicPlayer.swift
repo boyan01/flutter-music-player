@@ -15,6 +15,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
     public init(registrar: FlutterPluginRegistrar) {
         self.registrar = registrar
+        self.player = AudioPlayer()
         super.init()
         player.event.stateChange.addListener(self) { state in
             self.invalidatePlaybackState()
@@ -29,7 +30,12 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
     }
 
-    private let player: AudioPlayer = AudioPlayer()
+    private let player: AudioPlayer
+
+    /// fetching play uri from background service
+    private var isPlayUriPrefetching = false
+
+    private let servicePlugin = MusicPlayerServicePlugin.start()
 
     var playMode: PlayMode = .sequence {
         didSet {
@@ -50,7 +56,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     }
 
     var playbackState: PlaybackState {
-        let state: State
+        var state: State
         switch player.playerState {
         case .idle:
             state = .none
@@ -65,6 +71,9 @@ class MusicPlayer: NSObject, MusicPlayerSession {
             state = .buffering
             break
         }
+        if (isPlayUriPrefetching) {
+            state = .buffering
+        }
         return PlaybackState(
                 state: state,
                 position: player.currentTime,
@@ -78,35 +87,35 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     private func performPlay(metadata: MusicMetadata?) {
         self.metadata = metadata
         player.stop()
-        if let item = getPlayItemForPlay(metadata: metadata) {
-            debugPrint("performPlay : \(item.getSourceUrl())")
-            do {
-                try player.load(item: item, playWhenReady: true)
-            } catch {
-                debugPrint("create player failed : \(error) ")
+        getPlayItemForPlay(metadata: metadata) { item in
+            if let item = item {
+                do {
+                    try self.player.load(item: item, playWhenReady: true)
+                } catch {
+                    debugPrint("create player failed : \(error) ")
+                }
+            } else {
+                // TODO handle error
             }
+            self.isPlayUriPrefetching = false
+            self.invalidatePlaybackState()
         }
+        isPlayUriPrefetching = true
+        invalidatePlaybackState()
     }
 
-    private func getPlayItemForPlay(metadata: MusicMetadata?) -> AudioItem? {
+    private func getPlayItemForPlay(metadata: MusicMetadata?, completion: @escaping (AudioItem?) -> Void) {
         guard let metadata = metadata else {
-            return nil
+            completion(nil)
+            return
         }
-        guard let mediaUri = metadata.mediaUri else {
-            return nil
-        }
-        guard let url = URL(string: mediaUri) else {
-            return nil
-        }
-        if "asset".caseInsensitiveCompare(url.scheme ?? "") == .orderedSame {
-            let assetKey = registrar.lookupKey(forAsset: url.path)
-            guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
-                debugPrint("resource not found : \(assetKey)")
-                return nil
+        servicePlugin.getPlayUrl(mediaId: metadata.mediaId, fallback: metadata.mediaUri) { url in
+            if let url = url {
+                completion(MetadataAudioItem(metadata: metadata, uri: url,
+                        registrar: self.registrar, servicePlugin: self.servicePlugin))
+            } else {
+                completion(nil)
             }
-            return MetadataAudioItem(metadata: metadata, uri: URL(fileURLWithPath: path))
-        } else {
-            return MetadataAudioItem(metadata: metadata, uri: url)
         }
     }
 
