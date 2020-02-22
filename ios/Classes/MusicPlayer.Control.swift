@@ -20,7 +20,7 @@ protocol MusicPlayerSession: MusicPlayerCallbackContainer {
 
     func stop()
 
-    func seekTo(_ pos: Int)
+    func seekTo(_ pos: TimeInterval)
 
     func skipToNext()
 

@@ -4,186 +4,10 @@
 
 import Foundation
 import AVFoundation
-
-class MusicMetadata: Equatable {
-
-    private let data: [String: Any]
-
-    public init(map: [String: Any]) {
-        self.data = map
-    }
-
-    convenience init?(any: Any?) {
-        if let map = any as? [String: Any] {
-            self.init(map: map)
-        } else {
-            return nil
-        }
-    }
-
-    // mediaId of this metadata
-    var mediaId: String {
-        data["mediaId"] as! String
-    }
-
-    var subtitle: String? {
-        data["subtitle"] as? String
-    }
-
-    var title: String? {
-        data["title"] as? String
-    }
-
-    var mediaUri: String? {
-        data["mediaUri"] as? String
-    }
-
-    static func ==(lhs: MusicMetadata, rhs: MusicMetadata) -> Bool {
-        lhs.mediaId == rhs.mediaId
-    }
-
-    func copyNewDuration(duration: Int) -> MusicMetadata {
-        var data = self.data
-        data.updateValue(duration, forKey: "duration")
-        return MusicMetadata(map: data)
-    }
-
-    func toMap() -> [String: Any] {
-        data
-    }
-
-}
-
-enum PlayMode: Int {
-    case shuffle = 0
-    case single
-    case sequence
-}
+import SwiftAudio
 
 
-class PlayQueue {
-
-    static let Empty = PlayQueue(queueId: "", queueTitle: "", queue: [], shuffleIds: [], extras: nil)
-
-    private var queue: [MusicMetadata] = []
-    private var shuffleIds: [String] = []
-    private let extras: Any?
-    private let queueId: String
-    private let queueTitle: String?
-
-    init(queueId: String, queueTitle: String?, queue: [MusicMetadata], shuffleIds: [String]?, extras: Any?) {
-        self.queueId = queueId
-        self.queueTitle = queueTitle
-        self.queue.append(contentsOf: queue)
-        let shuffled = shuffleIds ?? queue.shuffled().map { metadata -> String in
-            metadata.mediaId
-        }
-        self.shuffleIds.append(contentsOf: shuffled)
-        self.extras = extras
-    }
-
-    convenience init(map: [String: Any?]) {
-        self.init(queueId: map["queueId"] as! String,
-                queueTitle: map["queueTitle"] as? String,
-                queue: (map["queue"] as! [[String: Any]]).map { dictionary -> MusicMetadata in
-                    MusicMetadata(map: dictionary)
-                },
-                shuffleIds: map["shuffleQueue"] as? [String],
-                extras: map["extras"] ?? nil)
-    }
-
-    func toMap() -> [String: Any?] {
-        [
-            "queueId": queueId,
-            "queueTitle": queueTitle,
-            "queue": queue.map { metadata -> [String: Any] in
-                metadata.toMap()
-            },
-            "shuffleQueue": shuffleIds,
-            "extras": extras
-        ]
-    }
-
-    func add(_ music: MusicMetadata, anchor: String?) {
-        if let anchor = anchor {
-            let index = queue.firstIndex { metadata in
-                metadata.mediaId == anchor
-            } ?? (queue.count - 1)
-            let shuffleIndex = shuffleIds.firstIndex(of: anchor) ?? (shuffleIds.count - 1)
-            queue.insert(music, at: index + 1)
-            shuffleIds.insert(music.mediaId, at: shuffleIndex + 1)
-        } else {
-            queue.append(music)
-            shuffleIds.append(music.mediaId)
-        }
-    }
-
-    func remove(mediaId: String) {
-        queue.removeAll { metadata in
-            metadata.mediaId == mediaId
-        }
-        shuffleIds.removeAll { s in
-            s == mediaId
-        }
-    }
-
-    func getNext(_ current: MusicMetadata?, playMode: PlayMode) -> MusicMetadata? {
-        getMusicInternal(current, playMode, true)
-    }
-
-    func getPrevious(_ current: MusicMetadata?, playMode: PlayMode) -> MusicMetadata? {
-        getMusicInternal(current, playMode, false)
-    }
-
-    private func getMusicInternal(_ current: MusicMetadata?, _ playMode: PlayMode, _ next: Bool) -> MusicMetadata? {
-        if queue.isEmpty {
-            debugPrint("empty play queue")
-            return nil
-        }
-        if let anchor = current {
-            switch playMode {
-            case .single, .sequence:
-                var index = queue.firstIndex { metadata in
-                    metadata.mediaId == anchor.mediaId
-                } ?? -1
-                index = index + (next ? 1 : -1)
-                if (index >= queue.count && next) {
-                    return queue.first
-                } else if (index <= -1 && !next) {
-                    return queue.last
-                } else {
-                    return queue[index]
-                }
-            case .shuffle:
-                var index = shuffleIds.firstIndex(of: anchor.mediaId) ?? -1;
-                index = index + (next ? 1 : -1)
-                if (index >= queue.count || index < 0) {
-                    return nil
-                } else {
-                    return requireMusicItem(shuffleIds[index])
-                }
-            }
-        } else if playMode == .shuffle {
-            return requireMusicItem(shuffleIds[0])
-        } else {
-            return queue[0]
-        }
-    }
-
-
-    private func requireMusicItem(_ mediaId: String) -> MusicMetadata? {
-        queue.first { metadata in
-            metadata.mediaId == mediaId
-        }
-    }
-
-    func getByMediaId(_ mediaId: String) -> MusicMetadata? {
-        requireMusicItem(mediaId)
-    }
-}
-
-
-class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
+class MusicPlayer: NSObject, MusicPlayerSession {
 
     private let shimPlayerCallback = ShimMusicPlayCallback()
 
@@ -192,9 +16,20 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
     public init(registrar: FlutterPluginRegistrar) {
         self.registrar = registrar
         super.init()
+        player.event.stateChange.addListener(self) { state in
+            self.invalidatePlaybackState()
+        }
+        player.event.playbackEnd.addListener(self) { reason in
+            if reason == .playedUntilEnd {
+                self.skipToNext()
+            }
+        }
+        player.event.updateDuration.addListener(self) { v in
+            self.invalidateMetadata()
+        }
     }
 
-    private var player: AVAudioPlayer? = nil
+    private let player: AudioPlayer = AudioPlayer()
 
     var playMode: PlayMode = .sequence {
         didSet {
@@ -215,34 +50,45 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
     }
 
     var playbackState: PlaybackState {
-        if let player = self.player {
-            return PlaybackState(state: player.state, position: player.currentTime,
-                    bufferedPosition: 0, speed: 1.0, error: nil, updateTime: Date().timeIntervalSince1970)
-        } else {
-            return PlaybackState(state: .none, position: 0, bufferedPosition: 0, speed: 1,
-                    error: nil, updateTime: Date().timeIntervalSince1970)
+        let state: State
+        switch player.playerState {
+        case .idle:
+            state = .none
+            break
+        case .paused, .ready:
+            state = .paused
+            break
+        case .playing:
+            state = .playing
+            break
+        case .buffering, .loading:
+            state = .buffering
+            break
         }
+        return PlaybackState(
+                state: state,
+                position: player.currentTime,
+                bufferedPosition: player.bufferedPosition,
+                speed: player.rate,
+                error: nil,
+                updateTime: Date().timeIntervalSince1970)
     }
 
 
     private func performPlay(metadata: MusicMetadata?) {
         self.metadata = metadata
-        player?.stop()
-        player = nil
-        if let url = getUrlForPlay(metadata: metadata) {
-            debugPrint("performPlay : \(url)")
+        player.stop()
+        if let item = getPlayItemForPlay(metadata: metadata) {
+            debugPrint("performPlay : \(item.getSourceUrl())")
             do {
-                let player = try AVAudioPlayer(contentsOf: url)
-                player.play()
-                player.delegate = self
-                self.player = player
+                try player.load(item: item, playWhenReady: true)
             } catch {
                 debugPrint("create player failed : \(error) ")
             }
         }
     }
 
-    private func getUrlForPlay(metadata: MusicMetadata?) -> URL? {
+    private func getPlayItemForPlay(metadata: MusicMetadata?) -> AudioItem? {
         guard let metadata = metadata else {
             return nil
         }
@@ -258,9 +104,9 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
                 debugPrint("resource not found : \(assetKey)")
                 return nil
             }
-            return URL(fileURLWithPath: path)
+            return MetadataAudioItem(metadata: metadata, uri: URL(fileURLWithPath: path))
         } else {
-            return url
+            return MetadataAudioItem(metadata: metadata, uri: url)
         }
     }
 
@@ -283,26 +129,26 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
     }
 
     private func skipTo(execute call: () -> MusicMetadata?) {
-        player?.stop()
+        player.stop()
         let skip = call()
         performPlay(metadata: skip)
     }
 
 
     func play() {
-        player?.play()
+        player.play()
     }
 
     func pause() {
-        player?.pause()
+        player.pause()
     }
 
     func stop() {
-        player?.stop()
+        player.stop()
     }
 
-    func seekTo(_ pos: Int) {
-        player?.play(atTime: Double(pos))
+    func seekTo(_ pos: TimeInterval) {
+        player.seek(to: pos)
     }
 
     func getNext(anchor: MusicMetadata?) -> MusicMetadata? {
@@ -331,33 +177,16 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
         shimPlayerCallback.removeCallback(callback)
     }
 
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        debugPrint("audioPlayerDidFinishPlaying")
-        invalidatePlaybackState()
-        skipToNext()
-    }
-
-    func audioPlayerBeginInterruption(_ player: AVAudioPlayer) {
-        debugPrint("audioPlayerBeginInterruption")
-        invalidatePlaybackState()
-    }
-
-    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-        debugPrint("audioPlayerDecodeErrorDidOccur")
-        invalidatePlaybackState()
-    }
-
-    func audioPlayerEndInterruption(_ player: AVAudioPlayer, withOptions flags: Int) {
-        debugPrint("audioPlayerEndInterruption")
-        invalidatePlaybackState()
-    }
-
     private func invalidatePlayQueue() {
         shimPlayerCallback.onPlayQueueChanged(playQueue)
     }
 
     private func invalidateMetadata() {
-        shimPlayerCallback.onMetadataChanged(metadata)
+        if player.duration > 0 {
+            shimPlayerCallback.onMetadataChanged(metadata?.copyNewDuration(duration: Int(player.duration * 1000)))
+        } else {
+            shimPlayerCallback.onMetadataChanged(metadata)
+        }
     }
 
     private func invalidatePlaybackState() {
@@ -365,41 +194,5 @@ class MusicPlayer: NSObject, AVAudioPlayerDelegate, MusicPlayerSession {
     }
 
 
-}
-
-
-struct PlaybackState {
-    let state: State
-    let position: TimeInterval
-    let bufferedPosition: TimeInterval
-    let speed: Float
-    let error: Error?
-    let updateTime: TimeInterval
-}
-
-extension PlaybackState {
-    func toMap() -> [String: Any?] {
-        [
-            "state": state.rawValue,
-            "position": Int(position * 1000),
-            "bufferedPosition": Int(bufferedPosition * 1000),
-            "speed": speed,
-            "error": nil,
-            "updateTime": Int(updateTime * 1000)
-        ]
-    }
-
-}
-
-extension AVAudioPlayer {
-
-    var state: State {
-        isPlaying ? .playing : .paused
-    }
-
-}
-
-enum State: Int {
-    case none = 0, paused, playing, buffering, error
 }
 
