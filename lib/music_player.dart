@@ -3,7 +3,7 @@ export 'src/player/playback_state.dart';
 export 'src/player/play_queue.dart';
 
 export 'src/player/transport_controls.dart';
-export 'src/player/play_mode.dart' hide parsePlayMode, playModeToStr;
+export 'src/player/play_mode.dart';
 
 export 'src/channel_ui.dart';
 export 'src/channel_service.dart';
