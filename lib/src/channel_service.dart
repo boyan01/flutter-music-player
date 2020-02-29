@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/internal/serialization.dart';
 
+import 'internal/player_callback_adapter.dart';
+
 ///
 /// Interceptor when player try to load a media source
 ///
@@ -45,6 +47,7 @@ Future runBackgroundService({
   // decrease background image memory
   PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
   final backgroundChannel = MethodChannel("tech.soit.quiet/background_callback");
+  final backgroundPlayer = BackgroundMusicPlayer._internal();
   backgroundChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'loadImage':
@@ -64,4 +67,28 @@ Future runBackgroundService({
     }
   });
   backgroundChannel.invokeMethod('updateConfig', config.toMap());
+}
+
+class BackgroundMusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCallbackAdapter {
+  final _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
+
+  BackgroundMusicPlayer._internal() : super(MusicPlayerValue.none()) {
+    _uiChannel.setMethodCallHandler((call) async {
+      if (handleRemoteCall(call)) {
+        return;
+      }
+      throw new UnimplementedError();
+    });
+    _uiChannel.invokeMethod("init");
+  }
+}
+
+abstract class BackgroundPlayerCallback {
+  void onPlaybackStateChanged(BackgroundMusicPlayer player, PlaybackState state);
+
+  void onMetadataChange(BackgroundMusicPlayer player, MusicMetadata metadata);
+
+  void onPlayQueueChanged(BackgroundMusicPlayer player, PlayQueue queue);
+
+  void onPlayModeChanged(BackgroundMusicPlayer player, PlayMode playMode);
 }

@@ -92,29 +92,17 @@ class MusicPlayerValue {
   @nullable
   final MusicMetadata metadata;
 
-  @nullable
-  final MusicMetadata next;
-
-  @nullable
-  final MusicMetadata previous;
-
   MusicPlayerValue({
     this.queue,
     this.playMode,
     this.metadata,
     this.playbackState,
-    this.next,
-    this.previous,
-  })  : assert(queue != null),
-        assert(next == null || queue.queue.contains(next)),
-        assert(previous == null || queue.queue.contains(previous));
+  }) : assert(queue != null);
 
   static final _empty = MusicPlayerValue(
     queue: PlayQueue.empty(),
     playMode: PlayMode.sequence,
     metadata: null,
-    next: null,
-    previous: null,
     playbackState: PlaybackState.none(),
   );
 

@@ -81,8 +81,6 @@ class PlayPauseButton extends StatelessWidget {
         padding: EdgeInsets.all(4),
         child: CircularProgressIndicator(),
       );
-    } else if (playbackState.state == PlayerState.None) {
-      return Container();
     } else {
       return IconButton(
           icon: Icon(Icons.play_arrow),

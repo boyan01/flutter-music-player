@@ -11,11 +11,10 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
     private let shimPlayerCallback = ShimMusicPlayCallback()
 
-    private let registrar: FlutterPluginRegistrar
 
-    public init(registrar: FlutterPluginRegistrar) {
-        self.registrar = registrar
-        self.player = AudioPlayer()
+    public static let shared = MusicPlayer()
+
+    private override init() {
         super.init()
         player.event.stateChange.addListener(self) { state in
             self.invalidatePlaybackState()
@@ -30,12 +29,12 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
     }
 
-    private let player: AudioPlayer
+    private let player: AudioPlayer = AudioPlayer()
 
     /// fetching play uri from background service
     private var isPlayUriPrefetching = false
 
-    private let servicePlugin = MusicPlayerServicePlugin.start()
+    private lazy var servicePlugin = MusicPlayerServicePlugin.start()
 
     var playMode: PlayMode = .sequence {
         didSet {
@@ -111,8 +110,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
         servicePlugin.getPlayUrl(mediaId: metadata.mediaId, fallback: metadata.mediaUri) { url in
             if let url = url {
-                completion(MetadataAudioItem(metadata: metadata, uri: url,
-                        registrar: self.registrar, servicePlugin: self.servicePlugin))
+                completion(MetadataAudioItem(metadata: metadata, uri: url, servicePlugin: self.servicePlugin))
             } else {
                 completion(nil)
             }

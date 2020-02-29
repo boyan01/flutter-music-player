@@ -12,10 +12,9 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.FlutterMain
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.MusicMetadata
+import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.utils.*
-
-typealias BackgroundRegistrar = (registry: FlutterEngine) -> Unit
 
 data class Config(
     val enableCache: Boolean = false,
@@ -42,12 +41,6 @@ class MusicPlayerServicePlugin(
     companion object {
 
         private const val NAME = "tech.soit.quiet/background_callback"
-
-        private var registrar: BackgroundRegistrar? = null
-
-        fun setOnRegisterCallback(callback: BackgroundRegistrar) {
-            registrar = callback
-        }
 
         /**
          * start flutter background isolate
@@ -78,7 +71,7 @@ class MusicPlayerServicePlugin(
                     "playerBackgroundService"
                 )
             )
-            registrar?.invoke(engine)
+            registerPlugins(engine)
 
             val channel = MethodChannel(
                 ShimPluginRegistry(engine).registrarFor(MusicPlayerServicePlugin::class.java.name).messenger(),
@@ -89,6 +82,23 @@ class MusicPlayerServicePlugin(
             channel.setMethodCallHandler(helper)
             return helper
         }
+
+
+        private fun registerPlugins(flutterEngine: FlutterEngine) {
+            try {
+                val generatedPluginRegistrant =
+                    Class.forName("io.flutter.plugins.GeneratedPluginRegistrant")
+                val registrationMethod =
+                    generatedPluginRegistrant.getDeclaredMethod(
+                        "registerWith",
+                        FlutterEngine::class.java
+                    )
+                registrationMethod.invoke(null, flutterEngine)
+            } catch (e: Exception) {
+                log { "Tried to automatically register plugins with FlutterEngine ($flutterEngine) but could not find and invoke the GeneratedPluginRegistrant." }
+            }
+        }
+
     }
 
     init {
@@ -149,25 +159,38 @@ class MusicPlayerServicePlugin(
     }
 
 
-    suspend fun getNextMusic(
-        queue: PlayQueue,
-        current: MusicMetadata?,
-        playMode: Int
+    suspend fun onPlayNextNoMoreMusic(
+        playQueue: PlayQueue,
+        playMode: PlayMode
     ): MusicMetadata? {
-        return null
+        return methodChannel.invokeAsyncCast(
+            "onPlayNextNoMoreMusic", mapOf(
+                "queue" to playQueue.toDartMapObject(),
+                "playMode" to playMode.rawValue
+            )
+        ) {
+            if (playMode == PlayMode.Shuffle) {
+                playQueue.generateShuffleList()
+            }
+            playQueue.getNext(null, playMode)
+        }
     }
 
-    suspend fun getPreviousMusic(
-        queue: PlayQueue,
-        current: MusicMetadata?,
-        playMode: Int
+    suspend fun onPlayPreviousNoMoreMusic(
+        playQueue: PlayQueue,
+        playMode: PlayMode
     ): MusicMetadata? {
-        return null
+        return methodChannel.invokeAsyncCast(
+            "onPlayPreviousNoMoreMusic", mapOf(
+                "queue" to playQueue.toDartMapObject(),
+                "playMode" to playMode.rawValue
+            )
+        ) {
+            if (playMode == PlayMode.Shuffle) {
+                playQueue.generateShuffleList()
+            }
+            playQueue.getPrevious(null, playMode)
+        }
     }
-
-    suspend fun getMusicByMediaId(playQueue: PlayQueue, mediaId: String): MusicMetadata? {
-        return null
-    }
-
 
 }

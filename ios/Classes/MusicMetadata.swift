@@ -64,14 +64,11 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
 
     private let uri: String
 
-    private let registrar: FlutterPluginRegistrar
-
     private let servicePlugin: MusicPlayerServicePlugin
 
-    public init(metadata: MusicMetadata, uri: String, registrar: FlutterPluginRegistrar, servicePlugin: MusicPlayerServicePlugin) {
+    public init(metadata: MusicMetadata, uri: String, servicePlugin: MusicPlayerServicePlugin) {
         self.metadata = metadata
         self.uri = uri
-        self.registrar = registrar
         self.servicePlugin = servicePlugin
     }
 
@@ -80,7 +77,7 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
             return uri
         }
         if "asset".caseInsensitiveCompare(url.scheme ?? "") == .orderedSame {
-            let assetKey = registrar.lookupKey(forAsset: url.path)
+            let assetKey = servicePlugin.registrar.lookupKey(forAsset: url.path)
             guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
                 debugPrint("resource not found : \(assetKey)")
                 return uri

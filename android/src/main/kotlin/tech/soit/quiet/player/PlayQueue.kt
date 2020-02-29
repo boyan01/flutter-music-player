@@ -3,13 +3,10 @@ package tech.soit.quiet.player
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.annotation.UiThread
-import tech.soit.quiet.utils.LoggerLevel
 import tech.soit.quiet.utils.log
-import tech.soit.quiet.utils.logError
-import java.lang.IllegalStateException
 
 
-private typealias MusicItem = MusicMetadata
+typealias MusicItem = MusicMetadata
 
 private typealias DartObject = Map<String, Any?>
 
@@ -107,15 +104,14 @@ class PlayQueue(
         }
         // fast return
         if (anchor == null) {
-            return if (playMode == PlayMode.Shuffle) requireMusicItem(shuffleMusicList[0]) else queue[0]
+            val index = if (next) 0 else queue.size - 1
+            return if (playMode == PlayMode.Shuffle) requireMusicItem(shuffleMusicList[index]) else queue[index]
         }
         return when (playMode) {
             PlayMode.Single, PlayMode.Sequence -> {
                 val index = queue.index(anchor) + if (next) 1 else -1
-                if (index == queue.size && next) {
-                    queue.first()
-                } else if (index == -1 && !next) {
-                    queue.last()
+                if (index >= queue.size || index <= -1) {
+                    null
                 } else {
                     queue[index]
                 }
@@ -128,6 +124,7 @@ class PlayQueue(
                     requireMusicItem(shuffleMusicList[index])
                 }
             }
+            is PlayMode.Undefined -> null /*playMode undefined,we do not know the play sequence*/
         }
     }
 

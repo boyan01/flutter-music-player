@@ -12,12 +12,11 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
     public init(channel: FlutterMethodChannel, registrar: FlutterPluginRegistrar) {
         self.channel = channel
         self.playerCallback = ChannelPlayerCallback(channel)
-        self.player = MusicPlayer(registrar: registrar)
         super.init()
         player.addCallback(playerCallback)
     }
 
-    let player: MusicPlayer
+    let player: MusicPlayer = MusicPlayer.shared
 
     static let UI_CHANNEL_NAME = "tech.soit.quiet/player.ui"
 
@@ -42,6 +41,10 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             break
         case "pause":
             player.pause()
+            result(nil)
+            break
+        case "seekTo":
+            player.seekTo(Double((call.arguments as! Int)) / 1000.0)
             result(nil)
             break
         case "playFromMediaId":
@@ -122,15 +125,25 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
         }
         let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))
         let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
-        let plugin = MusicPlayerServicePlugin(channel)
+        let plugin = MusicPlayerServicePlugin(channel, registrar)
         registrar.addMethodCallDelegate(plugin, channel: channel)
+
+        // invoke GeneratedPluginRegistrant by selector.
+        if let a = NSClassFromString("GeneratedPluginRegistrant") as? NSObject.Type {
+            a.perform(NSSelectorFromString("registerWithRegistry:"), with: engine as FlutterPluginRegistry)
+        } else {
+            debugPrint("Tried to automatically register plugins with FlutterEngine \(engine) but could not find and invoke the GeneratedPluginRegistrant.")
+        }
         return plugin
     }
 
     private let channel: FlutterMethodChannel
 
-    private init(_ channel: FlutterMethodChannel) {
+    public let registrar: FlutterPluginRegistrar
+
+    private init(_ channel: FlutterMethodChannel, _ registrar: FlutterPluginRegistrar) {
         self.channel = channel
+        self.registrar = registrar
         super.init()
     }
 

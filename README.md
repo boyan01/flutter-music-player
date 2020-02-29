@@ -2,7 +2,7 @@
 
 Media session framework plugin for flutter, make it easy to implement music play by flutter.
 
-* [ ] ios support
+* [x] ios support
 * [x] media style notification.
 * [x] basic media control.
 * [x] tracking player status change.
