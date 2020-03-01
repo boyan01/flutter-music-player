@@ -13,6 +13,11 @@ class PlaybackState {
 
   final int updateTime;
 
+  int get computedPosition {
+    final append = state == PlayerState.Playing ? (DateTime.now().millisecondsSinceEpoch - updateTime) : 0;
+    return position + append;
+  }
+
   const PlaybackState({
     @required this.state,
     this.position,

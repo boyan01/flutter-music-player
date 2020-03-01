@@ -3,30 +3,6 @@ import 'package:music_player/music_player.dart';
 
 export 'package:music_player/music_player.dart';
 
-final medias = [
-  MusicMetadata(
-    title: "Zhu Lin Jian",
-    subtitle: "Zhu Lin Jian - SanWu marblue",
-    mediaId: "bamboo",
-    mediaUri: "asset:///tracks/bamboo.mp3",
-    iconUri: "https://via.placeholder.com/150/FFCA28/000000/?text=bamboo",
-  ),
-  MusicMetadata(
-    title: "Rise",
-    subtitle: "Rise - The Glitch Mob",
-    mediaId: "rise",
-    mediaUri: "asset:///tracks/rise.mp3",
-    iconUri: "https://via.placeholder.com/150/4CAF50/FFFFFF/?text=Rise",
-  ),
-  MusicMetadata(
-    title: "Cang",
-    subtitle: "Cang - xu meng yuan",
-    mediaId: "hide",
-    mediaUri: "asset:///tracks/hide.mp3",
-    iconUri: "https://via.placeholder.com/150/03A9F4/000000/?text=Cang",
-  ),
-];
-
 class PlayerWidget extends StatefulWidget {
   final Widget child;
 
@@ -43,6 +19,14 @@ class PlayerWidget extends StatefulWidget {
 
   @override
   _PlayerWidgetState createState() => _PlayerWidgetState();
+}
+
+extension PlayerContext on BuildContext {
+  TransportControls get transportControls => PlayerWidget.transportControls(this);
+
+  MusicPlayer get player => PlayerWidget.player(this);
+
+  MusicPlayerValue get listenPlayerValue => PlayerStateWidget.of(this);
 }
 
 class _PlayerWidgetState extends State<PlayerWidget> {

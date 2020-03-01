@@ -1,3 +1,4 @@
+import 'package:music_player/music_player.dart';
 import 'package:music_player/src/player/music_metadata.dart';
 import 'package:music_player/src/player/play_queue.dart';
 import 'package:music_player/src/player/playback_state.dart';
@@ -35,6 +36,16 @@ PlayQueue createPlayQueue(Map map) {
     queueTitle: map['queueTitle'],
     extras: map['extras'],
     queue: (map['queue'] as List).cast<Map>().map((e) => createMusicMetadata(e)).toList(),
+  );
+}
+
+BackgroundPlayQueue createBackgroundQueue(Map map) {
+  return BackgroundPlayQueue(
+    queueId: map['queueId'],
+    queueTitle: map['queueTitle'],
+    extras: map['extras'],
+    queue: (map['queue'] as List).cast<Map>().map((e) => createMusicMetadata(e)).toList(),
+    shuffleQueue: (map['shuffleQueue'] as List).cast<String>(),
   );
 }
 

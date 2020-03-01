@@ -6,6 +6,8 @@ import Foundation
 
 class PlayQueue {
 
+    private typealias QueueChangeListener = () -> Void
+
     static let Empty = PlayQueue(queueId: "", queueTitle: "", queue: [], shuffleIds: [], extras: nil)
 
     private var queue: [MusicMetadata] = []
@@ -13,6 +15,8 @@ class PlayQueue {
     private let extras: Any?
     private let queueId: String
     private let queueTitle: String?
+
+    private var queueChangeListener: QueueChangeListener? = nil
 
     init(queueId: String, queueTitle: String?, queue: [MusicMetadata], shuffleIds: [String]?, extras: Any?) {
         self.queueId = queueId
@@ -33,6 +37,20 @@ class PlayQueue {
                 },
                 shuffleIds: map["shuffleQueue"] as? [String],
                 extras: map["extras"] ?? nil)
+    }
+
+    func setChangeListener(_ listener: (() -> Void)?) {
+        self.queueChangeListener = listener
+    }
+
+    func generateShuffleList() {
+        shuffleIds.removeAll()
+        shuffleIds.append(contentsOf: queue.shuffled().map { metadata -> String in
+            metadata.mediaId
+        })
+        if let listener = queueChangeListener {
+            listener()
+        }
     }
 
     func toMap() -> [String: Any?] {
@@ -90,10 +108,8 @@ class PlayQueue {
                     metadata.mediaId == anchor.mediaId
                 } ?? -1
                 index = index + (next ? 1 : -1)
-                if (index >= queue.count && next) {
-                    return queue.first
-                } else if (index <= -1 && !next) {
-                    return queue.last
+                if (index >= queue.count || index <= -1) {
+                    return nil
                 } else {
                     return queue[index]
                 }
@@ -105,11 +121,13 @@ class PlayQueue {
                 } else {
                     return requireMusicItem(shuffleIds[index])
                 }
+            case .undefined:
+                return nil
+
             }
-        } else if playMode == .shuffle {
-            return requireMusicItem(shuffleIds[0])
         } else {
-            return queue[0]
+            let index = next ? 0 : (queue.count - 1)
+            return playMode == .shuffle ? requireMusicItem(shuffleIds[index]) : queue[index]
         }
     }
 
@@ -123,4 +141,9 @@ class PlayQueue {
     func getByMediaId(_ mediaId: String) -> MusicMetadata? {
         requireMusicItem(mediaId)
     }
+
+    func insert(_ index: Int, _ list: [MusicMetadata]) {
+        queue.insert(contentsOf: list, at: index)
+    }
+
 }

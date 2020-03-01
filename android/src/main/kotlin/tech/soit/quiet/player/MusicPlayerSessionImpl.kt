@@ -9,6 +9,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import tech.soit.quiet.MusicPlayerServicePlugin
 import tech.soit.quiet.MusicPlayerSession
+import tech.soit.quiet.MusicResult
 import tech.soit.quiet.MusicSessionCallback
 import tech.soit.quiet.ext.mapPlaybackState
 import tech.soit.quiet.ext.playbackError
@@ -65,18 +66,15 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         skipTo { getPrevious(current) }
     }
 
-    override fun getPrevious(anchor: MusicMetadata?): MusicMetadata? {
-        return playQueue.getPrevious(anchor, playMode)
-    }
-
     private fun skipTo(call: suspend (PlayQueue) -> MusicMetadata?) {
         player.stop()
-        val queue = playQueue
         launch {
-            val next = runCatching { call(queue) }.getOrNull()
+            //TODO invalidate play state
+            val next = runCatching { call(playQueue) }.getOrNull()
             performPlay(next)
         }
     }
+
 
     override fun play() {
         player.playWhenReady = true
@@ -91,11 +89,27 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         return playQueue
     }
 
-    override fun getNext(anchor: MusicMetadata?): MusicMetadata? {
-        return playQueue.getNext(current, playMode)
+    private suspend fun getPrevious(anchor: MusicMetadata?): MusicMetadata? {
+        return playQueue.getPrevious(anchor, playMode)
+            ?: servicePlugin.onNoMoreMusic(SkipType.Previous, playQueue, playMode)
+    }
+
+    private suspend fun getNext(anchor: MusicMetadata?): MusicMetadata? {
+        return playQueue.getNext(anchor, playMode)
+            ?: servicePlugin.onNoMoreMusic(SkipType.Next, playQueue, playMode)
+    }
+
+    override fun getPrevious(anchor: MusicMetadata?, result: MusicResult) {
+        launch { result.onResult(getPrevious(anchor)) }
+    }
+
+    override fun getNext(anchor: MusicMetadata?, result: MusicResult) {
+        launch { result.onResult(getNext(anchor)) }
     }
 
     override fun setPlayQueue(queue: PlayQueue) {
+        playQueue.onQueueChanged = null
+        queue.onQueueChanged = ::invalidatePlayQueue
         playQueue = queue
         invalidatePlayQueue()
     }
@@ -121,11 +135,11 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     }
 
     override fun playFromMediaId(mediaId: String) {
-        skipTo { it.getByMediaId(mediaId)/* TODO 向 service plugin 继续请求*/ }
+        skipTo { it.getByMediaId(mediaId) }
     }
 
     override fun getPlayMode(): Int {
-        return playMode.ordinal
+        return playMode.rawValue
     }
 
     override fun getCurrent(): MusicMetadata? {
@@ -133,7 +147,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     }
 
     override fun setPlayMode(playMode: Int) {
-        this.playMode = PlayMode.values()[playMode]
+        this.playMode = PlayMode.valueOf(playMode)
         shimSessionCallback.onPlayModeChanged(playMode)
     }
 
@@ -144,6 +158,16 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     override fun removeMetadata(mediaId: String) {
         playQueue.remove(mediaId)
+        invalidatePlayQueue()
+    }
+
+    /**
+     * insert a list to current playing queue
+     *
+     * TODO: available for ui channel
+     */
+    fun insertMetadataList(list: List<MusicMetadata>, index: Int) {
+        playQueue.insert(index, list)
         invalidatePlayQueue()
     }
 
@@ -196,7 +220,12 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             invalidatePlaybackState()
             // auto play next
             if (playbackStateInt == Player.STATE_ENDED) {
-                skipTo { if (playMode == PlayMode.Single) current else getNext(current) }
+                if (playMode == PlayMode.Single) {
+                    player.seekTo(0)
+                    player.playWhenReady = true
+                } else {
+                    skipToNext()
+                }
             }
         }
 
@@ -213,6 +242,22 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     init {
         servicePlugin = MusicPlayerServicePlugin.startServiceIsolate(context, this)
+    }
+
+    private enum class SkipType {
+        Next, Previous,
+    }
+
+    // return the next music for playing
+    private suspend fun MusicPlayerServicePlugin.onNoMoreMusic(
+        skip: SkipType,
+        playQueue: PlayQueue,
+        playMode: PlayMode
+    ): MusicMetadata? {
+        return when (skip) {
+            SkipType.Next -> onPlayNextNoMoreMusic(playQueue, playMode)
+            SkipType.Previous -> onPlayPreviousNoMoreMusic(playQueue, playMode)
+        }
     }
 
 }

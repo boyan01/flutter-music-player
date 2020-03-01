@@ -1,67 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:music_player_example/player/player.dart';
 
-class MusicControlBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-    final MusicPlayerValue playerValue = PlayerStateWidget.of(context);
-    final metadata = playerValue.metadata;
-    if (playerValue.playbackState.state == PlayerState.None) {
-      return Container();
-    }
-    return Container(
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _ControllerBar(),
-          Text.rich(TextSpan(children: [
-            TextSpan(text: 'current metadata:'),
-            TextSpan(text: metadata?.title),
-          ])),
-          Text.rich(TextSpan(children: [
-            TextSpan(text: playerValue.queue.queueTitle ?? "" + "\n"),
-            TextSpan(text: playerValue.queue.queue.join()),
-          ])),
-          Text.rich(TextSpan(children: [
-            TextSpan(text: "playback state : \n"),
-            TextSpan(text: """
-speed:  ${playerValue.playbackState.speed} 
-bufferedPosition:  ${playerValue.playbackState.bufferedPosition} 
-position:  ${playerValue.playbackState.position} 
-errorCode:  ${playerValue.playbackState.error} 
-updateTime:  ${DateTime.fromMillisecondsSinceEpoch(playerValue.playbackState.updateTime).toIso8601String()} 
-          """),
-          ])),
-        ],
-      ),
-    );
-  }
-}
-
-class _ControllerBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ButtonBar(
-      children: <Widget>[
-        RepeatModelButton(),
-        IconButton(
-            icon: Icon(Icons.skip_previous),
-            onPressed: () {
-              PlayerWidget.transportControls(context).skipToPrevious();
-            }),
-        PlayPauseButton(),
-        IconButton(
-            icon: Icon(Icons.skip_next),
-            onPressed: () {
-              PlayerWidget.transportControls(context).skipToNext();
-            }),
-      ],
-    );
-  }
-}
-
 class PlayPauseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -81,8 +20,6 @@ class PlayPauseButton extends StatelessWidget {
         padding: EdgeInsets.all(4),
         child: CircularProgressIndicator(),
       );
-    } else if (playbackState.state == PlayerState.None) {
-      return Container();
     } else {
       return IconButton(
           icon: Icon(Icons.play_arrow),
@@ -115,13 +52,12 @@ class RepeatModelButton extends StatelessWidget {
   }
 
   static PlayMode _getNext(PlayMode playMode) {
-    switch (playMode) {
-      case PlayMode.sequence:
-        return PlayMode.shuffle;
-      case PlayMode.shuffle:
-        return PlayMode.single;
-      case PlayMode.single:
-        return PlayMode.sequence;
+    if (playMode == PlayMode.sequence) {
+      return PlayMode.shuffle;
+    } else if (playMode == PlayMode.shuffle) {
+      return PlayMode.single;
+    } else if (playMode == PlayMode.single) {
+      return PlayMode.sequence;
     }
     throw "can not reach";
   }

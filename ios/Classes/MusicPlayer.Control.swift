@@ -30,10 +30,9 @@ protocol MusicPlayerSession: MusicPlayerCallbackContainer {
 
     func removeMetadata(mediaId: String)
 
-    func getNext(anchor: MusicMetadata?) -> MusicMetadata?
+    func getNext(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> Void)
 
-    func getPrevious(anchor: MusicMetadata?) -> MusicMetadata?
-
+    func getPrevious(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> Void)
 
 }
 

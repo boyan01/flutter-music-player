@@ -12,10 +12,10 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.FlutterMain
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.MusicMetadata
+import tech.soit.quiet.player.MusicPlayerSessionImpl
+import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.utils.*
-
-typealias BackgroundRegistrar = (registry: FlutterEngine) -> Unit
 
 data class Config(
     val enableCache: Boolean = false,
@@ -36,18 +36,12 @@ data class Config(
 class MusicPlayerServicePlugin(
     private val methodChannel: MethodChannel,
     private val dartExecutor: DartExecutor,
-    playerSession: MusicPlayerSession
+    private val playerSession: MusicPlayerSessionImpl
 ) : MethodChannel.MethodCallHandler {
 
     companion object {
 
         private const val NAME = "tech.soit.quiet/background_callback"
-
-        private var registrar: BackgroundRegistrar? = null
-
-        fun setOnRegisterCallback(callback: BackgroundRegistrar) {
-            registrar = callback
-        }
 
         /**
          * start flutter background isolate
@@ -59,7 +53,7 @@ class MusicPlayerServicePlugin(
          */
         fun startServiceIsolate(
             context: Context,
-            playerSession: MusicPlayerSession
+            playerSession: MusicPlayerSessionImpl
         ): MusicPlayerServicePlugin {
             try {
                 FlutterMain.startInitialization(context)
@@ -78,7 +72,7 @@ class MusicPlayerServicePlugin(
                     "playerBackgroundService"
                 )
             )
-            registrar?.invoke(engine)
+            registerPlugins(engine)
 
             val channel = MethodChannel(
                 ShimPluginRegistry(engine).registrarFor(MusicPlayerServicePlugin::class.java.name).messenger(),
@@ -89,6 +83,23 @@ class MusicPlayerServicePlugin(
             channel.setMethodCallHandler(helper)
             return helper
         }
+
+
+        private fun registerPlugins(flutterEngine: FlutterEngine) {
+            try {
+                val generatedPluginRegistrant =
+                    Class.forName("io.flutter.plugins.GeneratedPluginRegistrant")
+                val registrationMethod =
+                    generatedPluginRegistrant.getDeclaredMethod(
+                        "registerWith",
+                        FlutterEngine::class.java
+                    )
+                registrationMethod.invoke(null, flutterEngine)
+            } catch (e: Exception) {
+                log { "Tried to automatically register plugins with FlutterEngine ($flutterEngine) but could not find and invoke the GeneratedPluginRegistrant." }
+            }
+        }
+
     }
 
     init {
@@ -99,11 +110,22 @@ class MusicPlayerServicePlugin(
     var config = Config.Default
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method == "updateConfig") {
-            config = Config(call.arguments())
-            result.success(null)
-        } else {
-            result.notImplemented()
+        when (call.method) {
+            "updateConfig" -> {
+                config = Config(call.arguments())
+                result.success(null)
+            }
+            "insertToPlayQueue" -> {
+                val list = call.argument<List<Any>>("list")!!.map {
+                    @Suppress("UNCHECKED_CAST")
+                    MusicMetadata.fromMap(it as Map<String, Any?>)
+                }
+                val index = call.argument<Int>("index")!!
+                playerSession.insertMetadataList(list, index)
+                result.success(null)
+            }
+            else -> result.notImplemented()
+
         }
     }
 
@@ -111,7 +133,8 @@ class MusicPlayerServicePlugin(
     private suspend inline fun <reified T> MethodChannel.invokeAsyncCast(
         method: String,
         arguments: Any?,
-        noinline onNotImplement: suspend () -> T
+        crossinline parseDartResult: (Any?) -> T = { it as T },
+        onNotImplement: () -> T
     ): T {
         if (dartExecutor.isolateServiceId == null) {
             // run background entry point failed
@@ -124,10 +147,12 @@ class MusicPlayerServicePlugin(
         }
         return runCatching {
             withTimeout(10000) {
-                invokeAsync(method, arguments, onNotImplement)
+                parseDartResult(invokeAsync(method, arguments))
             }
         }.onFailure {
-            logError(it)
+            if (it !is NotImplementedError) {
+                logError(it)
+            }
         }.getOrElse { onNotImplement() }
 
     }
@@ -149,25 +174,46 @@ class MusicPlayerServicePlugin(
     }
 
 
-    suspend fun getNextMusic(
-        queue: PlayQueue,
-        current: MusicMetadata?,
-        playMode: Int
+    suspend fun onPlayNextNoMoreMusic(
+        playQueue: PlayQueue,
+        playMode: PlayMode
     ): MusicMetadata? {
-        return null
+        return methodChannel.invokeAsyncCast(
+            "onPlayNextNoMoreMusic", mapOf(
+                "queue" to playQueue.toDartMapObject(),
+                "playMode" to playMode.rawValue
+            ),
+            parseDartResult = {
+                @Suppress("UNCHECKED_CAST")
+                (it as? Map<String, Any?>)?.let(MusicMetadata.Companion::fromMap)
+            }
+        ) {
+            if (playMode == PlayMode.Shuffle) {
+                playQueue.generateShuffleList()
+            }
+            playQueue.getNext(null, playMode)
+        }
     }
 
-    suspend fun getPreviousMusic(
-        queue: PlayQueue,
-        current: MusicMetadata?,
-        playMode: Int
+    suspend fun onPlayPreviousNoMoreMusic(
+        playQueue: PlayQueue,
+        playMode: PlayMode
     ): MusicMetadata? {
-        return null
+        return methodChannel.invokeAsyncCast(
+            "onPlayPreviousNoMoreMusic", mapOf(
+                "queue" to playQueue.toDartMapObject(),
+                "playMode" to playMode.rawValue
+            ),
+            parseDartResult = {
+                @Suppress("UNCHECKED_CAST")
+                (it as? Map<String, Any?>)?.let(MusicMetadata.Companion::fromMap)
+            }
+        ) {
+            if (playMode == PlayMode.Shuffle) {
+                playQueue.generateShuffleList()
+            }
+            playQueue.getPrevious(null, playMode)
+        }
     }
-
-    suspend fun getMusicByMediaId(playQueue: PlayQueue, mediaId: String): MusicMetadata? {
-        return null
-    }
-
 
 }

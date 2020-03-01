@@ -12,12 +12,11 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
     public init(channel: FlutterMethodChannel, registrar: FlutterPluginRegistrar) {
         self.channel = channel
         self.playerCallback = ChannelPlayerCallback(channel)
-        self.player = MusicPlayer(registrar: registrar)
         super.init()
         player.addCallback(playerCallback)
     }
 
-    let player: MusicPlayer
+    let player: MusicPlayer = MusicPlayer.shared
 
     static let UI_CHANNEL_NAME = "tech.soit.quiet/player.ui"
 
@@ -44,6 +43,10 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             player.pause()
             result(nil)
             break
+        case "seekTo":
+            player.seekTo(Double((call.arguments as! Int)) / 1000.0)
+            result(nil)
+            break
         case "playFromMediaId":
             player.playFromMediaId(call.arguments as! String)
             result(nil)
@@ -57,7 +60,7 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "setPlayMode":
-            player.playMode = PlayMode(rawValue: call.arguments as! Int) ?? PlayMode.sequence
+            player.playMode = PlayMode.from(rawValue: call.arguments as! Int) ?? PlayMode.sequence
             result(nil)
             break
         case "setPlayQueue":
@@ -65,10 +68,14 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "getNext":
-            result(player.getNext(anchor: MusicMetadata(any: call.arguments))?.toMap())
+            player.getNext(anchor: MusicMetadata(any: call.arguments)) { metadata in
+                result(metadata?.toMap())
+            }
             break
         case "getPrevious":
-            result(player.getPrevious(anchor: MusicMetadata(any: call.arguments))?.toMap())
+            player.getPrevious(anchor: MusicMetadata(any: call.arguments)) { metadata in
+                result(metadata?.toMap())
+            }
             break
         case "insertToNext":
             player.addMetadata(MusicMetadata(any: call.arguments)!, anchorMediaId: player.metadata?.mediaId)
@@ -122,20 +129,46 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
         }
         let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))
         let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
-        let plugin = MusicPlayerServicePlugin(channel)
+        let plugin = MusicPlayerServicePlugin(channel, registrar)
         registrar.addMethodCallDelegate(plugin, channel: channel)
+
+        // invoke GeneratedPluginRegistrant by selector.
+        if let a = NSClassFromString("GeneratedPluginRegistrant") as? NSObject.Type {
+            a.perform(NSSelectorFromString("registerWithRegistry:"), with: engine as FlutterPluginRegistry)
+        } else {
+            debugPrint("Tried to automatically register plugins with FlutterEngine \(engine) but could not find and invoke the GeneratedPluginRegistrant.")
+        }
         return plugin
     }
 
     private let channel: FlutterMethodChannel
 
-    private init(_ channel: FlutterMethodChannel) {
+    public let registrar: FlutterPluginRegistrar
+
+    private init(_ channel: FlutterMethodChannel, _ registrar: FlutterPluginRegistrar) {
         self.channel = channel
+        self.registrar = registrar
         super.init()
     }
 
     public func handle(_ call: FlutterMethodCall, result: FlutterResult) {
-
+        switch call.method {
+        case "insertToPlayQueue":
+            let arg = call.arguments as! [String: Any]
+            let list = (arg["list"] as! [[String: Any]]).map { map -> MusicMetadata in
+                MusicMetadata(map: map)
+            }
+            let index = arg["index"] as! Int
+            MusicPlayer.shared.insertMetadataList(list, index)
+            result(nil)
+            break
+        case "updateConfig":
+            //TODO config handle
+            result(nil)
+            break
+        default:
+            result(FlutterMethodNotImplemented)
+        }
     }
 
     func getPlayUrl(mediaId: String, fallback: String?, completion: @escaping (String?) -> Void) {
@@ -159,5 +192,38 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
             }
         }
     }
+
+    func onNextNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
+        channel.invokeMethod("onPlayNextNoMoreMusic", arguments: [
+            "queue": queue.toMap(),
+            "playMode": mode.rawValue
+        ]) { result in
+            if FlutterMethodNotImplemented.isEqual(result) {
+                if (mode == .shuffle) {
+                    queue.generateShuffleList()
+                }
+                completion(queue.getNext(nil, playMode: mode))
+            } else {
+                completion(MusicMetadata(any: result))
+            }
+        }
+    }
+
+    func onPreviousNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
+        channel.invokeMethod("onPlayPreviousNoMoreMusic", arguments: [
+            "queue": queue.toMap(),
+            "playMode": mode.rawValue
+        ]) { result in
+            if FlutterMethodNotImplemented.isEqual(result) {
+                if (mode == .shuffle) {
+                    queue.generateShuffleList()
+                }
+                completion(queue.getPrevious(nil, playMode: mode))
+            } else {
+                completion(MusicMetadata(any: result))
+            }
+        }
+    }
+
 
 }
