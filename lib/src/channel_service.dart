@@ -42,12 +42,14 @@ Future runBackgroundService({
   Config config = const Config(),
   PlayUriInterceptor playUriInterceptor,
   ImageLoadInterceptor imageLoadInterceptor,
+  PlayQueueInterceptor playQueueInterceptor,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   // decrease background image memory
   PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
   final backgroundChannel = MethodChannel("tech.soit.quiet/background_callback");
-  final backgroundPlayer = BackgroundMusicPlayer._internal();
+  final player = BackgroundMusicPlayer._internal();
+  playQueueInterceptor?._player = player;
   backgroundChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'loadImage':
@@ -60,6 +62,24 @@ Future runBackgroundService({
           final String id = call.arguments['id'];
           final String fallbackUrl = call.arguments['url'];
           return await playUriInterceptor(id, fallbackUrl);
+        }
+        throw MissingPluginException();
+      case "onPlayNextNoMoreMusic":
+        if (playQueueInterceptor != null) {
+          return (await playQueueInterceptor.onPlayNextNoMoreMusic(
+            createBackgroundQueue(call.arguments["queue"] as Map),
+            PlayMode(call.arguments["playMode"] as int),
+          ))
+              ?.toMap();
+        }
+        throw MissingPluginException();
+      case "onPlayPreviousNoMoreMusic":
+        if (playQueueInterceptor != null) {
+          return (await playQueueInterceptor.onPlayPreviousNoMoreMusic(
+            createBackgroundQueue(call.arguments["queue"] as Map),
+            PlayMode(call.arguments["playMode"] as int),
+          ))
+              ?.toMap();
         }
         throw MissingPluginException();
       default:
@@ -91,4 +111,35 @@ abstract class BackgroundPlayerCallback {
   void onPlayQueueChanged(BackgroundMusicPlayer player, PlayQueue queue);
 
   void onPlayModeChanged(BackgroundMusicPlayer player, PlayMode playMode);
+}
+
+class PlayQueueInterceptor {
+  void noImplement() {
+    throw MissingPluginException();
+  }
+
+  BackgroundMusicPlayer _player;
+
+  BackgroundMusicPlayer get player => _player;
+
+  Future<MusicMetadata> onPlayNextNoMoreMusic(BackgroundPlayQueue queue, PlayMode playMode) async {
+    throw MissingPluginException();
+  }
+
+  Future<MusicMetadata> onPlayPreviousNoMoreMusic(BackgroundPlayQueue queue, PlayMode playMode) async {
+    throw MissingPluginException();
+  }
+}
+
+class BackgroundPlayQueue extends PlayQueue {
+  /// shuffle mediaId list for shuffle playMode
+  final List<String> shuffleQueue;
+
+  BackgroundPlayQueue({
+    @required this.shuffleQueue,
+    String queueId,
+    String queueTitle,
+    Map extras,
+    List<MusicMetadata> queue,
+  }) : super(queueId: queueId, queueTitle: queueTitle, extras: extras, queue: queue);
 }

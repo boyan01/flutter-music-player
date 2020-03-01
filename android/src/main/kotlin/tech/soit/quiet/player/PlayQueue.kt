@@ -10,6 +10,8 @@ typealias MusicItem = MusicMetadata
 
 private typealias DartObject = Map<String, Any?>
 
+private typealias OnQueueChanged = () -> Unit
+
 class PlayQueue(
     val queueId: String,
     val queueTitle: String,
@@ -43,6 +45,8 @@ class PlayQueue(
     private val queue: MutableList<MusicItem> = queue.toMutableList()
 
     private val shuffleMusicList = ArrayList<String>()
+
+    var onQueueChanged: OnQueueChanged? = null
 
     init {
         if (shuffleQueue == null) {
@@ -148,6 +152,9 @@ class PlayQueue(
         }
         shuffleMusicList.clear()
         shuffleMusicList.addAll(list)
+
+        // notify queue changed
+        onQueueChanged?.invoke()
     }
 
 

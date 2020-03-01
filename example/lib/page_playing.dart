@@ -103,7 +103,6 @@ class _PlayingProgressState extends State<_PlayingProgress> {
                 },
                 onChanged: (value) {
                   _userTrackingPosition = value;
-                  context.transportControls.seekTo(value.toInt());
                   setState(() {});
                 },
                 onChangeEnd: (value) {
@@ -112,6 +111,7 @@ class _PlayingProgressState extends State<_PlayingProgress> {
                     if (_isPausedByTracking) {
                       context.transportControls.play();
                     }
+                    context.transportControls.seekTo(value.toInt());
                   });
                 },
               ),

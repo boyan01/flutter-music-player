@@ -20,7 +20,7 @@ class PagePlayQueue extends StatelessWidget {
                     itemCount: queue.queue.length,
                     itemBuilder: (context, index) {
                       final metadata = queue.queue[index];
-                      return _MusicTitle(metadata: metadata, queue: queue);
+                      return _MusicTile(metadata: metadata, queue: queue);
                     })),
             PlayerBottomController(),
           ],
@@ -28,17 +28,17 @@ class PagePlayQueue extends StatelessWidget {
   }
 }
 
-class _MusicTitle extends StatelessWidget {
+class _MusicTile extends StatelessWidget {
   final PlayQueue queue;
 
   final MusicMetadata metadata;
 
-  const _MusicTitle({Key key, @required this.metadata, @required this.queue}) : super(key: key);
+  const _MusicTile({Key key, @required this.metadata, @required this.queue}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final playerValue = context.listenPlayerValue;
-    bool playing = playerValue.queue.queueId == queue.queueId && playerValue.metadata.mediaId == metadata.mediaId;
+    bool playing = playerValue.queue.queueId == queue.queueId && playerValue.metadata?.mediaId == metadata.mediaId;
     return ListTile(
       leading: playing ? const Icon(Icons.volume_up) : const Icon(Icons.music_note),
       title: Text(metadata.title),

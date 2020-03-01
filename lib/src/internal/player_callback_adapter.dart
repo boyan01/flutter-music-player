@@ -23,7 +23,7 @@ mixin ChannelPlayerCallbackAdapter on ValueNotifier<MusicPlayerValue> implements
         onPlayQueueChanged(createPlayQueue(call.arguments));
         break;
       case 'onPlayModeChanged':
-        onPlayModeChanged(PlayMode.values[call.arguments as int]);
+        onPlayModeChanged(PlayMode(call.arguments as int));
         break;
       default:
         return false;

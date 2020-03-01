@@ -121,7 +121,8 @@ class MusicPlayerServicePlugin(
     private suspend inline fun <reified T> MethodChannel.invokeAsyncCast(
         method: String,
         arguments: Any?,
-        noinline onNotImplement: suspend () -> T
+        crossinline parseDartResult: (Any?) -> T = { it as T },
+        onNotImplement: () -> T
     ): T {
         if (dartExecutor.isolateServiceId == null) {
             // run background entry point failed
@@ -134,10 +135,12 @@ class MusicPlayerServicePlugin(
         }
         return runCatching {
             withTimeout(10000) {
-                invokeAsync(method, arguments, onNotImplement)
+                parseDartResult(invokeAsync(method, arguments))
             }
         }.onFailure {
-            logError(it)
+            if (it !is NotImplementedError) {
+                logError(it)
+            }
         }.getOrElse { onNotImplement() }
 
     }
@@ -167,7 +170,11 @@ class MusicPlayerServicePlugin(
             "onPlayNextNoMoreMusic", mapOf(
                 "queue" to playQueue.toDartMapObject(),
                 "playMode" to playMode.rawValue
-            )
+            ),
+            parseDartResult = {
+                @Suppress("UNCHECKED_CAST")
+                (it as? Map<String, Any?>)?.let(MusicMetadata.Companion::fromMap)
+            }
         ) {
             if (playMode == PlayMode.Shuffle) {
                 playQueue.generateShuffleList()
@@ -184,7 +191,11 @@ class MusicPlayerServicePlugin(
             "onPlayPreviousNoMoreMusic", mapOf(
                 "queue" to playQueue.toDartMapObject(),
                 "playMode" to playMode.rawValue
-            )
+            ),
+            parseDartResult = {
+                @Suppress("UNCHECKED_CAST")
+                (it as? Map<String, Any?>)?.let(MusicMetadata.Companion::fromMap)
+            }
         ) {
             if (playMode == PlayMode.Shuffle) {
                 playQueue.generateShuffleList()

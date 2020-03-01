@@ -8,9 +8,14 @@ import android.os.IBinder
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.service.MusicPlayerService
+import tech.soit.quiet.utils.getNext
+import tech.soit.quiet.utils.getPrevious
 
 
 private const val UI_PLUGIN_NAME = "tech.soit.quiet/player.ui"
@@ -62,8 +67,8 @@ private class MusicPlayerUiChannel1(
                 "seekTo" -> session.seekTo(call.arguments<Number>().toLong())
                 "setPlayMode" -> session.playMode = call.arguments()
                 "setPlayQueue" -> session.playQueue = PlayQueue(call.arguments<Map<String, Any>>())
-                "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments())).obj
-                "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments())).obj
+                "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments()))?.obj
+                "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments()))?.obj
                 "insertToNext" -> session.addMetadata(
                     MusicMetadata.fromMap(call.arguments()),
                     session.current?.mediaId
@@ -99,7 +104,7 @@ private class RemotePlayer : ServiceConnection {
 
     private var playerSession: MusicPlayerSession? = null
 
-    private val pendingExecution = mutableListOf<(MusicPlayerSession) -> Unit>()
+    private val pendingExecution = mutableListOf<suspend (MusicPlayerSession) -> Unit>()
 
     override fun onServiceDisconnected(name: ComponentName?) {
         playerSession = null
@@ -111,12 +116,12 @@ private class RemotePlayer : ServiceConnection {
         pendingExecution.clear()
     }
 
-    fun doWhenSessionReady(call: (MusicPlayerSession) -> Unit) {
+    fun doWhenSessionReady(call: suspend (MusicPlayerSession) -> Unit) {
         val session = playerSession
         if (session == null) {
             pendingExecution.add(call)
         } else {
-            call(session)
+            GlobalScope.launch(Dispatchers.Main) { call(session) }
         }
     }
 }
