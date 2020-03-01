@@ -49,7 +49,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     }
 
     var playQueue: PlayQueue = PlayQueue.Empty {
+        willSet {
+            self.playQueue.setChangeListener(nil)
+        }
         didSet {
+            self.playQueue.setChangeListener(invalidatePlayQueue)
             invalidatePlayQueue()
         }
     }
@@ -118,27 +122,28 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     }
 
     func skipToNext() {
-        skipTo {
-            getNext(anchor: metadata)
+        skipTo { performPlay in
+            getNext(anchor: metadata, completion: performPlay)
         }
     }
 
     func skipToPrevious() {
-        skipTo {
-            getPrevious(anchor: metadata)
+        skipTo { performPlay in
+            getPrevious(anchor: metadata, completion: performPlay)
         }
     }
 
     func playFromMediaId(_ mediaId: String) {
-        skipTo {
-            playQueue.getByMediaId(mediaId)
+        skipTo { performPlay in
+            performPlay(playQueue.getByMediaId(mediaId))
         }
     }
 
-    private func skipTo(execute call: () -> MusicMetadata?) {
+    private func skipTo(execute call: (_ completion: @escaping (MusicMetadata?) -> Void) -> Void) {
         player.stop()
-        let skip = call()
-        performPlay(metadata: skip)
+        call { metadata in
+            self.performPlay(metadata: metadata)
+        }
     }
 
 
@@ -158,12 +163,22 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         player.seek(to: pos)
     }
 
-    func getNext(anchor: MusicMetadata?) -> MusicMetadata? {
-        playQueue.getNext(metadata, playMode: playMode)
+    func getNext(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> ()) {
+        let metadata = playQueue.getNext(anchor, playMode: playMode)
+        if metadata != nil {
+            completion(metadata)
+        } else {
+            servicePlugin.onNextNoMoreMusic(playQueue, playMode, completion: completion)
+        }
     }
 
-    func getPrevious(anchor: MusicMetadata?) -> MusicMetadata? {
-        playQueue.getPrevious(anchor, playMode: playMode)
+    func getPrevious(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> ()) {
+        let metadata = playQueue.getPrevious(anchor, playMode: playMode)
+        if metadata != nil {
+            completion(metadata)
+        } else {
+            servicePlugin.onPreviousNoMoreMusic(playQueue, playMode, completion: completion)
+        }
     }
 
     func addMetadata(_ metadata: MusicMetadata, anchorMediaId: String?) {
@@ -194,6 +209,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         } else {
             shimPlayerCallback.onMetadataChanged(metadata)
         }
+    }
+
+    func insertMetadataList(_ list: [MusicMetadata], _ index: Int) {
+        playQueue.insert(index, list)
+        invalidatePlayQueue()
     }
 
     private func invalidatePlaybackState() {

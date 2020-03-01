@@ -60,7 +60,7 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "setPlayMode":
-            player.playMode = PlayMode(rawValue: call.arguments as! Int) ?? PlayMode.sequence
+            player.playMode = PlayMode.from(rawValue: call.arguments as! Int) ?? PlayMode.sequence
             result(nil)
             break
         case "setPlayQueue":
@@ -68,10 +68,14 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "getNext":
-            result(player.getNext(anchor: MusicMetadata(any: call.arguments))?.toMap())
+            player.getNext(anchor: MusicMetadata(any: call.arguments)) { metadata in
+                result(metadata?.toMap())
+            }
             break
         case "getPrevious":
-            result(player.getPrevious(anchor: MusicMetadata(any: call.arguments))?.toMap())
+            player.getPrevious(anchor: MusicMetadata(any: call.arguments)) { metadata in
+                result(metadata?.toMap())
+            }
             break
         case "insertToNext":
             player.addMetadata(MusicMetadata(any: call.arguments)!, anchorMediaId: player.metadata?.mediaId)
@@ -148,7 +152,23 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: FlutterResult) {
-
+        switch call.method {
+        case "insertToPlayQueue":
+            let arg = call.arguments as! [String: Any]
+            let list = (arg["list"] as! [[String: Any]]).map { map -> MusicMetadata in
+                MusicMetadata(map: map)
+            }
+            let index = arg["index"] as! Int
+            MusicPlayer.shared.insertMetadataList(list, index)
+            result(nil)
+            break
+        case "updateConfig":
+            //TODO config handle
+            result(nil)
+            break
+        default:
+            result(FlutterMethodNotImplemented)
+        }
     }
 
     func getPlayUrl(mediaId: String, fallback: String?, completion: @escaping (String?) -> Void) {
@@ -172,5 +192,38 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
             }
         }
     }
+
+    func onNextNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
+        channel.invokeMethod("onPlayNextNoMoreMusic", arguments: [
+            "queue": queue.toMap(),
+            "playMode": mode.rawValue
+        ]) { result in
+            if FlutterMethodNotImplemented.isEqual(result) {
+                if (mode == .shuffle) {
+                    queue.generateShuffleList()
+                }
+                completion(queue.getNext(nil, playMode: mode))
+            } else {
+                completion(MusicMetadata(any: result))
+            }
+        }
+    }
+
+    func onPreviousNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
+        channel.invokeMethod("onPlayPreviousNoMoreMusic", arguments: [
+            "queue": queue.toMap(),
+            "playMode": mode.rawValue
+        ]) { result in
+            if FlutterMethodNotImplemented.isEqual(result) {
+                if (mode == .shuffle) {
+                    queue.generateShuffleList()
+                }
+                completion(queue.getPrevious(nil, playMode: mode))
+            } else {
+                completion(MusicMetadata(any: result))
+            }
+        }
+    }
+
 
 }

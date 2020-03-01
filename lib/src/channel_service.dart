@@ -161,7 +161,7 @@ class PlayQueueInterceptor {
     throw MissingPluginException();
   }
 
-  Future<MusicMetadata> onPlayPreviousNoMoreMusic(BackgroundPlayQueue queue, PlayMode playMode) async {
+  Future<MusicMetadata> onPlayPreviousNoMoreMusic(BackgroundPlayQueue queue, PlayMode playMode) {
     throw MissingPluginException();
   }
 }
