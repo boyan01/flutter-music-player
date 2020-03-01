@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.FlutterMain
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.MusicMetadata
+import tech.soit.quiet.player.MusicPlayerSessionImpl
 import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.utils.*
@@ -35,7 +36,7 @@ data class Config(
 class MusicPlayerServicePlugin(
     private val methodChannel: MethodChannel,
     private val dartExecutor: DartExecutor,
-    playerSession: MusicPlayerSession
+    private val playerSession: MusicPlayerSessionImpl
 ) : MethodChannel.MethodCallHandler {
 
     companion object {
@@ -52,7 +53,7 @@ class MusicPlayerServicePlugin(
          */
         fun startServiceIsolate(
             context: Context,
-            playerSession: MusicPlayerSession
+            playerSession: MusicPlayerSessionImpl
         ): MusicPlayerServicePlugin {
             try {
                 FlutterMain.startInitialization(context)
@@ -109,11 +110,22 @@ class MusicPlayerServicePlugin(
     var config = Config.Default
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method == "updateConfig") {
-            config = Config(call.arguments())
-            result.success(null)
-        } else {
-            result.notImplemented()
+        when (call.method) {
+            "updateConfig" -> {
+                config = Config(call.arguments())
+                result.success(null)
+            }
+            "insertToPlayQueue" -> {
+                val list = call.argument<List<Any>>("list")!!.map {
+                    @Suppress("UNCHECKED_CAST")
+                    MusicMetadata.fromMap(it as Map<String, Any?>)
+                }
+                val index = call.argument<Int>("index")!!
+                playerSession.insertMetadataList(list, index)
+                result.success(null)
+            }
+            else -> result.notImplemented()
+
         }
     }
 

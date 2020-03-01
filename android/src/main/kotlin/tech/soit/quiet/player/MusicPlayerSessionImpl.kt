@@ -161,6 +161,16 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         invalidatePlayQueue()
     }
 
+    /**
+     * insert a list to current playing queue
+     *
+     * TODO: available for ui channel
+     */
+    fun insertMetadataList(list: List<MusicMetadata>, index: Int) {
+        playQueue.insert(index, list)
+        invalidatePlayQueue()
+    }
+
     private var playbackStateBackup: PlaybackState =
         PlaybackState(State.None, 0, 0, 1F, null, System.currentTimeMillis())
 
@@ -238,6 +248,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         Next, Previous,
     }
 
+    // return the next music for playing
     private suspend fun MusicPlayerServicePlugin.onNoMoreMusic(
         skip: SkipType,
         playQueue: PlayQueue,

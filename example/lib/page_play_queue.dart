@@ -49,3 +49,18 @@ class _MusicTile extends StatelessWidget {
     );
   }
 }
+
+class PagePlayingQueue extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final queue = context.listenPlayerValue.queue;
+    return Scaffold(
+      appBar: AppBar(title: Text("Now Playing...")),
+      body: ListView.builder(
+          itemCount: queue.queue.length,
+          itemBuilder: (context, index) {
+            return _MusicTile(metadata: queue.queue[index], queue: queue);
+          }),
+    );
+  }
+}

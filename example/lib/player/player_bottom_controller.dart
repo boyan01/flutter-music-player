@@ -3,6 +3,8 @@ import 'package:music_player_example/page_playing.dart';
 import 'package:music_player_example/player/player.dart';
 import 'package:music_player_example/widgets/music_controller.dart';
 
+import '../page_play_queue.dart';
+
 class PlayerBottomController extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -30,6 +32,12 @@ class PlayerBottomController extends StatelessWidget {
                 onPressed: () {
                   PlayerWidget.transportControls(context).skipToNext();
                 }),
+            IconButton(
+              icon: Icon(Icons.queue_music),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PagePlayingQueue()));
+              },
+            ),
           ],
         ),
         onTap: () {

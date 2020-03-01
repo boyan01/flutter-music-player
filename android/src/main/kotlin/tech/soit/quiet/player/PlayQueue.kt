@@ -81,6 +81,12 @@ class PlayQueue(
         shuffleMusicList.removeAll { it == mediaId }
     }
 
+    fun insert(index: Int, list: List<MusicMetadata>) {
+        if (list.isEmpty()) return
+        queue.addAll(index, list)
+        shuffleMusicList.addAll(list.shuffled().map { it.mediaId })
+    }
+
     @UiThread
     fun getNext(current: MusicItem?, playMode: PlayMode): MusicItem? {
         return getMusicInternal(current, playMode, true)
