@@ -17,8 +17,14 @@ dev_dependencies:
 
 flutter:
   plugin:
-    androidPackage: tech.soit.quiet
-    pluginClass: MusicPlayerUiPlugin
+    platforms:
+      android:
+        package: tech.soit.quiet
+        pluginClass: MusicPlayerUiPlugin
+      ios:
+        pluginClass: MusicPlayerUiPlugin
+      macos:
+        pluginClass: MusicPlayerPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

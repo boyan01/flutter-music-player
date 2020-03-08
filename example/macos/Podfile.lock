@@ -1,0 +1,22 @@
+PODS:
+  - FlutterMacOS (1.0.0)
+  - music_player (0.0.1):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - FlutterMacOS (from `Flutter/ephemeral/.symlinks/flutter/darwin-x64`)
+  - music_player (from `Flutter/ephemeral/.symlinks/plugins/music_player/macos`)
+
+EXTERNAL SOURCES:
+  FlutterMacOS:
+    :path: Flutter/ephemeral/.symlinks/flutter/darwin-x64
+  music_player:
+    :path: Flutter/ephemeral/.symlinks/plugins/music_player/macos
+
+SPEC CHECKSUMS:
+  FlutterMacOS: 15bea8a44d2fa024068daa0140371c020b4b6ff9
+  music_player: 3af855db5aa82f571ef4e285dabf87d2695c3581
+
+PODFILE CHECKSUM: 63c650af922428cf4112e5df20f0106bea441e53
+
+COCOAPODS: 1.9.0
