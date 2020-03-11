@@ -227,7 +227,8 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             invalidatePlaybackState()
             // auto play next
             if (playbackStateInt == Player.STATE_ENDED) {
-                player.repeatMode = Player.REPEAT_MODE_ONE;
+                player.seekTo(100)
+                player.playWhenReady = true
               if (playMode == PlayMode.Single) {
                     //player.seekTo(100)
                    // player.playWhenReady = true
