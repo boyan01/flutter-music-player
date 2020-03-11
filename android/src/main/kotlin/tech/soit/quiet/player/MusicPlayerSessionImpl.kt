@@ -1,8 +1,10 @@
 package tech.soit.quiet.player
 
 import android.content.Context
+import android.os.CountDownTimer
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
+import com.google.android.exoplayer2.util.RepeatModeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -15,6 +17,8 @@ import tech.soit.quiet.ext.mapPlaybackState
 import tech.soit.quiet.ext.playbackError
 import tech.soit.quiet.ext.toMediaSource
 import tech.soit.quiet.service.ShimMusicSessionCallback
+import tech.soit.quiet.utils.log
+
 
 class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPlayerSession.Stub(),
     CoroutineScope by MainScope() {
@@ -40,7 +44,8 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private val shimSessionCallback = ShimMusicSessionCallback()
 
-    private var playMode: PlayMode = PlayMode.Sequence
+    // default playing mode
+    private var playMode: PlayMode = PlayMode.Single
 
     private var playQueue: PlayQueue = PlayQueue.Empty
 
@@ -55,6 +60,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         player.prepare(metadata.toMediaSource(context, servicePlugin))
         player.playWhenReady = true
         invalidateMetadata()
+
     }
 
 
@@ -77,7 +83,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
 
     override fun play() {
-        player.playWhenReady = true
+       player.playWhenReady = true
     }
 
 
@@ -191,7 +197,8 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private fun invalidateMetadata() {
         val duration = if (player.duration == C.TIME_UNSET) 0 else player.duration
-        shimSessionCallback.onMetadataChanged(metadata?.copyWith(duration = duration))
+        // one hourse
+        shimSessionCallback.onMetadataChanged(metadata?.copyWith(duration = 3600000))
     }
 
     private fun invalidatePlayQueue() {
@@ -220,11 +227,12 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             invalidatePlaybackState()
             // auto play next
             if (playbackStateInt == Player.STATE_ENDED) {
-                if (playMode == PlayMode.Single) {
-                    player.seekTo(0)
-                    player.playWhenReady = true
+                player.repeatMode = Player.REPEAT_MODE_ONE;
+              if (playMode == PlayMode.Single) {
+                    //player.seekTo(100)
+                   // player.playWhenReady = true
                 } else {
-                    skipToNext()
+                  //  skipToNext()
                 }
             }
         }
