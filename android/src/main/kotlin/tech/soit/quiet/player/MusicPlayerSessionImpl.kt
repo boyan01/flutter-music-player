@@ -1,10 +1,9 @@
 package tech.soit.quiet.player
 
 import android.content.Context
-import android.os.CountDownTimer
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
-import com.google.android.exoplayer2.util.RepeatModeUtil
+import com.google.android.exoplayer2.source.LoopingMediaSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -17,7 +16,6 @@ import tech.soit.quiet.ext.mapPlaybackState
 import tech.soit.quiet.ext.playbackError
 import tech.soit.quiet.ext.toMediaSource
 import tech.soit.quiet.service.ShimMusicSessionCallback
-import tech.soit.quiet.utils.log
 
 
 class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPlayerSession.Stub(),
@@ -57,7 +55,10 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             player.stop()
             return
         }
-        player.prepare(metadata.toMediaSource(context, servicePlugin))
+
+        val loopingSource = LoopingMediaSource(metadata.toMediaSource(context, servicePlugin), 100)
+
+        player.prepare(loopingSource)
         player.playWhenReady = true
         invalidateMetadata()
 
@@ -227,8 +228,8 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             invalidatePlaybackState()
             // auto play next
             if (playbackStateInt == Player.STATE_ENDED) {
-                player.seekTo(100)
-                player.playWhenReady = true
+               // player.seekTo(100)
+                //player.playWhenReady = true
               if (playMode == PlayMode.Single) {
                     //player.seekTo(100)
                    // player.playWhenReady = true
