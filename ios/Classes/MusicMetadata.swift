@@ -77,12 +77,15 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
             return uri
         }
         if "asset".caseInsensitiveCompare(url.scheme ?? "") == .orderedSame {
-            let assetKey = servicePlugin.registrar.lookupKey(forAsset: url.path)
-            guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
-                debugPrint("resource not found : \(assetKey)")
-                return uri
+            if let registrar = servicePlugin.registrar {
+                let assetKey = registrar.lookupKey(forAsset: url.path)
+                guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
+                    debugPrint("resource not found : \(assetKey)")
+                    return uri
+                }
+                debugPrint("resource found: \(path)")
+                return URL(fileURLWithPath: path).absoluteString
             }
-            return URL(fileURLWithPath: path).absoluteString
         }
         return uri
     }

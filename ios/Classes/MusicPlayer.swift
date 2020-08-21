@@ -6,7 +6,6 @@ import Foundation
 import AVFoundation
 import SwiftAudio
 
-
 class MusicPlayer: NSObject, MusicPlayerSession {
 
     private let shimPlayerCallback = ShimMusicPlayCallback()
@@ -34,7 +33,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     /// fetching play uri from background service
     private var isPlayUriPrefetching = false
 
-    private lazy var servicePlugin = MusicPlayerServicePlugin.start()
+    private let servicePlugin = MusicPlayerServicePlugin.shared
 
     var playMode: PlayMode = .sequence {
         didSet {
@@ -93,12 +92,20 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         getPlayItemForPlay(metadata: metadata) { item in
             if let item = item {
                 do {
+                    do {
+                        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                        try AVAudioSession.sharedInstance().setActive(true)
+                    } catch {
+                        debugPrint("active session errored: \(error)")
+                    }
+                    debugPrint("start play: \(String(describing: item.getTitle())) \(item.getSourceUrl())")
                     try self.player.load(item: item, playWhenReady: true)
                 } catch {
                     debugPrint("create player failed : \(error) ")
                 }
             } else {
                 // TODO handle error
+                debugPrint("error : can not get audio item for \(String(describing: metadata))")
             }
             self.isPlayUriPrefetching = false
             self.invalidatePlaybackState()
@@ -157,6 +164,10 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
     func stop() {
         player.stop()
+        do {
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+        }
     }
 
     func seekTo(_ pos: TimeInterval) {

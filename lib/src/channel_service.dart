@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/internal/meta.dart';
 import 'package:music_player/src/internal/serialization.dart';
@@ -45,6 +46,7 @@ Future runBackgroundService({
   ImageLoadInterceptor imageLoadInterceptor,
   PlayQueueInterceptor playQueueInterceptor,
 }) async {
+  final log = Logger("runBackgroundService");
   WidgetsFlutterBinding.ensureInitialized();
   // decrease background image memory
   PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
@@ -52,6 +54,7 @@ Future runBackgroundService({
   final player = BackgroundMusicPlayer._internal(serviceChannel);
   playQueueInterceptor?._player = player;
   serviceChannel.setMethodCallHandler((call) async {
+    log.fine("background: ${call.method} args = ${call.arguments}");
     switch (call.method) {
       case 'loadImage':
         if (imageLoadInterceptor != null) {

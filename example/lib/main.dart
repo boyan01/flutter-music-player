@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:music_player_example/page_play_queue.dart';
 import 'package:music_player_example/player/background.dart';
 import 'package:overlay_support/overlay_support.dart';
+import 'package:logging/logging.dart';
 
 import 'player/player.dart';
 import 'player/player_bottom_controller.dart';
@@ -38,10 +39,19 @@ final playQueueList = [
   PlayQueue(queueTitle: "Auto Fetch Test", queueId: "fm", queue: medias.getRange(0, 1).toList()),
 ];
 
-void main() => runApp(ExampleApp());
+void main() {
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+  runApp(ExampleApp());
+}
 
 @pragma("vm:entry-point")
 void playerBackgroundService() {
+  debugPrint("start playerBackgroundService");
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
   runBackgroundService(
     playUriInterceptor: (mediaId, fallbackUrl) async {
       debugPrint("get media play uri : $mediaId , $fallbackUrl");
