@@ -28,7 +28,6 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        debugPrint("handle call: \(call.method) args: \(call.arguments ?? "nil")")
         switch call.method {
         case "init":
             playerCallback.onPlayQueueChanged(player.playQueue)
