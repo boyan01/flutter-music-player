@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/internal/meta.dart';
 import 'package:music_player/src/internal/player_callback_adapter.dart';
@@ -14,10 +15,12 @@ const _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
 
 /// MusicPlayer for UI interaction.
 class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCallbackAdapter {
+  final log = Logger('MusicPlayer');
   static MusicPlayer _player;
 
   MusicPlayer._internal() : super(MusicPlayerValue.none()) {
     _uiChannel.setMethodCallHandler((call) async {
+      log.fine("on MethodCall: ${call.method} args = ${call.arguments}");
       if (handleRemoteCall(call)) {
         return;
       }
@@ -73,6 +76,7 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCall
       return;
     }
     metadata = metadata ?? playQueue.queue.first;
+    log.fine("playFromMediaId : ${metadata.mediaId}");
     transportControls.playFromMediaId(metadata.mediaId);
   }
 

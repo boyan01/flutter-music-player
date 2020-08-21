@@ -24,9 +24,11 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
         let channel = FlutterMethodChannel(name: UI_CHANNEL_NAME, binaryMessenger: registrar.messenger())
         let instance = SwiftMusicPlayerUiPlugin(channel: channel, registrar: registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
+        MusicPlayerServicePlugin.shared.start()
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        debugPrint("handle call: \(call.method) args: \(call.arguments ?? "nil")")
         switch call.method {
         case "init":
             playerCallback.onPlayQueueChanged(player.playQueue)
@@ -117,39 +119,55 @@ private class ChannelPlayerCallback: MusicPlayerCallback {
 
 public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
 
+    public static let shared = MusicPlayerServicePlugin()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         fatalError("do not call register!")
     }
 
-    public static func start() -> MusicPlayerServicePlugin {
-        let engine = FlutterEngine(name: "player-service-engine")
-        if (!engine.run(withEntrypoint: "playerBackgroundService")) {
-            debugPrint("run 'playerBackgroundService' failed.")
-        }
-        let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))
-        let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
-        let plugin = MusicPlayerServicePlugin(channel, registrar)
-        registrar.addMethodCallDelegate(plugin, channel: channel)
+    private let engine: FlutterEngine
 
-        // invoke GeneratedPluginRegistrant by selector.
-        if let a = NSClassFromString("GeneratedPluginRegistrant") as? NSObject.Type {
-            a.perform(NSSelectorFromString("registerWithRegistry:"), with: engine as FlutterPluginRegistry)
-        } else {
-            debugPrint("Tried to automatically register plugins with FlutterEngine \(engine) but could not find and invoke the GeneratedPluginRegistrant.")
-        }
-        return plugin
-    }
+    private var started: Bool = false
 
-    private let channel: FlutterMethodChannel
+    private var channel: FlutterMethodChannel? = nil
 
-    public let registrar: FlutterPluginRegistrar
+    public var registrar: FlutterPluginRegistrar? = nil
 
-    private init(_ channel: FlutterMethodChannel, _ registrar: FlutterPluginRegistrar) {
-        self.channel = channel
-        self.registrar = registrar
+    override private init() {
+        engine = FlutterEngine(name: "player-service-engine")
         super.init()
     }
+
+    func start() {
+        if (started) {
+            return
+        }
+        started = true;
+        if (!engine.run(withEntrypoint: "playerBackgroundService", libraryURI: nil)) {
+            debugPrint("run 'playerBackgroundService' failed.")
+        }
+        DispatchQueue.main.async(execute: waitEngineRunning)
+    }
+
+    private func waitEngineRunning() {
+        if (engine.isolateId != nil) {
+            debugPrint("service engine: \(engine.isolateId)")
+            let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))!
+            let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
+            registrar.addMethodCallDelegate(self, channel: channel)
+            // invoke GeneratedPluginRegistrant by selector.
+            if let a = NSClassFromString("GeneratedPluginRegistrant") as? NSObject.Type {
+                a.perform(NSSelectorFromString("registerWithRegistry:"), with: engine as FlutterPluginRegistry)
+            } else {
+                debugPrint("Tried to automatically register plugins with FlutterEngine \(engine) but could not find and invoke the GeneratedPluginRegistrant.")
+            }
+            self.registrar = registrar
+            self.channel = channel
+        } else {
+            DispatchQueue.main.async(execute: waitEngineRunning)
+        }
+    }
+
 
     public func handle(_ call: FlutterMethodCall, result: FlutterResult) {
         switch call.method {
@@ -172,56 +190,72 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
     }
 
     func getPlayUrl(mediaId: String, fallback: String?, completion: @escaping (String?) -> Void) {
-        channel.invokeMethod("getPlayUrl", arguments: ["id": mediaId, "url": fallback]) { any in
-            if let result = any as? String {
-                completion(result)
-            } else if (FlutterMethodNotImplemented.isEqual(any)) {
-                completion(fallback)
-            } else {
-                completion(nil)
+        if let channel = self.channel {
+            channel.invokeMethod("getPlayUrl", arguments: ["id": mediaId, "url": fallback]) { any in
+                if let result = any as? String {
+                    completion(result)
+                } else if (FlutterMethodNotImplemented.isEqual(any)) {
+                    completion(fallback)
+                } else {
+                    completion(nil)
+                }
             }
+        } else {
+            completion(fallback)
         }
     }
 
     func loadImage(metadata: MusicMetadata, completion: @escaping (UIImage?) -> Void) {
-        channel.invokeMethod("loadImage", arguments: metadata.toMap()) { result in
-            if let result = result as? FlutterStandardTypedData {
-                completion(UIImage(data: result.data))
-            } else {
-                completion(nil)
+        if let channel = self.channel {
+            channel.invokeMethod("loadImage", arguments: metadata.toMap()) { result in
+                if let result = result as? FlutterStandardTypedData {
+                    completion(UIImage(data: result.data))
+                } else {
+                    completion(nil)
+                }
             }
+        } else {
+            completion(nil)
         }
     }
 
     func onNextNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
-        channel.invokeMethod("onPlayNextNoMoreMusic", arguments: [
-            "queue": queue.toMap(),
-            "playMode": mode.rawValue
-        ]) { result in
-            if FlutterMethodNotImplemented.isEqual(result) {
-                if (mode == .shuffle) {
-                    queue.generateShuffleList()
+        if let channel = channel {
+            channel.invokeMethod("onPlayNextNoMoreMusic", arguments: [
+                "queue": queue.toMap(),
+                "playMode": mode.rawValue
+            ]) { result in
+                if FlutterMethodNotImplemented.isEqual(result) {
+                    if (mode == .shuffle) {
+                        queue.generateShuffleList()
+                    }
+                    completion(queue.getNext(nil, playMode: mode))
+                } else {
+                    completion(MusicMetadata(any: result))
                 }
-                completion(queue.getNext(nil, playMode: mode))
-            } else {
-                completion(MusicMetadata(any: result))
             }
+        } else {
+            completion(queue.getNext(nil, playMode: mode))
         }
     }
 
     func onPreviousNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> ()) {
-        channel.invokeMethod("onPlayPreviousNoMoreMusic", arguments: [
-            "queue": queue.toMap(),
-            "playMode": mode.rawValue
-        ]) { result in
-            if FlutterMethodNotImplemented.isEqual(result) {
-                if (mode == .shuffle) {
-                    queue.generateShuffleList()
+        if let channel = channel {
+            channel.invokeMethod("onPlayPreviousNoMoreMusic", arguments: [
+                "queue": queue.toMap(),
+                "playMode": mode.rawValue
+            ]) { result in
+                if FlutterMethodNotImplemented.isEqual(result) {
+                    if (mode == .shuffle) {
+                        queue.generateShuffleList()
+                    }
+                    completion(queue.getPrevious(nil, playMode: mode))
+                } else {
+                    completion(MusicMetadata(any: result))
                 }
-                completion(queue.getPrevious(nil, playMode: mode))
-            } else {
-                completion(MusicMetadata(any: result))
             }
+        } else {
+            completion(queue.getPrevious(nil, playMode: mode))
         }
     }
 
