@@ -7,7 +7,8 @@
     <application>
         <service
             android:name=".service.MusicPlayerService"
-            android:exported="true">
+            android:exported="true"
+            android:permission="${applicationId}.FLUTTER_MUSIC_PLAYER">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>

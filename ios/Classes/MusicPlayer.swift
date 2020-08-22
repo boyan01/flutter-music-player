@@ -87,7 +87,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
                 state: state,
                 position: player.currentTime,
                 bufferedPosition: player.bufferedPosition,
-                speed: player.rate,
+                speed: playbackRate,
                 error: nil,
                 updateTime: Date().timeIntervalSince1970)
     }
@@ -174,6 +174,16 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         do {
             try AVAudioSession.sharedInstance().setActive(false)
         } catch {
+        }
+    }
+
+    var playbackRate: Float {
+        set {
+            player.rate = newValue
+            invalidatePlaybackState()
+        }
+        get {
+            player.rate
         }
     }
 

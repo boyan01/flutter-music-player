@@ -13,8 +13,14 @@ class PlaybackState {
 
   final int updateTime;
 
+  ///
+  /// Get the real position in current time stamp.
+  ///
+  /// discuss: https://github.com/boyan01/flutter-music-player/issues/1
+  ///
   int get computedPosition {
-    final append = state == PlayerState.Playing ? (DateTime.now().millisecondsSinceEpoch - updateTime) : 0;
+    var append = state == PlayerState.Playing ? (DateTime.now().millisecondsSinceEpoch - updateTime) : 0;
+    append = (append * speed).toInt();
     return position + append;
   }
 

@@ -73,6 +73,7 @@ private class MusicPlayerUiChannel1(
                     MusicMetadata.fromMap(call.arguments()),
                     session.current?.mediaId
                 )
+                "setPlaybackSpeed" -> session.setPlaybackSpeed(call.arguments<Double>())
                 else -> null
             }
 

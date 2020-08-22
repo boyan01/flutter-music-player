@@ -62,3 +62,29 @@ class RepeatModelButton extends StatelessWidget {
     throw "can not reach";
   }
 }
+
+class MusicPlaybackSpeedButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final MusicPlayerValue state = PlayerStateWidget.of(context);
+    double speed = state.playbackState.speed;
+    return FlatButton(
+      onPressed: () {
+        PlayerWidget.transportControls(context).setPlaybackSpeed(_getNext(speed));
+      },
+      child: Text("${speed}X"),
+    );
+  }
+
+  double _getNext(double speed) {
+    if (speed < 1) {
+      return 1.0;
+    } else if (speed == 1) {
+      return 1.5;
+    } else if (speed > 1) {
+      return 0.5;
+    } else {
+      return 1;
+    }
+  }
+}

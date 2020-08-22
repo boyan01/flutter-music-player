@@ -82,6 +82,10 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             player.addMetadata(MusicMetadata(any: call.arguments)!, anchorMediaId: player.metadata?.mediaId)
             result(nil)
             break
+        case "setPlaybackSpeed":
+            player.playbackRate = call.requireArgs()
+            result(nil)
+            break
         default:
             result(FlutterMethodNotImplemented)
         }

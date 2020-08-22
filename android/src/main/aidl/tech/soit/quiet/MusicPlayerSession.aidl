@@ -67,4 +67,6 @@ interface MusicPlayerSession {
 
     int getPlayMode();
 
+    void setPlaybackSpeed(double speed);
+
 }

@@ -20,6 +20,11 @@ protocol MusicPlayerSession: MusicPlayerCallbackContainer {
 
     func stop()
 
+    ///
+    /// The playback rate for player.
+    ///
+    var playbackRate: Float { get set }
+
     func seekTo(_ pos: TimeInterval)
 
     func skipToNext()
