@@ -61,7 +61,7 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
             result(nil)
             break
         case "setPlayMode":
-            player.playMode = PlayMode.from(rawValue: call.arguments as! Int) ?? PlayMode.sequence
+            player.playMode = PlayMode.from(rawValue: call.arguments as! Int)
             result(nil)
             break
         case "setPlayQueue":
@@ -150,7 +150,7 @@ public class MusicPlayerServicePlugin: NSObject, FlutterPlugin {
 
     private func waitEngineRunning() {
         if (engine.isolateId != nil) {
-            debugPrint("service engine: \(engine.isolateId)")
+            debugPrint("service engine: \(engine.isolateId ?? "nil")")
             let registrar = engine.registrar(forPlugin: String(describing: type(of: MusicPlayerServicePlugin.self)))!
             let channel = FlutterMethodChannel(name: "tech.soit.quiet/background_callback", binaryMessenger: registrar.messenger())
             registrar.addMethodCallDelegate(self, channel: channel)

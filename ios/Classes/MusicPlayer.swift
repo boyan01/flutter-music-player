@@ -6,10 +6,12 @@ import Foundation
 import AVFoundation
 import SwiftAudio
 
+///
+/// Music Player.
+///
 class MusicPlayer: NSObject, MusicPlayerSession {
 
     private let shimPlayerCallback = ShimMusicPlayCallback()
-
 
     public static let shared = MusicPlayer()
 
@@ -25,6 +27,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
         player.event.updateDuration.addListener(self) { v in
             self.invalidateMetadata()
+        }
+        player.event.seek.addListener(self) { seconds, finish in
+            if (finish) {
+                self.invalidatePlaybackState()
+            }
         }
     }
 
