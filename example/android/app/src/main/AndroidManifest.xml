@@ -34,5 +34,10 @@
         <meta-data
             android:name="tech.soit.quiet.session.LaunchActivityAction"
             android:value="tech.soit.quiet.example.test" />
+
+        <service
+            android:name="tech.soit.quiet.service.MusicPlayerService"
+            android:process=":player" />
+
     </application>
 </manifest>
