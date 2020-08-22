@@ -20,4 +20,7 @@ jobs:
         run: flutter test
       # Building example APK to ensure that the changes didn't break the existing code
       - name: Build example apk
-        run: cd example && flutter build apk --release --split-per-abi
+        # https://issuetracker.google.com/issues/158753935
+        # AGP's bug: lintRelease do check debug/lib.jar cause build release apk fail
+        # so we decide temporary build debug apk before bug has been fixed.
+        run: cd example && flutter build apk --debug --split-per-abi
