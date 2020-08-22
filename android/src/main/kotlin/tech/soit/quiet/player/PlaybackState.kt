@@ -10,15 +10,18 @@ data class PlaybackState constructor(
     val bufferedPosition: Long,
     val speed: Float,
     val error: PlayerError?,
-    val updateTime: Long
+    val updateTime: Long,
+    //TODO add duration in PlaybackState for dart
+    val duration: Long,
 ) : Parcelable {
-    constructor(source: Parcel) : this(
+    private constructor(source: Parcel) : this(
         State.values()[source.readInt()],
         source.readLong(),
         source.readLong(),
         source.readFloat(),
         source.readParcelable<PlayerError>(PlayerError::class.java.classLoader),
-        source.readLong()
+        source.readLong(),
+        source.readLong(),
     )
 
     fun toMap(): Map<String, Any?> {
@@ -28,7 +31,8 @@ data class PlaybackState constructor(
             "bufferedPosition" to bufferedPosition,
             "speed" to speed,
             "error" to null,
-            "updateTime" to updateTime
+            "updateTime" to updateTime,
+            "duration" to duration,
         )
     }
 
@@ -42,6 +46,7 @@ data class PlaybackState constructor(
         writeFloat(speed)
         writeParcelable(error, 0)
         writeLong(updateTime)
+        writeLong(duration)
     }
 
     companion object {
