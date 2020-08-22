@@ -1,5 +1,7 @@
 # flutter_music_player  [![](https://github.com/boyan01/flutter-music-player/workflows/Test%20and%20Build%20Apk/badge.svg)](https://github.com/boyan01/flutter-music-player/actions)
 
+**NOTE: this project is extremely experimental.**
+
 Media session framework plugin for flutter, make it easy to implement music play by flutter.
 
 * [x] ios support
