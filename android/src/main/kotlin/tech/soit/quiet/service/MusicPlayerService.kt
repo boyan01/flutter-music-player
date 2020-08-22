@@ -1,6 +1,5 @@
 package tech.soit.quiet.service
 
-import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
 import android.os.IBinder
@@ -12,13 +11,13 @@ import androidx.lifecycle.LifecycleRegistry
 import androidx.media.MediaBrowserServiceCompat
 import tech.soit.quiet.player.MusicPlayerSessionImpl
 import tech.soit.quiet.receiver.BecomingNoisyReceiverAdapter
-import tech.soit.quiet.utils.LoggerLevel
-import tech.soit.quiet.utils.log
 
 class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
 
     companion object {
         const val ACTION_MUSIC_PLAYER_SERVICE = "tech.soit.quiet.session.MusicSessionService"
+
+        const val META_DATA_PLAYER_LAUNCH_ACTIVITY_ACTION = "tech.soit.quiet.session.LaunchActivityAction"
     }
 
     private val lifecycle = LifecycleRegistry(this)
@@ -28,25 +27,17 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     private val playerSession by lazy { MusicPlayerSessionImpl(this) }
 
     private val mediaSession by lazy {
-        val sessionIntent = packageManager?.getLaunchIntentForPackage(packageName)
-        if (sessionIntent == null) {
-            log(level = LoggerLevel.ERROR) { "application do not have launcher intent ??" }
-        }
-        return@lazy MediaSessionCompat(this, "MusicService").also { mediaSession ->
-            sessionIntent?.let {
-                mediaSession.setSessionActivity(PendingIntent.getActivity(this, 0, it, 0))
-            }
-            mediaSession.isActive = true
+        return@lazy MediaSessionCompat(this, "MusicService").apply {
+            isActive = true
         }
     }
 
-
     override fun onCreate() {
         super.onCreate()
-        lifecycle.markState(Lifecycle.State.CREATED)
+        lifecycle.currentState = Lifecycle.State.CREATED
         sessionToken = mediaSession.sessionToken
         mediaSession.setCallback(MediaSessionCallbackAdapter(playerSession))
-        playerSession.addCallback(MusicSessionCallbackAdapter(mediaSession))
+        playerSession.addCallback(MusicSessionCallbackAdapter(mediaSession, this))
         playerSession.addCallback(BecomingNoisyReceiverAdapter(this, playerSession))
         val notificationAdapter = NotificationAdapter(this, playerSession, mediaSession)
         playerSession.addCallback(notificationAdapter)
@@ -82,7 +73,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     }
 
     override fun onDestroy() {
-        lifecycle.markState(Lifecycle.State.DESTROYED)
+        lifecycle.currentState = Lifecycle.State.DESTROYED
         mediaSession.isActive = false
         mediaSession.release()
         playerSession.destroy()

@@ -1,5 +1,9 @@
 package tech.soit.quiet.service
 
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -49,7 +53,6 @@ class MediaSessionCallbackAdapter(
 
 }
 
-
 private const val supportActions = PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
         PlaybackStateCompat.ACTION_PLAY or
         PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID or
@@ -58,8 +61,25 @@ private const val supportActions = PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
         PlaybackStateCompat.ACTION_STOP
 
 class MusicSessionCallbackAdapter(
-    private val mediaSession: MediaSessionCompat
+    private val mediaSession: MediaSessionCompat,
+    private val context: Context
 ) : MusicSessionCallback.Stub() {
+
+    private val launchIntent: Intent? by lazy {
+        val intent = context.packageManager?.getLaunchIntentForPackage(context.packageName)
+        if (intent == null) {
+            log(level = LoggerLevel.ERROR) { "application do not have launcher intent ??" }
+        }
+        intent
+    }
+
+    private val customIntent: Intent? by lazy {
+        val applicationInfo = context.packageManager
+            ?.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        val destinationAction = applicationInfo?.metaData
+            ?.getString(MusicPlayerService.META_DATA_PLAYER_LAUNCH_ACTIVITY_ACTION, null) ?: return@lazy null
+        Intent(destinationAction)
+    }
 
     override fun onPlaybackStateChanged(state: PlaybackState) {
         val builder = PlaybackStateCompat.Builder()
@@ -76,6 +96,16 @@ class MusicSessionCallbackAdapter(
 
     override fun onMetadataChanged(metadata: MusicMetadata?) {
         mediaSession.setMetadata(metadata?.toMediaMetadata())
+
+        metadata ?: return
+        var intent = customIntent ?: launchIntent
+        if (intent != null) {
+            intent = Intent(intent)
+            intent.putExtra("mediaId", metadata.mediaId)
+            mediaSession.setSessionActivity(PendingIntent.getActivity(context, 1000, intent, 0))
+        } else {
+            mediaSession.setSessionActivity(null)
+        }
     }
 
     override fun onPlayQueueChanged(queue: PlayQueue) {

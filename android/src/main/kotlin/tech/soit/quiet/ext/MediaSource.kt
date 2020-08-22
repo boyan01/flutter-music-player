@@ -2,7 +2,7 @@ package tech.soit.quiet.ext
 
 import android.content.Context
 import android.net.Uri
-import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DataSpec
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
@@ -17,7 +17,7 @@ import tech.soit.quiet.player.MusicMetadata
 internal fun MusicMetadata.toMediaSource(
     context: Context,
     servicePlugin: MusicPlayerServicePlugin
-): ExtractorMediaSource? {
+): ProgressiveMediaSource? {
     var factory: DataSource.Factory = DefaultDataSourceFactory(
         context,
         servicePlugin.config.userAgent
@@ -27,7 +27,7 @@ internal fun MusicMetadata.toMediaSource(
     if (servicePlugin.config.enableCache) {
         factory = CacheDataSourceFactory(SimpleCache(context.cacheDir, NoOpCacheEvictor()), factory)
     }
-    return ExtractorMediaSource.Factory(factory)
+    return ProgressiveMediaSource.Factory(factory)
         .setCustomCacheKey(mediaId)
         .createMediaSource(buildMediaUri(this))
 }

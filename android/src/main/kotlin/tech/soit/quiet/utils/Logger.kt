@@ -12,14 +12,14 @@ private val DEBUG get() = BuildConfig.DEBUG
 
 private const val TAG = "QUIET"
 
-fun logError(error: Throwable?) {
+internal fun logError(error: Throwable?) {
     error ?: return
     if (DEBUG) {
         error.printStackTrace()
     }
 }
 
-fun log(level: LoggerLevel = LoggerLevel.DEBUG, lazyMessage: () -> Any?) {
+internal fun log(level: LoggerLevel = LoggerLevel.DEBUG, lazyMessage: () -> Any?) {
     if (DEBUG) {
         //TODO logger adjust
         val traceElement = Exception().stackTrace[2]
