@@ -22,32 +22,38 @@ private const val UI_PLUGIN_NAME = "tech.soit.quiet/player.ui"
 
 class MusicPlayerUiPlugin : FlutterPlugin {
 
-    private lateinit var playerUiChannel: MusicPlayerUiChannel1
+    private var playerUiChannel: MusicPlayerUiChannel? = null
+
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         val channel = MethodChannel(binding.binaryMessenger, UI_PLUGIN_NAME)
-        playerUiChannel = MusicPlayerUiChannel1(channel, binding.applicationContext)
+        playerUiChannel = MusicPlayerUiChannel(channel, binding.applicationContext)
         channel.setMethodCallHandler(playerUiChannel)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        playerUiChannel.channel.setMethodCallHandler(null)
+        playerUiChannel?.destroy()
     }
 
 }
 
 
-private class MusicPlayerUiChannel1(
-    val channel: MethodChannel,
+private class MusicPlayerUiChannel(
+    channel: MethodChannel,
     context: Context
 ) : MethodChannel.MethodCallHandler {
-
 
     private val remotePlayer = context.startMusicService()
 
     private val uiPlaybackPlugin = MusicPlayerCallbackPlugin(channel)
 
+    private var destroyed = false
+
     init {
-        remotePlayer.doWhenSessionReady { it.addCallback(uiPlaybackPlugin) }
+        remotePlayer.doWhenSessionReady {
+            if (!destroyed) {
+                it.addCallback(uiPlaybackPlugin)
+            }
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) =
@@ -84,6 +90,11 @@ private class MusicPlayerUiChannel1(
             }
         }
 
+    fun destroy() {
+        destroyed = true
+        remotePlayer.playerSession?.removeCallback(uiPlaybackPlugin)
+    }
+
 }
 
 
@@ -103,7 +114,8 @@ private fun Context.startMusicService(): RemotePlayer {
 
 private class RemotePlayer : ServiceConnection {
 
-    private var playerSession: MusicPlayerSession? = null
+    var playerSession: MusicPlayerSession? = null
+        private set
 
     private val pendingExecution = mutableListOf<suspend (MusicPlayerSession) -> Unit>()
 
