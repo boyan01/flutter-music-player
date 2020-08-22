@@ -1,6 +1,7 @@
 package tech.soit.quiet.player
 
 import android.content.Context
+import android.os.SystemClock
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
 import kotlinx.coroutines.CoroutineScope
@@ -196,7 +197,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             bufferedPosition = player.bufferedPosition,
             speed = player.playbackParameters.speed,
             error = playerError,
-            updateTime = System.currentTimeMillis(),
+            updateTime = SystemClock.uptimeMillis(),
             duration = player.durationOrZero(),
         )
         this.playbackStateBackup = playbackState
