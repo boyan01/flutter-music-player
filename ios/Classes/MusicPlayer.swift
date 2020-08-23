@@ -5,6 +5,7 @@
 import Foundation
 import AVFoundation
 import SwiftAudio
+import MediaPlayer
 
 ///
 /// Music Player.
@@ -33,7 +34,22 @@ class MusicPlayer: NSObject, MusicPlayerSession {
                 self.invalidatePlaybackState()
             }
         }
+        player.remoteCommandController.handleNextTrackCommand = self.handleNextTrackCommand
+        player.remoteCommandController.handlePreviousTrackCommand = self.handlePreviousTrackCommand
     }
+    
+    private func handleNextTrackCommand(event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
+        self.skipToNext()
+        return MPRemoteCommandHandlerStatus.success
+    }
+    
+    
+    private func handlePreviousTrackCommand(event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
+        self.skipToPrevious();
+        return MPRemoteCommandHandlerStatus.success
+    }
+    
+    
 
     private let player: AudioPlayer = AudioPlayer()
 
