@@ -27,12 +27,22 @@ class Config {
 
   final String userAgent;
 
-  const Config({this.enableCache = false, this.userAgent});
+  /// For android only.
+  /// pause player when the user has removed a task
+  /// that comes from the service's application.
+  final bool pauseWhenTaskRemoved;
+
+  const Config({
+    this.enableCache = false,
+    this.userAgent,
+    this.pauseWhenTaskRemoved = true,
+  });
 
   Map<String, dynamic> toMap() {
     return {
       'enableCache': this.enableCache,
       'userAgent': this.userAgent,
+      'pauseWhenTaskRemoved': this.pauseWhenTaskRemoved,
     };
   }
 }

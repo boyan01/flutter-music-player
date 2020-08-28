@@ -53,6 +53,9 @@ void playerBackgroundService() {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
   runBackgroundService(
+    config: Config(
+      pauseWhenTaskRemoved: false,
+    ),
     playUriInterceptor: (mediaId, fallbackUrl) async {
       debugPrint("get media play uri : $mediaId , $fallbackUrl");
       if (mediaId == 'rise') return "asset:///tracks/rise.mp3";
