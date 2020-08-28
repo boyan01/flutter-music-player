@@ -129,7 +129,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     }
 
     override fun stop() {
-        player.stop()
+        player.playWhenReady = false
     }
 
     override fun addCallback(callback: MusicSessionCallback) {
