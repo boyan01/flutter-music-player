@@ -6,7 +6,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterJNI
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.engine.loader.FlutterLoader
-import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
+import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.FlutterMain
@@ -36,10 +36,8 @@ data class Config(
 }
 
 class MusicPlayerServicePlugin(
-    private val methodChannel: MethodChannel,
-    private val dartExecutor: DartExecutor,
     private val playerSession: MusicPlayerSessionImpl
-) : MethodChannel.MethodCallHandler {
+) : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     companion object {
 
@@ -66,7 +64,6 @@ class MusicPlayerServicePlugin(
             }
             FlutterMain.ensureInitializationComplete(context, null)
 
-
             val engine = FlutterEngine(context, FlutterLoader(), FlutterJNI())
             engine.dartExecutor.executeDartEntrypoint(
                 DartExecutor.DartEntrypoint(
@@ -74,42 +71,18 @@ class MusicPlayerServicePlugin(
                     "playerBackgroundService"
                 )
             )
-            registerPlugins(engine)
-
-            val channel = MethodChannel(
-                ShimPluginRegistry(engine).registrarFor(MusicPlayerServicePlugin::class.java.name).messenger(),
-                NAME
-            )
-
-            val helper = MusicPlayerServicePlugin(channel, engine.dartExecutor, playerSession)
-            channel.setMethodCallHandler(helper)
-            return helper
-        }
-
-
-        private fun registerPlugins(flutterEngine: FlutterEngine) {
-            try {
-                val generatedPluginRegistrant =
-                    Class.forName("io.flutter.plugins.GeneratedPluginRegistrant")
-                val registrationMethod =
-                    generatedPluginRegistrant.getDeclaredMethod(
-                        "registerWith",
-                        FlutterEngine::class.java
-                    )
-                registrationMethod.invoke(null, flutterEngine)
-            } catch (e: Exception) {
-                log { "Tried to automatically register plugins with FlutterEngine ($flutterEngine) but could not find and invoke the GeneratedPluginRegistrant." }
-            }
+            val servicePlugin = MusicPlayerServicePlugin(playerSession)
+            engine.plugins.add(servicePlugin)
+            return servicePlugin
         }
 
     }
-
-    init {
-        playerSession.addCallback(MusicPlayerCallbackPlugin(methodChannel))
-    }
-
 
     var config = Config.Default
+        private set
+
+    private var methodChannel: MethodChannel? = null
+    private var playerCallback: MusicPlayerCallbackPlugin? = null
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
@@ -132,13 +105,17 @@ class MusicPlayerServicePlugin(
     }
 
 
-    private suspend inline fun <reified T> MethodChannel.invokeAsyncCast(
+    private suspend fun <T> invokeAsyncCast(
         method: String,
         arguments: Any?,
-        crossinline parseDartResult: (Any?) -> T = { it as T },
-        onNotImplement: () -> T
+        parseDartResult: (Any?) -> T = {
+            @Suppress("UNCHECKED_CAST")
+            it as T
+        },
+        onNotImplement: suspend () -> T
     ): T {
-        if (dartExecutor.isolateServiceId == null) {
+        val methodChannel = this.methodChannel
+        if (methodChannel == null) {
             // run background entry point failed
             log(LoggerLevel.ERROR) {
                 """
@@ -146,10 +123,11 @@ class MusicPlayerServicePlugin(
                     should add a top function named with playerBackgroundService() at you main.dart
                 """.trimIndent()
             }
+            return onNotImplement()
         }
         return runCatching {
             withTimeout(10000) {
-                parseDartResult(invokeAsync(method, arguments))
+                parseDartResult(methodChannel.invokeAsync(method, arguments))
             }
         }.onFailure {
             if (it !is NotImplementedError) {
@@ -161,7 +139,7 @@ class MusicPlayerServicePlugin(
 
 
     suspend fun loadImage(metadata: MusicMetadata, uri: String): Artwork? {
-        val bytes = methodChannel.invokeAsyncCast("loadImage", metadata.obj) {
+        val bytes = invokeAsyncCast("loadImage", metadata.obj) {
             loadArtworkFromUri(Uri.parse(uri))
         } ?: return null
         return createArtworkFromByteArray(bytes)
@@ -169,7 +147,7 @@ class MusicPlayerServicePlugin(
 
 
     suspend fun getPlayUrl(id: String, fallback: String?): Uri {
-        val url = methodChannel.invokeAsyncCast(
+        val url = invokeAsyncCast(
             "getPlayUrl", mapOf("id" to id, "url" to fallback)
         ) { fallback } ?: throw IllegalStateException("can not get play uri for $id .")
         return Uri.parse(url)
@@ -180,7 +158,7 @@ class MusicPlayerServicePlugin(
         playQueue: PlayQueue,
         playMode: PlayMode
     ): MusicMetadata? {
-        return methodChannel.invokeAsyncCast(
+        return invokeAsyncCast(
             "onPlayNextNoMoreMusic", mapOf(
                 "queue" to playQueue.toDartMapObject(),
                 "playMode" to playMode.rawValue
@@ -201,7 +179,7 @@ class MusicPlayerServicePlugin(
         playQueue: PlayQueue,
         playMode: PlayMode
     ): MusicMetadata? {
-        return methodChannel.invokeAsyncCast(
+        return invokeAsyncCast(
             "onPlayPreviousNoMoreMusic", mapOf(
                 "queue" to playQueue.toDartMapObject(),
                 "playMode" to playMode.rawValue
@@ -216,6 +194,22 @@ class MusicPlayerServicePlugin(
             }
             playQueue.getPrevious(null, playMode)
         }
+    }
+
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        val channel = MethodChannel(binding.binaryMessenger, NAME)
+        channel.setMethodCallHandler(this)
+        val callback = MusicPlayerCallbackPlugin(channel)
+        playerSession.addCallback(callback)
+
+        this.methodChannel = channel
+        this.playerCallback = callback
+    }
+
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        this.methodChannel = null
+        playerCallback?.let { playerSession.removeCallback(it) }
+
     }
 
 }
