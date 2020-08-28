@@ -10,12 +10,16 @@ Media session framework plugin for flutter, make it easy to implement music play
 * [x] tracking player status change.
 
 ## Getting Started
+### 1. Requirements
+  * flutter: 1.20.x stable version
+  * android: kotlin 1.4.0
+  * ios: 10.0
 
-1. Simple Usecase.
+### 2. Simple Use Case.
 
 ```dart
 // Create Player instance.
-MusicPlayer player = MusicPlayer()
+MusicPlayer player = MusicPlayer();
  
 // audio list
 final medias = [
@@ -42,14 +46,14 @@ final medias = [
   ),
 ];
 
-PlayQueue queue = PlayQueue(queueTitle: "Simple Test", queueId: "test1", queue: medias)
+PlayQueue queue = PlayQueue(queueTitle: "Simple Test", queueId: "test1", queue: medias);
 
 // Perform play operation.
-player.playWithQueue(queue, metadata: medias.first)
+player.playWithQueue(queue, metadata: medias.first);
 
 ```
 
-2. Background control.
+### 3. Background Control.
 
 add a method named `playerBackgroundService` to your lib/maim.dart. 
 
