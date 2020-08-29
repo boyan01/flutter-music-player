@@ -1,8 +1,6 @@
 package tech.soit.quiet.service
 
-import android.os.IBinder
-import android.os.RemoteCallbackList
-import android.os.RemoteException
+import android.os.*
 import tech.soit.quiet.MusicSessionCallback
 import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.PlayQueue
@@ -12,17 +10,23 @@ internal class ShimMusicSessionCallback : MusicSessionCallback {
 
     private val callbacks = RemoteCallbackList<MusicSessionCallback>()
 
-    private inline fun broadcast(action: MusicSessionCallback.() -> Unit) {
-        var i = callbacks.beginBroadcast()
-        while (i > 0) {
-            i--
-            try {
-                callbacks.getBroadcastItem(i).action()
-            } catch (e: RemoteException) {
+    private val handler = Handler(Looper.getMainLooper())
 
+    private fun broadcast(action: MusicSessionCallback.() -> Unit) {
+        // make sure broadcast in one thread.
+        // does it need to switch to IO thread?
+        handler.post {
+            var i = callbacks.beginBroadcast()
+            while (i > 0) {
+                i--
+                try {
+                    callbacks.getBroadcastItem(i).action()
+                } catch (e: RemoteException) {
+
+                }
             }
+            callbacks.finishBroadcast()
         }
-        callbacks.finishBroadcast()
     }
 
     fun addCallback(callback: MusicSessionCallback) {
