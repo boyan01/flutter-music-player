@@ -2,10 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 import 'package:music_player_example/page_play_queue.dart';
 import 'package:music_player_example/player/background.dart';
 import 'package:overlay_support/overlay_support.dart';
-import 'package:logging/logging.dart';
 
 import 'player/player.dart';
 import 'player/player_bottom_controller.dart';
@@ -37,6 +37,14 @@ final medias = [
 final playQueueList = [
   PlayQueue(queueTitle: "Simple Test", queueId: "test1", queue: medias),
   PlayQueue(queueTitle: "Auto Fetch Test", queueId: "fm", queue: medias.getRange(0, 1).toList()),
+  PlayQueue(queueTitle: "Failed to Play", queueId: "test_failed", queue: [
+    MusicMetadata(
+      title: "Cang",
+      subtitle: "Cang - xu meng yuan",
+      mediaId: "hide",
+      mediaUri: "asset:///tracks/file_not_exists.mp3",
+    ),
+  ])
 ];
 
 void main() {
