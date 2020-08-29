@@ -12,13 +12,15 @@ class PlayPauseButton extends StatelessWidget {
             PlayerWidget.transportControls(context).pause();
           });
     } else if (playbackState.state == PlayerState.Buffering) {
-      return Container(
-        height: 24,
-        width: 24,
-        //to fit  IconButton min width 48
-        margin: EdgeInsets.only(right: 12),
-        padding: EdgeInsets.all(4),
-        child: CircularProgressIndicator(),
+      return Center(
+        child: Container(
+          height: 24,
+          width: 24,
+          //to fit  IconButton min width 48
+          margin: EdgeInsets.only(right: 12),
+          padding: EdgeInsets.all(4),
+          child: CircularProgressIndicator(),
+        ),
       );
     } else {
       return IconButton(
