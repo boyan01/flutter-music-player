@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:music_player/music_player.dart';
+import 'package:overlay_support/overlay_support.dart';
 
 export 'package:music_player/music_player.dart';
 
@@ -39,6 +40,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       ..addListener(() {
         setState(() {});
       });
+    player.playbackState.addListener(() {
+      if (player.playbackState.value.error != null) {
+        toast("play ${player.metadata.value?.title} failed. error : ${player.playbackState.value.error}");
+      }
+    });
   }
 
   @override

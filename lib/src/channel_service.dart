@@ -1,13 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/internal/meta.dart';
 import 'package:music_player/src/internal/serialization.dart';
-
-import 'internal/player_callback_adapter.dart';
+import 'package:music_player/src/player/music_player.dart';
 
 ///
 /// Interceptor when player try to load a media source
@@ -61,7 +61,7 @@ Future runBackgroundService({
   // decrease background image memory
   PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
   final serviceChannel = MethodChannel("tech.soit.quiet/background_callback");
-  final player = BackgroundMusicPlayer._internal(serviceChannel);
+  final player = BackgroundMusicPlayer._internal(serviceChannel, MusicPlayer());
   playQueueInterceptor?._player = player;
   serviceChannel.setMethodCallHandler((call) async {
     log.fine("background: ${call.method} args = ${call.arguments}");
@@ -103,19 +103,27 @@ Future runBackgroundService({
   serviceChannel.invokeMethod('updateConfig', config.toMap());
 }
 
-class BackgroundMusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCallbackAdapter {
-  final _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
+class BackgroundMusicPlayer extends Player {
   final MethodChannel _serviceChannel;
 
-  BackgroundMusicPlayer._internal(this._serviceChannel) : super(MusicPlayerValue.none()) {
-    _uiChannel.setMethodCallHandler((call) async {
-      if (handleRemoteCall(call)) {
-        return;
-      }
-      throw new UnimplementedError();
-    });
-    _uiChannel.invokeMethod("init");
-  }
+  final MusicPlayer _player;
+
+  BackgroundMusicPlayer._internal(this._serviceChannel, this._player);
+
+  @override
+  ValueListenable<MusicMetadata> get metadata => _player.metadata;
+
+  @override
+  MusicPlayerValue get value => _player.value;
+
+  @override
+  ValueListenable<PlayMode> get playMode => _player.playMode;
+
+  @override
+  ValueListenable<PlaybackState> get playbackState => _player.playbackState;
+
+  @override
+  ValueListenable<PlayQueue> get queue => _player.queue;
 
   Future<void> insertToPlayQueue(@nonNull List<MusicMetadata> list, int index) async {
     assert(() {

@@ -30,7 +30,7 @@ data class PlaybackState constructor(
             "position" to position,
             "bufferedPosition" to bufferedPosition,
             "speed" to speed,
-            "error" to null,
+            "error" to error?.toString(),
             "updateTime" to updateTime,
             "duration" to duration,
         )

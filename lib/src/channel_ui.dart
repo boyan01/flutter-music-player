@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
 import 'package:music_player/src/internal/meta.dart';
-import 'package:music_player/src/internal/player_callback_adapter.dart';
+import 'package:music_player/src/player/music_player.dart';
 
 import 'internal/serialization.dart';
 import 'player/music_metadata.dart';
@@ -11,22 +12,22 @@ import 'player/play_queue.dart';
 import 'player/playback_state.dart';
 import 'player/transport_controls.dart';
 
-const _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
-
 /// MusicPlayer for UI interaction.
-class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCallbackAdapter {
+class MusicPlayer extends Player {
   final log = Logger('MusicPlayer');
+
+  static const _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
+
   static MusicPlayer _player;
 
-  MusicPlayer._internal() : super(MusicPlayerValue.none()) {
-    _uiChannel.setMethodCallHandler((call) async {
-      log.fine("on MethodCall: ${call.method} args = ${call.arguments}");
-      if (handleRemoteCall(call)) {
-        return;
-      }
-      throw new UnimplementedError();
-    });
+  MusicPlayer._internal() : super() {
+    _uiChannel.setMethodCallHandler(_handleRemoteCall);
     _uiChannel.invokeMethod("init");
+
+    _queue.addListener(notifyListeners);
+    _playMode.addListener(notifyListeners);
+    _playbackState.addListener(notifyListeners);
+    _metadata.addListener(notifyListeners);
   }
 
   factory MusicPlayer() {
@@ -52,14 +53,42 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCall
     return createMusicMetadata(map);
   }
 
-  @nonNull
-  PlaybackState get playbackState => value.playbackState;
+  @override
+  ValueListenable<PlayQueue> get queue => _queue;
 
-  @nullable
-  MusicMetadata get metadata => value.metadata;
+  @override
+  ValueListenable<PlaybackState> get playbackState => _playbackState;
 
-  @nonNull
-  PlayQueue get queue => value.queue;
+  @override
+  ValueListenable<PlayMode> get playMode => _playMode;
+
+  @override
+  ValueListenable<MusicMetadata> get metadata => _metadata;
+
+  final ValueNotifier<PlayQueue> _queue = ValueNotifier(PlayQueue.empty());
+  final ValueNotifier<PlaybackState> _playbackState = ValueNotifier(PlaybackState.none());
+  final ValueNotifier<PlayMode> _playMode = ValueNotifier(PlayMode.sequence);
+  final ValueNotifier<MusicMetadata> _metadata = ValueNotifier(null);
+
+  Future<dynamic> _handleRemoteCall(MethodCall call) async {
+    log.fine("on MethodCall: ${call.method} args = ${call.arguments}");
+    switch (call.method) {
+      case 'onPlaybackStateChanged':
+        _playbackState.value = createPlaybackState(call.arguments);
+        break;
+      case 'onMetadataChanged':
+        _metadata.value = createMusicMetadata(call.arguments);
+        break;
+      case 'onPlayQueueChanged':
+        _queue.value = createPlayQueue(call.arguments);
+        break;
+      case 'onPlayModeChanged':
+        _playMode.value = PlayMode(call.arguments as int);
+        break;
+      default:
+        throw UnimplementedError();
+    }
+  }
 
   @nonNull
   TransportControls transportControls = TransportControls(_uiChannel);

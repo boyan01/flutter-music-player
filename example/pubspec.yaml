@@ -10,7 +10,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^0.1.2
-  overlay_support: ^1.0.1
+  overlay_support: ^1.0.5
 
 dev_dependencies:
   flutter_test:
