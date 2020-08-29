@@ -54,16 +54,16 @@ class MusicPlayer extends Player {
   }
 
   @override
-  ValueListenable<PlayQueue> get queue => _queue;
+  ValueListenable<PlayQueue> get queueListenable => _queue;
 
   @override
-  ValueListenable<PlaybackState> get playbackState => _playbackState;
+  ValueListenable<PlaybackState> get playbackStateListenable => _playbackState;
 
   @override
-  ValueListenable<PlayMode> get playMode => _playMode;
+  ValueListenable<PlayMode> get playModeListenable => _playMode;
 
   @override
-  ValueListenable<MusicMetadata> get metadata => _metadata;
+  ValueListenable<MusicMetadata> get metadataListenable => _metadata;
 
   final ValueNotifier<PlayQueue> _queue = ValueNotifier(PlayQueue.empty());
   final ValueNotifier<PlaybackState> _playbackState = ValueNotifier(PlaybackState.none());

@@ -111,19 +111,19 @@ class BackgroundMusicPlayer extends Player {
   BackgroundMusicPlayer._internal(this._serviceChannel, this._player);
 
   @override
-  ValueListenable<MusicMetadata> get metadata => _player.metadata;
+  ValueListenable<MusicMetadata> get metadataListenable => _player.metadataListenable;
 
   @override
   MusicPlayerValue get value => _player.value;
 
   @override
-  ValueListenable<PlayMode> get playMode => _player.playMode;
+  ValueListenable<PlayMode> get playModeListenable => _player.playModeListenable;
 
   @override
-  ValueListenable<PlaybackState> get playbackState => _player.playbackState;
+  ValueListenable<PlaybackState> get playbackStateListenable => _player.playbackStateListenable;
 
   @override
-  ValueListenable<PlayQueue> get queue => _player.queue;
+  ValueListenable<PlayQueue> get queueListenable => _player.queueListenable;
 
   Future<void> insertToPlayQueue(@nonNull List<MusicMetadata> list, int index) async {
     assert(() {
