@@ -42,7 +42,7 @@ class MusicPlayer extends ValueNotifier<MusicPlayerValue> with ChannelPlayerCall
 
   Future<MusicMetadata> getNextMusic(@nonNull MusicMetadata anchor) async {
     assert(anchor != null);
-    final Map map = await _uiChannel.invokeMethod("getNext", metadata.toMap());
+    final Map map = await _uiChannel.invokeMethod("getNext", anchor.toMap());
     return createMusicMetadata(map);
   }
 
