@@ -20,7 +20,7 @@ class PlaybackState {
   /// discuss: https://github.com/boyan01/flutter-music-player/issues/1
   ///
   int get computedPosition {
-    var append = state == PlayerState.Playing ? (SystemClock.uptimeMills - updateTime) : 0;
+    var append = state == PlayerState.Playing ? (SystemClock.uptime().inMilliseconds - updateTime) : 0;
     append = (append * speed).toInt();
     return position + append;
   }
