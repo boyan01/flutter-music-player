@@ -42,7 +42,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       });
     player.playbackStateListenable.addListener(() {
       if (player.playbackStateListenable.value.error != null) {
-        toast("play ${player.metadataListenable.value?.title} failed. error : ${player.playbackStateListenable.value.error}");
+        toast("""
+        play ${player.metadataListenable.value?.title} failed. 
+        error:\n${player.playbackStateListenable.value.error}
+        """, duration: Toast.LENGTH_LONG);
       }
     });
   }
