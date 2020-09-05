@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:music_player/music_player.dart';
 import 'package:system_clock/system_clock.dart';
 
 class PlaybackState {
@@ -10,7 +11,7 @@ class PlaybackState {
 
   final double speed;
 
-  final error;
+  final PlaybackError error;
 
   final int updateTime;
 
@@ -42,6 +43,32 @@ class PlaybackState {
           speed: 1,
           updateTime: 0,
         );
+
+  @override
+  String toString() {
+    return 'PlaybackState{state: $state, position: $position, bufferedPosition: $bufferedPosition, speed: $speed, error: $error, updateTime: $updateTime}';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaybackState &&
+          runtimeType == other.runtimeType &&
+          state == other.state &&
+          position == other.position &&
+          bufferedPosition == other.bufferedPosition &&
+          speed == other.speed &&
+          error == other.error &&
+          updateTime == other.updateTime;
+
+  @override
+  int get hashCode =>
+      state.hashCode ^
+      position.hashCode ^
+      bufferedPosition.hashCode ^
+      speed.hashCode ^
+      error.hashCode ^
+      updateTime.hashCode;
 }
 
 enum PlayerState {

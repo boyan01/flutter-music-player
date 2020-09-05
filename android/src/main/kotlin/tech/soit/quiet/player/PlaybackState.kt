@@ -11,7 +11,6 @@ data class PlaybackState constructor(
     val speed: Float,
     val error: PlayerError?,
     val updateTime: Long,
-    //TODO add duration in PlaybackState for dart
     val duration: Long,
 ) : Parcelable {
     private constructor(source: Parcel) : this(
@@ -30,7 +29,7 @@ data class PlaybackState constructor(
             "position" to position,
             "bufferedPosition" to bufferedPosition,
             "speed" to speed,
-            "error" to error?.toString(),
+            "error" to error?.toMap(),
             "updateTime" to updateTime,
             "duration" to duration,
         )
@@ -82,4 +81,25 @@ enum class State {
 }
 
 @Parcelize
-data class PlayerError(val errorCode: Int, val errorMessage: String) : Parcelable
+data class PlayerError(val errorCode: Int, val errorMessage: String) : Parcelable {
+
+    companion object {
+
+        // see lib/model/playback_error.dart ErrorType.source
+        const val TYPE_SOURCE = 0
+
+        // see lib/model/playback_error.dart ErrorType.renderer
+        const val TYPE_RENDERER = 1
+
+        // see lib/model/playback_error.dart ErrorType.unknown
+        const val TYPE_UNKNOWN = 2
+
+    }
+
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "type" to 0,
+            "message" to errorMessage
+        )
+    }
+}
