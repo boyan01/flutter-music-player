@@ -1,6 +1,7 @@
 package tech.soit.quiet.ext
 
 import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import tech.soit.quiet.player.PlayerError
@@ -9,7 +10,12 @@ import tech.soit.quiet.player.State
 fun ExoPlayer.playbackError(): PlayerError? {
     if (playbackState != Player.STATE_IDLE) return null
     val error = playbackError ?: return null
-    return PlayerError(0, error.message ?: " $error")
+    val errorType = when (error.type) {
+        ExoPlaybackException.TYPE_SOURCE -> PlayerError.TYPE_SOURCE
+        ExoPlaybackException.TYPE_RENDERER -> PlayerError.TYPE_RENDERER
+        else -> PlayerError.TYPE_UNKNOWN
+    }
+    return PlayerError(errorType, error.message ?: " $error")
 }
 
 

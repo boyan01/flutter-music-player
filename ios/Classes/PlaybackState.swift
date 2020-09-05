@@ -9,7 +9,7 @@ struct PlaybackState {
     let position: TimeInterval
     let bufferedPosition: TimeInterval
     let speed: Float
-    let error: Error?
+    let error: PlaybackError?
     let updateTime: TimeInterval
 }
 
@@ -20,7 +20,7 @@ extension PlaybackState {
             "position": Int(position * 1000),
             "bufferedPosition": Int(bufferedPosition * 1000),
             "speed": speed,
-            "error": nil,
+            "error": error?.toMap(),
             "updateTime": Int(updateTime * 1000)
         ]
     }
@@ -29,5 +29,24 @@ extension PlaybackState {
 
 enum State: Int {
     case none = 0, paused, playing, buffering, error
+}
+
+enum ErrorType: Int {
+    // detail see lib/src/playback_error.dart ErrorType.*
+    case source = 0, render, unknown
+}
+
+struct PlaybackError {
+    let type: ErrorType
+    let message: String
+}
+
+extension PlaybackError {
+    func toMap() -> [String: Any?] {
+        [
+            "type": type.rawValue,
+            "message": message,
+        ]
+    }
 }
 

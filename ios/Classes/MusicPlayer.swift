@@ -34,6 +34,25 @@ class MusicPlayer: NSObject, MusicPlayerSession {
                 self.invalidatePlaybackState()
             }
         }
+        player.event.fail.addListener(self) { (data) in
+            var type: ErrorType
+            switch self.player.playerState {
+            case .playing:
+                type = .render
+                break
+            case .buffering, .loading:
+                type = .source
+                break
+            default:
+                type = .unknown
+                break
+            }
+            self.playbackError = PlaybackError(
+                type: type,
+                message: data?.localizedDescription ?? data.debugDescription
+            )
+            self.invalidatePlaybackState()
+        }
         player.remoteCommandController.handleNextTrackCommand = self.handleNextTrackCommand
         player.remoteCommandController.handlePreviousTrackCommand = self.handlePreviousTrackCommand
     }
@@ -55,6 +74,8 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
     /// fetching play uri from background service
     private var isPlayUriPrefetching = false
+    
+    private var playbackError: PlaybackError? = nil
 
     private let servicePlugin = MusicPlayerServicePlugin.shared
 
@@ -99,12 +120,15 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         if (isPlayUriPrefetching) {
             state = .buffering
         }
+        if (playbackError != nil) {
+            state = .error
+        }
         return PlaybackState(
                 state: state,
                 position: player.currentTime,
                 bufferedPosition: player.bufferedPosition,
                 speed: playbackRate,
-                error: nil,
+                error: playbackError,
                 updateTime: Date().timeIntervalSince1970)
     }
 
@@ -112,6 +136,8 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     private func performPlay(metadata: MusicMetadata?) {
         self.metadata = metadata
         player.stop()
+        // clear error, prepare to play next item.
+        self.playbackError = nil
         getPlayItemForPlay(metadata: metadata) { item in
             if let item = item {
                 do {
@@ -124,11 +150,16 @@ class MusicPlayer: NSObject, MusicPlayerSession {
                     debugPrint("start play: \(String(describing: item.getTitle())) \(item.getSourceUrl())")
                     try self.player.load(item: item, playWhenReady: true)
                 } catch {
-                    debugPrint("create player failed : \(error) ")
+                    self.playbackError = PlaybackError(
+                        type: .source,
+                        message: "create player failed : \(error)"
+                    )
                 }
             } else {
-                // TODO handle error
-                debugPrint("error : can not get audio item for \(String(describing: metadata))")
+                self.playbackError = PlaybackError(
+                    type: .source,
+                    message: "error : can not get audio item for \(String(describing: metadata))"
+                )
             }
             self.isPlayUriPrefetching = false
             self.invalidatePlaybackState()
