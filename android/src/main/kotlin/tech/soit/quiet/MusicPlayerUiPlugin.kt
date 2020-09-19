@@ -64,6 +64,7 @@ private class MusicPlayerUiChannel(
                     uiPlaybackPlugin.onPlayModeChanged(session.playMode)
                     uiPlaybackPlugin.onPlayQueueChanged(session.playQueue)
                     uiPlaybackPlugin.onPlaybackStateChanged(session.playbackState)
+                    session.current != null
                 }
                 "play" -> session.play()
                 "pause" -> session.pause()

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +24,8 @@ class MusicPlayer extends Player {
 
   MusicPlayer._internal() : super() {
     _uiChannel.setMethodCallHandler(_handleRemoteCall);
-    _uiChannel.invokeMethod("init");
+    final Future<bool> initResult = _uiChannel.invokeMethod("init");
+    _initCompleter.complete(initResult);
 
     _queue.addListener(notifyListeners);
     _playMode.addListener(notifyListeners);
@@ -93,6 +96,8 @@ class MusicPlayer extends Player {
   @nonNull
   TransportControls transportControls = TransportControls(_uiChannel);
 
+  Completer<bool> _initCompleter = Completer();
+
   void insertToNext(@nonNull MusicMetadata metadata) {
     assert(metadata != null);
     _uiChannel.invokeMethod("insertToNext", metadata.toMap());
@@ -110,6 +115,11 @@ class MusicPlayer extends Player {
   }
 
   void removeMusicItem(MusicMetadata metadata) {}
+
+  /// Check whether music service already running.
+  Future<bool> isMusicServiceAvailable() {
+    return _initCompleter.future;
+  }
 }
 
 class MusicPlayerValue {
