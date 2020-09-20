@@ -47,13 +47,13 @@ class MusicPlayer extends Player {
   Future<MusicMetadata> getNextMusic(@nonNull MusicMetadata anchor) async {
     assert(anchor != null);
     final Map map = await _uiChannel.invokeMethod("getNext", anchor.toMap());
-    return createMusicMetadata(map);
+    return MusicMetadata.fromMap(map);
   }
 
   Future<MusicMetadata> getPreviousMusic(@nonNull MusicMetadata metadata) async {
     assert(metadata != null);
     final Map map = await _uiChannel.invokeMethod("getPrevious", metadata.toMap());
-    return createMusicMetadata(map);
+    return MusicMetadata.fromMap(map);
   }
 
   @override
@@ -80,10 +80,10 @@ class MusicPlayer extends Player {
         _playbackState.value = createPlaybackState(call.arguments);
         break;
       case 'onMetadataChanged':
-        _metadata.value = createMusicMetadata(call.arguments);
+        _metadata.value = MusicMetadata.fromMap(call.arguments);
         break;
       case 'onPlayQueueChanged':
-        _queue.value = createPlayQueue(call.arguments);
+        _queue.value = PlayQueue.fromMap(call.arguments);
         break;
       case 'onPlayModeChanged':
         _playMode.value = PlayMode(call.arguments as int);
