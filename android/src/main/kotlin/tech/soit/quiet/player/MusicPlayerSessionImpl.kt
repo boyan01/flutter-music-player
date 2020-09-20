@@ -145,7 +145,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     }
 
     override fun prepareFromMediaId(mediaId: String) {
-        skipTo { it.getByMediaId(mediaId) }
+        skipTo(playWhenReady = false) { it.getByMediaId(mediaId) }
     }
 
     override fun getPlayMode(): Int {
