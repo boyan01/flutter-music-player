@@ -148,7 +148,7 @@ packages:
       name: system_clock
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.5.0"
+    version: "0.7.0"
   term_glyph:
     dependency: transitive
     description:
