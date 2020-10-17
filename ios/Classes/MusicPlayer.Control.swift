@@ -99,5 +99,4 @@ class ShimMusicPlayCallback: MusicPlayerCallback, MusicPlayerCallbackContainer {
         }
     }
 
-
 }
