@@ -26,6 +26,8 @@ interface MusicPlayerSession {
 
     void playFromMediaId(String mediaId);
 
+    void prepareFromMediaId(String mediaId);
+
 
     void pause();
 

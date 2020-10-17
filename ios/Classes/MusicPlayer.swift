@@ -2,23 +2,22 @@
 // Created by BoYan on 2020/2/17.
 //
 
-import Foundation
 import AVFoundation
-import SwiftAudio
+import Foundation
 import MediaPlayer
+import SwiftAudio
 
 ///
 /// Music Player.
 ///
 class MusicPlayer: NSObject, MusicPlayerSession {
-
     private let shimPlayerCallback = ShimMusicPlayCallback()
 
     public static let shared = MusicPlayer()
 
-    private override init() {
+    override private init() {
         super.init()
-        player.event.stateChange.addListener(self) { state in
+        player.event.stateChange.addListener(self) { _ in
             self.invalidatePlaybackState()
         }
         player.event.playbackEnd.addListener(self) { reason in
@@ -26,15 +25,15 @@ class MusicPlayer: NSObject, MusicPlayerSession {
                 self.skipToNext()
             }
         }
-        player.event.updateDuration.addListener(self) { v in
+        player.event.updateDuration.addListener(self) { _ in
             self.invalidateMetadata()
         }
-        player.event.seek.addListener(self) { seconds, finish in
-            if (finish) {
+        player.event.seek.addListener(self) { _, finish in
+            if finish {
                 self.invalidatePlaybackState()
             }
         }
-        player.event.fail.addListener(self) { (data) in
+        player.event.fail.addListener(self) { data in
             var type: ErrorType
             switch self.player.playerState {
             case .playing:
@@ -53,29 +52,26 @@ class MusicPlayer: NSObject, MusicPlayerSession {
             )
             self.invalidatePlaybackState()
         }
-        player.remoteCommandController.handleNextTrackCommand = self.handleNextTrackCommand
-        player.remoteCommandController.handlePreviousTrackCommand = self.handlePreviousTrackCommand
+        player.remoteCommandController.handleNextTrackCommand = handleNextTrackCommand
+        player.remoteCommandController.handlePreviousTrackCommand = handlePreviousTrackCommand
     }
-    
+
     private func handleNextTrackCommand(event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
-        self.skipToNext()
+        skipToNext()
         return MPRemoteCommandHandlerStatus.success
     }
-    
-    
+
     private func handlePreviousTrackCommand(event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
-        self.skipToPrevious();
+        skipToPrevious()
         return MPRemoteCommandHandlerStatus.success
     }
-    
-    
 
     private let player: AudioPlayer = AudioPlayer()
 
     /// fetching play uri from background service
     private var isPlayUriPrefetching = false
-    
-    private var playbackError: PlaybackError? = nil
+
+    private var playbackError: PlaybackError?
 
     private let servicePlugin = MusicPlayerServicePlugin.shared
 
@@ -85,7 +81,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
     }
 
-    var metadata: MusicMetadata? = nil {
+    var metadata: MusicMetadata? {
         didSet {
             invalidateMetadata()
         }
@@ -93,10 +89,10 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
     var playQueue: PlayQueue = PlayQueue.Empty {
         willSet {
-            self.playQueue.setChangeListener(nil)
+            playQueue.setChangeListener(nil)
         }
         didSet {
-            self.playQueue.setChangeListener(invalidatePlayQueue)
+            playQueue.setChangeListener(invalidatePlayQueue)
             invalidatePlayQueue()
         }
     }
@@ -117,27 +113,27 @@ class MusicPlayer: NSObject, MusicPlayerSession {
             state = .buffering
             break
         }
-        if (isPlayUriPrefetching) {
+        if isPlayUriPrefetching {
             state = .buffering
         }
-        if (playbackError != nil) {
+        if playbackError != nil {
             state = .error
         }
-        return PlaybackState(
-                state: state,
-                position: player.currentTime,
-                bufferedPosition: player.bufferedPosition,
-                speed: playbackRate,
-                error: playbackError,
-                updateTime: Date().timeIntervalSince1970)
-    }
 
+        return PlaybackState(
+            state: state,
+            position: player.currentTime,
+            bufferedPosition: player.bufferedPosition,
+            speed: playbackRate,
+            error: playbackError,
+            updateTime: systemUptime())
+    }
 
     private func performPlay(metadata: MusicMetadata?) {
         self.metadata = metadata
         player.stop()
         // clear error, prepare to play next item.
-        self.playbackError = nil
+        playbackError = nil
         getPlayItemForPlay(metadata: metadata) { item in
             if let item = item {
                 do {
@@ -207,7 +203,6 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
     }
 
-
     func play() {
         player.play()
     }
@@ -238,7 +233,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         player.seek(to: pos)
     }
 
-    func getNext(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> ()) {
+    func getNext(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> Void) {
         let metadata = playQueue.getNext(anchor, playMode: playMode)
         if metadata != nil {
             completion(metadata)
@@ -247,7 +242,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
         }
     }
 
-    func getPrevious(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> ()) {
+    func getPrevious(anchor: MusicMetadata?, completion: @escaping (MusicMetadata?) -> Void) {
         let metadata = playQueue.getPrevious(anchor, playMode: playMode)
         if metadata != nil {
             completion(metadata)
@@ -294,7 +289,4 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     private func invalidatePlaybackState() {
         shimPlayerCallback.onPlaybackStateChanged(playbackState)
     }
-
-
 }
-

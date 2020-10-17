@@ -64,10 +64,12 @@ private class MusicPlayerUiChannel(
                     uiPlaybackPlugin.onPlayModeChanged(session.playMode)
                     uiPlaybackPlugin.onPlayQueueChanged(session.playQueue)
                     uiPlaybackPlugin.onPlaybackStateChanged(session.playbackState)
+                    session.current != null
                 }
                 "play" -> session.play()
                 "pause" -> session.pause()
                 "playFromMediaId" -> session.playFromMediaId(call.arguments())
+                "prepareFromMediaId" -> session.prepareFromMediaId(call.arguments())
                 "skipToNext" -> session.skipToNext()
                 "skipToPrevious" -> session.skipToPrevious()
                 "seekTo" -> session.seekTo(call.arguments<Number>().toLong())

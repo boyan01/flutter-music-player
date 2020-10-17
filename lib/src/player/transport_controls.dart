@@ -27,6 +27,10 @@ class TransportControls {
     await _channel.invokeMethod("playFromMediaId", mediaId);
   }
 
+  Future<void> prepareFromMediaId(String mediaId) async {
+    await _channel.invokeMethod("prepareFromMediaId", mediaId);
+  }
+
   Future<void> pause() async {
     await _channel.invokeMethod("pause");
   }

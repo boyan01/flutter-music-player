@@ -6,38 +6,9 @@ import 'package:music_player/src/player/playback_state.dart';
 
 const String objectKeyPrefix = 'tech.soit.queit.player';
 
-extension PlayQueueJson on PlayQueue {
-  Map toMap() {
-    return {
-      "queueId": queueId,
-      "queueTitle": queueTitle,
-      "extras": extras,
-      "queue": queue.map((e) => e.toMap()).toList(),
-    };
-  }
-}
-
-extension MusicMetadataJson on MusicMetadata {
-  Map toMap() {
-    return {
-      "extras": extras,
-      "mediaId": mediaId,
-      "title": title,
-      "subtitle": subtitle,
-      "duration": duration,
-      "iconUri": iconUri,
-      "mediaUri": mediaUri,
-    };
-  }
-}
-
+@deprecated
 PlayQueue createPlayQueue(Map map) {
-  return PlayQueue(
-    queueId: map['queueId'],
-    queueTitle: map['queueTitle'],
-    extras: map['extras'],
-    queue: (map['queue'] as List).cast<Map>().map((e) => createMusicMetadata(e)).toList(),
-  );
+  return PlayQueue.fromMap(map);
 }
 
 BackgroundPlayQueue createBackgroundQueue(Map map) {
@@ -50,16 +21,9 @@ BackgroundPlayQueue createBackgroundQueue(Map map) {
   );
 }
 
+@deprecated
 MusicMetadata createMusicMetadata(Map map) {
-  return MusicMetadata(
-    extras: map["extras"],
-    mediaId: map["mediaId"],
-    title: map["title"],
-    subtitle: map["subtitle"],
-    duration: map["duration"],
-    iconUri: map["iconUri"],
-    mediaUri: map['mediaUri'],
-  );
+  return MusicMetadata.fromMap(map);
 }
 
 PlaybackState createPlaybackState(Map map) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +24,8 @@ class MusicPlayer extends Player {
 
   MusicPlayer._internal() : super() {
     _uiChannel.setMethodCallHandler(_handleRemoteCall);
-    _uiChannel.invokeMethod("init");
+    final Future<bool> initResult = _uiChannel.invokeMethod("init");
+    _initCompleter.complete(initResult);
 
     _queue.addListener(notifyListeners);
     _playMode.addListener(notifyListeners);
@@ -44,13 +47,13 @@ class MusicPlayer extends Player {
   Future<MusicMetadata> getNextMusic(@nonNull MusicMetadata anchor) async {
     assert(anchor != null);
     final Map map = await _uiChannel.invokeMethod("getNext", anchor.toMap());
-    return createMusicMetadata(map);
+    return MusicMetadata.fromMap(map);
   }
 
   Future<MusicMetadata> getPreviousMusic(@nonNull MusicMetadata metadata) async {
     assert(metadata != null);
     final Map map = await _uiChannel.invokeMethod("getPrevious", metadata.toMap());
-    return createMusicMetadata(map);
+    return MusicMetadata.fromMap(map);
   }
 
   @override
@@ -77,10 +80,10 @@ class MusicPlayer extends Player {
         _playbackState.value = createPlaybackState(call.arguments);
         break;
       case 'onMetadataChanged':
-        _metadata.value = createMusicMetadata(call.arguments);
+        _metadata.value = MusicMetadata.fromMap(call.arguments);
         break;
       case 'onPlayQueueChanged':
-        _queue.value = createPlayQueue(call.arguments);
+        _queue.value = PlayQueue.fromMap(call.arguments);
         break;
       case 'onPlayModeChanged':
         _playMode.value = PlayMode(call.arguments as int);
@@ -92,6 +95,8 @@ class MusicPlayer extends Player {
 
   @nonNull
   TransportControls transportControls = TransportControls(_uiChannel);
+
+  Completer<bool> _initCompleter = Completer();
 
   void insertToNext(@nonNull MusicMetadata metadata) {
     assert(metadata != null);
@@ -110,6 +115,11 @@ class MusicPlayer extends Player {
   }
 
   void removeMusicItem(MusicMetadata metadata) {}
+
+  /// Check whether music service already running.
+  Future<bool> isMusicServiceAvailable() {
+    return _initCompleter.future;
+  }
 }
 
 class MusicPlayerValue {

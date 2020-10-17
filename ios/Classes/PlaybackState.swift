@@ -10,7 +10,8 @@ struct PlaybackState {
     let bufferedPosition: TimeInterval
     let speed: Float
     let error: PlaybackError?
-    let updateTime: TimeInterval
+    // duration in mills.
+    let updateTime: Int
 }
 
 extension PlaybackState {
@@ -21,10 +22,9 @@ extension PlaybackState {
             "bufferedPosition": Int(bufferedPosition * 1000),
             "speed": speed,
             "error": error?.toMap(),
-            "updateTime": Int(updateTime * 1000)
+            "updateTime": updateTime,
         ]
     }
-
 }
 
 enum State: Int {
@@ -49,4 +49,3 @@ extension PlaybackError {
         ]
     }
 }
-

@@ -48,14 +48,14 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private var metadata: MusicMetadata? = null
 
-    private fun performPlay(metadata: MusicMetadata?) {
+    private fun performPlay(metadata: MusicMetadata?, playWhenReady: Boolean = true) {
         this.metadata = metadata
         if (metadata == null) {
             player.stop(true)
             return
         }
         player.prepare(metadata.toMediaSource(context, servicePlugin))
-        player.playWhenReady = true
+        player.playWhenReady = playWhenReady
         invalidatePlaybackState()
         invalidateMetadata()
     }
@@ -69,11 +69,11 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         skipTo { getPrevious(current) }
     }
 
-    private fun skipTo(call: suspend (PlayQueue) -> MusicMetadata?) {
+    private fun skipTo(playWhenReady: Boolean = true, call: suspend (PlayQueue) -> MusicMetadata?) {
         player.stop(true)
         launch {
             val next = runCatching { call(playQueue) }.getOrNull()
-            performPlay(next)
+            performPlay(next, playWhenReady)
         }
     }
 
@@ -142,6 +142,10 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     override fun playFromMediaId(mediaId: String) {
         skipTo { it.getByMediaId(mediaId) }
+    }
+
+    override fun prepareFromMediaId(mediaId: String) {
+        skipTo(playWhenReady = false) { it.getByMediaId(mediaId) }
     }
 
     override fun getPlayMode(): Int {
