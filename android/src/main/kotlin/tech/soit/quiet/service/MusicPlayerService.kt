@@ -34,7 +34,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
 
     override fun onCreate() {
         super.onCreate()
-        lifecycle.currentState = Lifecycle.State.CREATED
+        lifecycle.markState(Lifecycle.State.CREATED)
         sessionToken = mediaSession.sessionToken
         mediaSession.setCallback(MediaSessionCallbackAdapter(playerSession))
         playerSession.addCallback(MusicSessionCallbackAdapter(mediaSession, this))
@@ -63,7 +63,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
         clientPackageName: String,
         clientUid: Int,
         rootHints: Bundle?
-    ): BrowserRoot? {
+    ): BrowserRoot {
         return BrowserRoot("ROOT", null)
     }
 
@@ -75,7 +75,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     }
 
     override fun onDestroy() {
-        lifecycle.currentState = Lifecycle.State.DESTROYED
+        lifecycle.markState(Lifecycle.State.DESTROYED)
         mediaSession.isActive = false
         mediaSession.release()
         playerSession.destroy()
