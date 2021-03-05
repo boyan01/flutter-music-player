@@ -176,27 +176,29 @@ class PlayQueue(
 
     override fun describeContents() = 0
 
+    @Suppress("UNCHECKED_CAST")
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(queueId)
         writeString(queueTitle)
-        writeList(queue)
+        writeList(queue as MutableList<Any?>)
         writeMap(extras)
-        writeList(shuffleMusicList)
+        writeList(shuffleMusicList as MutableList<Any?>)
     }
 
+    @Suppress("UNCHECKED_CAST")
     constructor(parcel: Parcel) : this(
         requireNotNull(parcel.readString()),
         requireNotNull(parcel.readString()),
         mutableListOf<MusicItem>().apply {
-            parcel.readList(this, PlayQueue::class.java.classLoader)
+            parcel.readList(this as MutableList<Any?>, PlayQueue::class.java.classLoader)
         },
         mutableMapOf<String, Any>().apply {
             parcel.readMap(
-                this,
+                this as MutableMap<Any?, Any?>,
                 PlayQueue::class.java.classLoader
             )
         },
-        mutableListOf<String>().apply { parcel.readList(this, PlayQueue::class.java.classLoader) }
+        mutableListOf<String>().apply { parcel.readList(this as MutableList<Any?>, PlayQueue::class.java.classLoader) }
     )
 
 }
