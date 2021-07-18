@@ -35,13 +35,17 @@ class PlayerBottomController extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.queue_music),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PagePlayingQueue()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PagePlayingQueue()));
               },
             ),
           ],
         ),
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => PagePlaying()));
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => PagePlaying()));
         },
       ),
     );

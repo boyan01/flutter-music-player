@@ -4,9 +4,11 @@ import 'music_metadata.dart';
 
 abstract class PlaySequenceDelegate {
   /// [anchor] could be null
-  Future<MusicMetadata> getNext(PlayQueue queue, int playMode, MusicMetadata anchor);
+  Future<MusicMetadata>? getNext(
+      PlayQueue queue, int playMode, MusicMetadata anchor);
 
-  Future<MusicMetadata> getPrevious(PlayQueue queue, int playMode, MusicMetadata anchor);
+  Future<MusicMetadata>? getPrevious(
+      PlayQueue queue, int playMode, MusicMetadata anchor);
 }
 
 class DefaultPlaySequenceDelegate extends PlaySequenceDelegate {
@@ -17,17 +19,21 @@ class DefaultPlaySequenceDelegate extends PlaySequenceDelegate {
   static const int MODE_SHUFFLE = 2;
 
   bool _checkPlayMode(int playMode) {
-    return playMode == MODE_SEQUENCE || playMode == MODE_SINGLE || playMode == MODE_SHUFFLE;
+    return playMode == MODE_SEQUENCE ||
+        playMode == MODE_SINGLE ||
+        playMode == MODE_SHUFFLE;
   }
 
   @override
-  Future<MusicMetadata> getNext(PlayQueue queue, int playMode, MusicMetadata anchor) {
+  Future<MusicMetadata>? getNext(
+      PlayQueue queue, int playMode, MusicMetadata anchor) {
     assert(_checkPlayMode(playMode));
     return null;
   }
 
   @override
-  Future<MusicMetadata> getPrevious(PlayQueue queue, int playMode, MusicMetadata anchor) {
+  Future<MusicMetadata>? getPrevious(
+      PlayQueue queue, int playMode, MusicMetadata anchor) {
     assert(_checkPlayMode(playMode));
     return null;
   }

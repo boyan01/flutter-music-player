@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
-import 'package:music_player/src/internal/meta.dart';
 import 'package:music_player/src/player/music_player.dart';
 
 import 'internal/serialization.dart';
@@ -20,11 +19,11 @@ class MusicPlayer extends Player {
 
   static const _uiChannel = MethodChannel("tech.soit.quiet/player.ui");
 
-  static MusicPlayer _player;
+  static MusicPlayer? _player;
 
   MusicPlayer._internal() : super() {
     _uiChannel.setMethodCallHandler(_handleRemoteCall);
-    final Future<bool> initResult = _uiChannel.invokeMethod("init");
+    final Future<bool?> initResult = _uiChannel.invokeMethod("init");
     _initCompleter.complete(initResult);
 
     _queue.addListener(notifyListeners);
@@ -37,22 +36,22 @@ class MusicPlayer extends Player {
     if (_player == null) {
       _player = MusicPlayer._internal();
     }
-    return _player;
+    return _player!;
   }
 
-  void setPlayQueue(@nonNull PlayQueue queue) {
+  void setPlayQueue(PlayQueue queue) {
     _uiChannel.invokeMethod("setPlayQueue", queue.toMap());
   }
 
-  Future<MusicMetadata> getNextMusic(@nonNull MusicMetadata anchor) async {
-    assert(anchor != null);
-    final Map map = await _uiChannel.invokeMethod("getNext", anchor.toMap());
+  Future<MusicMetadata> getNextMusic(MusicMetadata anchor) async {
+    final Map map = await (_uiChannel.invokeMethod("getNext", anchor.toMap())
+        as FutureOr<Map<dynamic, dynamic>>);
     return MusicMetadata.fromMap(map);
   }
 
-  Future<MusicMetadata> getPreviousMusic(@nonNull MusicMetadata metadata) async {
-    assert(metadata != null);
-    final Map map = await _uiChannel.invokeMethod("getPrevious", metadata.toMap());
+  Future<MusicMetadata> getPreviousMusic(MusicMetadata metadata) async {
+    final Map map = await (_uiChannel.invokeMethod(
+        "getPrevious", metadata.toMap()) as FutureOr<Map<dynamic, dynamic>>);
     return MusicMetadata.fromMap(map);
   }
 
@@ -66,12 +65,13 @@ class MusicPlayer extends Player {
   ValueListenable<PlayMode> get playModeListenable => _playMode;
 
   @override
-  ValueListenable<MusicMetadata> get metadataListenable => _metadata;
+  ValueListenable<MusicMetadata?> get metadataListenable => _metadata;
 
   final ValueNotifier<PlayQueue> _queue = ValueNotifier(PlayQueue.empty());
-  final ValueNotifier<PlaybackState> _playbackState = ValueNotifier(PlaybackState.none());
+  final ValueNotifier<PlaybackState> _playbackState =
+      ValueNotifier(PlaybackState.none());
   final ValueNotifier<PlayMode> _playMode = ValueNotifier(PlayMode.sequence);
-  final ValueNotifier<MusicMetadata> _metadata = ValueNotifier(null);
+  final ValueNotifier<MusicMetadata?> _metadata = ValueNotifier(null);
 
   Future<dynamic> _handleRemoteCall(MethodCall call) async {
     log.fine("on MethodCall: ${call.method} args = ${call.arguments}");
@@ -86,25 +86,22 @@ class MusicPlayer extends Player {
         _queue.value = PlayQueue.fromMap(call.arguments);
         break;
       case 'onPlayModeChanged':
-        _playMode.value = PlayMode(call.arguments as int);
+        _playMode.value = PlayMode(call.arguments as int?);
         break;
       default:
         throw UnimplementedError();
     }
   }
 
-  @nonNull
   TransportControls transportControls = TransportControls(_uiChannel);
 
-  Completer<bool> _initCompleter = Completer();
+  Completer<bool?> _initCompleter = Completer();
 
-  void insertToNext(@nonNull MusicMetadata metadata) {
-    assert(metadata != null);
+  void insertToNext(MusicMetadata metadata) {
     _uiChannel.invokeMethod("insertToNext", metadata.toMap());
   }
 
-  void playWithQueue(@nonNull PlayQueue playQueue, {MusicMetadata metadata}) {
-    assert(playQueue != null);
+  void playWithQueue(PlayQueue playQueue, {MusicMetadata? metadata}) {
     setPlayQueue(playQueue);
     if (playQueue.isEmpty) {
       return;
@@ -117,30 +114,26 @@ class MusicPlayer extends Player {
   void removeMusicItem(MusicMetadata metadata) {}
 
   /// Check whether music service already running.
-  Future<bool> isMusicServiceAvailable() {
+  Future<bool?> isMusicServiceAvailable() {
     return _initCompleter.future;
   }
 }
 
 class MusicPlayerValue {
-  @nonNull
   final PlayQueue queue;
 
-  @nonNull
   final PlayMode playMode;
 
-  @nonNull
   final PlaybackState playbackState;
 
-  @nullable
-  final MusicMetadata metadata;
+  final MusicMetadata? metadata;
 
   MusicPlayerValue({
-    this.queue,
-    this.playMode,
+    required this.queue,
+    this.playMode = PlayMode.sequence,
     this.metadata,
-    this.playbackState,
-  }) : assert(queue != null);
+    this.playbackState = const PlaybackState.none(),
+  });
 
   static final _empty = MusicPlayerValue(
     queue: PlayQueue.empty(),

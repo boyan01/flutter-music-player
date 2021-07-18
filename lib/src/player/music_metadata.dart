@@ -1,28 +1,26 @@
-import 'package:flutter/foundation.dart';
 import 'package:music_player/src/internal/meta.dart';
 
 /// Music metadata
 class MusicMetadata {
-  final Map extras;
+  final Map? extras;
   final String mediaId;
-  final String mediaUri;
-  final String title;
-  final String subtitle;
+  final String? mediaUri;
+  final String? title;
+  final String? subtitle;
 
   @nonNull
   final int duration;
-  final String iconUri;
+  final String? iconUri;
 
   MusicMetadata({
     this.extras,
-    @required this.mediaId,
+    required this.mediaId,
     this.title,
     this.subtitle,
     this.duration = 0,
     this.iconUri,
     this.mediaUri,
-  })  : assert(mediaId != null),
-        assert(duration != null);
+  });
 
   factory MusicMetadata.fromMap(Map map) {
     return MusicMetadata(

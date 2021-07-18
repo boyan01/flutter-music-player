@@ -36,7 +36,10 @@ final medias = [
 
 final playQueueList = [
   PlayQueue(queueTitle: "Simple Test", queueId: "test1", queue: medias),
-  PlayQueue(queueTitle: "Auto Fetch Test", queueId: "fm", queue: medias.getRange(0, 1).toList()),
+  PlayQueue(
+      queueTitle: "Auto Fetch Test",
+      queueId: "fm",
+      queue: medias.getRange(0, 1).toList()),
   PlayQueue(queueTitle: "Failed to Play", queueId: "test_failed", queue: [
     MusicMetadata(
       title: "Cang",
@@ -123,7 +126,10 @@ class _PlayQueueListView extends StatelessWidget {
           return ListTile(
             title: Text(queue.queueTitle),
             onTap: () {
-              Navigator.push(context, new MaterialPageRoute(builder: (context) => PagePlayQueue(queue: queue)));
+              Navigator.push(
+                  context,
+                  new MaterialPageRoute(
+                      builder: (context) => PagePlayQueue(queue: queue)));
             },
           );
         });

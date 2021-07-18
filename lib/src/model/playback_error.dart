@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Error description when a non-recoverable playback failure occurs.
 class PlaybackError {
   /// error type
@@ -8,7 +6,7 @@ class PlaybackError {
   /// error message.
   final String message;
 
-  PlaybackError({@required this.type, @required this.message});
+  PlaybackError({required this.type, required this.message});
 
   @override
   String toString() {
@@ -18,7 +16,10 @@ class PlaybackError {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PlaybackError && runtimeType == other.runtimeType && type == other.type && message == other.message;
+      other is PlaybackError &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          message == other.message;
 
   @override
   int get hashCode => type.hashCode ^ message.hashCode;

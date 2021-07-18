@@ -49,7 +49,8 @@ class RepeatModelButton extends StatelessWidget {
     return IconButton(
         icon: icon,
         onPressed: () {
-          PlayerWidget.transportControls(context).setPlayMode(_getNext(state.playMode));
+          PlayerWidget.transportControls(context)
+              .setPlayMode(_getNext(state.playMode));
         });
   }
 
@@ -70,9 +71,10 @@ class MusicPlaybackSpeedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final MusicPlayerValue state = PlayerStateWidget.of(context);
     double speed = state.playbackState.speed;
-    return FlatButton(
+    return TextButton(
       onPressed: () {
-        PlayerWidget.transportControls(context).setPlaybackSpeed(_getNext(speed));
+        PlayerWidget.transportControls(context)
+            .setPlaybackSpeed(_getNext(speed));
       },
       child: Text("${speed}X"),
     );

@@ -33,14 +33,17 @@ class _MusicTile extends StatelessWidget {
 
   final MusicMetadata metadata;
 
-  const _MusicTile({Key key, @required this.metadata, @required this.queue}) : super(key: key);
+  const _MusicTile({Key key, @required this.metadata, @required this.queue})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final playerValue = context.listenPlayerValue;
-    bool playing = playerValue.queue.queueId == queue.queueId && playerValue.metadata?.mediaId == metadata.mediaId;
+    bool playing = playerValue.queue.queueId == queue.queueId &&
+        playerValue.metadata?.mediaId == metadata.mediaId;
     return ListTile(
-      leading: playing ? const Icon(Icons.volume_up) : const Icon(Icons.music_note),
+      leading:
+          playing ? const Icon(Icons.volume_up) : const Icon(Icons.music_note),
       title: Text(metadata.title),
       subtitle: Text(metadata.subtitle),
       onTap: () {

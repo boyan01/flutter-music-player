@@ -10,20 +10,21 @@ import 'package:music_player/src/player/playback_state.dart';
 import 'ext_copy.dart';
 import 'serialization.dart';
 
-mixin ChannelPlayerCallbackAdapter on ValueNotifier<MusicPlayerValue> implements MusicPlayerCallback {
+mixin ChannelPlayerCallbackAdapter on ValueNotifier<MusicPlayerValue>
+    implements MusicPlayerCallback {
   bool handleRemoteCall(MethodCall call) {
     switch (call.method) {
       case 'onPlaybackStateChanged':
         onPlaybackStateChanged(createPlaybackState(call.arguments));
         break;
       case 'onMetadataChanged':
-        onMetadataChange(createMusicMetadata(call.arguments));
+        onMetadataChange(MusicMetadata.fromMap(call.arguments));
         break;
       case 'onPlayQueueChanged':
-        onPlayQueueChanged(createPlayQueue(call.arguments));
+        onPlayQueueChanged(PlayQueue.fromMap(call.arguments));
         break;
       case 'onPlayModeChanged':
-        onPlayModeChanged(PlayMode(call.arguments as int));
+        onPlayModeChanged(PlayMode(call.arguments as int?));
         break;
       default:
         return false;

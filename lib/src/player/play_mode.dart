@@ -1,5 +1,5 @@
 class PlayMode {
-  final int index;
+  final int? index;
 
   const PlayMode._internal(this.index);
 
@@ -12,7 +12,7 @@ class PlayMode {
     return PlayMode(index);
   }
 
-  factory PlayMode(int index) {
+  factory PlayMode(int? index) {
     if (index == 0) {
       return shuffle;
     } else if (index == 1) {
@@ -25,7 +25,8 @@ class PlayMode {
   }
 
   @override
-  bool operator ==(Object other) => identical(this, other) || other is PlayMode && index == other.index;
+  bool operator ==(Object other) =>
+      identical(this, other) || other is PlayMode && index == other.index;
 
   @override
   int get hashCode => index.hashCode;

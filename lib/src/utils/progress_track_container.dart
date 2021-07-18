@@ -9,21 +9,21 @@ class ProgressTrackingContainer extends StatefulWidget {
   final WidgetBuilder builder;
 
   const ProgressTrackingContainer({
-    Key key,
-    @required this.builder,
-    @required this.player,
-  })  : assert(builder != null),
-        assert(player != null),
-        super(key: key);
+    Key? key,
+    required this.builder,
+    required this.player,
+  }) : super(key: key);
 
   @override
-  _ProgressTrackingContainerState createState() => _ProgressTrackingContainerState();
+  _ProgressTrackingContainerState createState() =>
+      _ProgressTrackingContainerState();
 }
 
-class _ProgressTrackingContainerState extends State<ProgressTrackingContainer> with SingleTickerProviderStateMixin {
-  MusicPlayer _player;
+class _ProgressTrackingContainerState extends State<ProgressTrackingContainer>
+    with SingleTickerProviderStateMixin {
+  late MusicPlayer _player;
 
-  Ticker _ticker;
+  late Ticker _ticker;
 
   @override
   void initState() {
@@ -36,7 +36,8 @@ class _ProgressTrackingContainerState extends State<ProgressTrackingContainer> w
   }
 
   void _onStateChanged() {
-    final needTrack = widget.player.playbackStateListenable.value.state == PlayerState.Playing;
+    final needTrack = widget.player.playbackStateListenable.value.state ==
+        PlayerState.Playing;
     if (_ticker.isActive == needTrack) return;
     if (_ticker.isActive) {
       _ticker.stop();

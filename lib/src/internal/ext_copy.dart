@@ -6,10 +6,10 @@ import 'package:music_player/src/player/playback_state.dart';
 
 extension MusicPlayerValueCopy on MusicPlayerValue {
   MusicPlayerValue copy({
-    PlayMode playMode,
-    MusicMetadata metadata,
-    PlayQueue queue,
-    PlaybackState state,
+    PlayMode? playMode,
+    MusicMetadata? metadata,
+    PlayQueue? queue,
+    PlaybackState? state,
   }) {
     return MusicPlayerValue(
       playMode: playMode ?? this.playMode,

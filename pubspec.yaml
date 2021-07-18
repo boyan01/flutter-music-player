@@ -5,13 +5,13 @@ author:
 homepage:
 
 environment:
-  sdk: ">=2.6.0 <3.0.0"
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  logging: ^0.11.4
-  system_clock: 0.7.0
+  logging: ^1.0.1
+  system_clock: ^1.2.0-nullsafety.1
 
 dev_dependencies:
   flutter_test:

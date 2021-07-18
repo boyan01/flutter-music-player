@@ -14,7 +14,8 @@ class PlayerWidget extends StatefulWidget {
   }
 
   static MusicPlayer player(BuildContext context) {
-    final _PlayerWidgetState state = context.findAncestorStateOfType<_PlayerWidgetState>();
+    final _PlayerWidgetState state =
+        context.findAncestorStateOfType<_PlayerWidgetState>();
     return state.player;
   }
 
@@ -23,7 +24,8 @@ class PlayerWidget extends StatefulWidget {
 }
 
 extension PlayerContext on BuildContext {
-  TransportControls get transportControls => PlayerWidget.transportControls(this);
+  TransportControls get transportControls =>
+      PlayerWidget.transportControls(this);
 
   MusicPlayer get player => PlayerWidget.player(this);
 
@@ -73,7 +75,8 @@ class PlayerStateWidget extends InheritedWidget {
         super(key: key, child: child);
 
   static MusicPlayerValue of(BuildContext context) {
-    final widget = context.dependOnInheritedWidgetOfExactType<PlayerStateWidget>();
+    final widget =
+        context.dependOnInheritedWidgetOfExactType<PlayerStateWidget>();
     return widget.state;
   }
 

@@ -50,13 +50,15 @@ class _PlayingInformation extends StatelessWidget {
       children: <Widget>[
         Text("current playing : ${context.listenPlayerValue.metadata.title} "),
         FutureBuilder<MusicMetadata>(
-          future: context.player.getPreviousMusic(context.listenPlayerValue.metadata),
+          future: context.player
+              .getPreviousMusic(context.listenPlayerValue.metadata),
           builder: (context, snapshot) {
             return Text("previous : ${snapshot.data?.title}");
           },
         ),
         FutureBuilder<MusicMetadata>(
-          future: context.player.getNextMusic(context.listenPlayerValue.metadata),
+          future:
+              context.player.getNextMusic(context.listenPlayerValue.metadata),
           builder: (context, snapshot) {
             return Text("next : ${snapshot.data?.title}");
           },
@@ -80,9 +82,12 @@ class _PlayingProgressState extends State<_PlayingProgress> {
   Widget build(BuildContext context) {
     final playbackState = context.listenPlayerValue.playbackState;
     final metadata = context.listenPlayerValue.metadata;
-    final int position = _isUserTracking ? _userTrackingPosition.round() : playbackState.computedPosition;
+    final int position = _isUserTracking
+        ? _userTrackingPosition.round()
+        : playbackState.computedPosition;
     return SliderTheme(
-      data: SliderThemeData(thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6)),
+      data: SliderThemeData(
+          thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
         child: Row(
@@ -91,7 +96,9 @@ class _PlayingProgressState extends State<_PlayingProgress> {
             Text(position.formatAsTimeStamp()),
             Expanded(
               child: Slider(
-                value: position.toDouble().clamp(0.0, metadata.duration.toDouble()),
+                value: position
+                    .toDouble()
+                    .clamp(0.0, metadata.duration.toDouble()),
                 max: metadata.duration.toDouble(),
                 onChangeStart: (value) {
                   setState(() {
