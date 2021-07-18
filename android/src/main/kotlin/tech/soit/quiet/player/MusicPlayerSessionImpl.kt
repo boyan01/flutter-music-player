@@ -2,12 +2,11 @@ package tech.soit.quiet.player
 
 import android.content.Context
 import android.os.SystemClock
+import androidx.annotation.UiThread
+import androidx.annotation.WorkerThread
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import tech.soit.quiet.MusicPlayerServicePlugin
 import tech.soit.quiet.MusicPlayerSession
 import tech.soit.quiet.MusicResult
@@ -31,10 +30,11 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     // Wrap a SimpleExoPlayer with a decorator to handle audio focus for us.
     private val player: ExoPlayer by lazy {
-        ExoPlayerFactory.newSimpleInstance(context).apply {
-            setAudioAttributes(audioAttribute, true)
-            addListener(ExoPlayerEventListener())
-        }
+        SimpleExoPlayer.Builder(context)
+            .setAudioAttributes(audioAttribute, true)
+            .build().apply {
+                addListener(ExoPlayerEventListener())
+            }
     }
 
     @Suppress("JoinDeclarationAndAssignment")
@@ -48,49 +48,62 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private var metadata: MusicMetadata? = null
 
+    @UiThread
     private fun performPlay(metadata: MusicMetadata?, playWhenReady: Boolean = true) {
         this.metadata = metadata
         if (metadata == null) {
-            player.stop(true)
+            player.stop()
+            player.clearMediaItems()
             return
         }
-        player.prepare(metadata.toMediaSource(context, servicePlugin))
+        player.setMediaSource(metadata.toMediaSource(context, servicePlugin))
+        player.prepare()
         player.playWhenReady = playWhenReady
         invalidatePlaybackState()
         invalidateMetadata()
     }
 
 
+    @WorkerThread
     override fun skipToNext() {
         skipTo { getNext(current) }
     }
 
+    @WorkerThread
     override fun skipToPrevious() {
         skipTo { getPrevious(current) }
     }
 
     private fun skipTo(playWhenReady: Boolean = true, call: suspend (PlayQueue) -> MusicMetadata?) {
-        player.stop(true)
         launch {
+            player.stop()
+            player.clearMediaItems()
             val next = runCatching { call(playQueue) }.getOrNull()
             performPlay(next, playWhenReady)
         }
     }
 
 
+    @WorkerThread
     override fun play() {
-        if (player.playbackError != null) {
-            player.stop(true)
-            performPlay(metadata)
-        } else {
-            player.playWhenReady = true
+        launch {
+            if (player.playerError != null) {
+                player.stop()
+                performPlay(metadata)
+            } else {
+                player.playWhenReady = true
+            }
         }
     }
 
+    @WorkerThread
     override fun pause() {
-        player.playWhenReady = false
+        launch {
+            player.playWhenReady = false
+        }
     }
 
+    @WorkerThread
     override fun getPlayQueue(): PlayQueue {
         return playQueue
     }
@@ -105,14 +118,17 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             ?: servicePlugin.onNoMoreMusic(SkipType.Next, playQueue, playMode)
     }
 
+    @WorkerThread
     override fun getPrevious(anchor: MusicMetadata?, result: MusicResult) {
         launch { result.onResult(getPrevious(anchor)) }
     }
 
+    @WorkerThread
     override fun getNext(anchor: MusicMetadata?, result: MusicResult) {
         launch { result.onResult(getNext(anchor)) }
     }
 
+    @WorkerThread
     override fun setPlayQueue(queue: PlayQueue) {
         playQueue.onQueueChanged = null
         queue.onQueueChanged = ::invalidatePlayQueue
@@ -120,60 +136,77 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         invalidatePlayQueue()
     }
 
+    @WorkerThread
     override fun seekTo(pos: Long) {
-        player.seekTo(pos)
+        launch {
+            player.seekTo(pos)
+        }
     }
 
+    @WorkerThread
     override fun removeCallback(callback: MusicSessionCallback) {
         shimSessionCallback.removeCallback(callback)
     }
 
+    @WorkerThread
     override fun getPlaybackState(): PlaybackState {
         return playbackStateBackup
     }
 
+    @WorkerThread
     override fun stop() {
         player.playWhenReady = false
     }
 
+    @WorkerThread
     override fun addCallback(callback: MusicSessionCallback) {
         shimSessionCallback.addCallback(callback)
     }
 
+    @WorkerThread
     override fun playFromMediaId(mediaId: String) {
         skipTo { it.getByMediaId(mediaId) }
     }
 
+    @WorkerThread
     override fun prepareFromMediaId(mediaId: String) {
         skipTo(playWhenReady = false) { it.getByMediaId(mediaId) }
     }
 
+    @WorkerThread
     override fun getPlayMode(): Int {
         return playMode.rawValue
     }
 
+    @WorkerThread
     override fun getCurrent(): MusicMetadata? {
         return metadata
     }
 
+    @WorkerThread
     override fun setPlayMode(playMode: Int) {
         this.playMode = PlayMode.valueOf(playMode)
         shimSessionCallback.onPlayModeChanged(playMode)
     }
 
+    @WorkerThread
     override fun addMetadata(metadata: MusicMetadata, anchorMediaId: String?) {
         playQueue.add(anchorMediaId, metadata)
         invalidatePlayQueue()
     }
 
+    @WorkerThread
     override fun removeMetadata(mediaId: String) {
         playQueue.remove(mediaId)
         invalidatePlayQueue()
     }
 
+    @WorkerThread
     override fun setPlaybackSpeed(speed: Double) {
-        player.playbackParameters = PlaybackParameters(speed.toFloat())
-        invalidatePlaybackState()
+        launch {
+            player.playbackParameters = PlaybackParameters(speed.toFloat())
+            invalidatePlaybackState()
+        }
     }
 
     /**
@@ -221,17 +254,18 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         shimSessionCallback.onPlayQueueChanged(playQueue)
     }
 
+    @WorkerThread
     override fun destroy() {
         cancel()
     }
 
 
-    private inner class ExoPlayerEventListener : Player.EventListener {
+    private inner class ExoPlayerEventListener : Player.Listener {
 
         override fun onLoadingChanged(isLoading: Boolean) {
         }
 
-        override fun onPlayerError(error: ExoPlaybackException?) {
+        override fun onPlayerError(error: ExoPlaybackException) {
             invalidatePlaybackState()
         }
 
@@ -252,11 +286,11 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
             }
         }
 
-        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
             invalidatePlaybackState()
         }
 
-        override fun onTimelineChanged(timeline: Timeline?, manifest: Any?, reason: Int) {
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
             invalidateMetadata()
         }
 

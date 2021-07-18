@@ -17,7 +17,7 @@ import tech.soit.quiet.player.MusicMetadata
 internal fun MusicMetadata.toMediaSource(
     context: Context,
     servicePlugin: MusicPlayerServicePlugin
-): ProgressiveMediaSource? {
+): ProgressiveMediaSource {
     var factory: DataSource.Factory = DefaultDataSourceFactory(
         context,
         servicePlugin.config.userAgent

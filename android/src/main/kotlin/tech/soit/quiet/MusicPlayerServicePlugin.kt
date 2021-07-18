@@ -2,6 +2,7 @@ package tech.soit.quiet
 
 import android.content.Context
 import android.net.Uri
+import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterJNI
 import io.flutter.embedding.engine.dart.DartExecutor
@@ -9,7 +10,6 @@ import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.view.FlutterMain
 import kotlinx.coroutines.withTimeout
 import tech.soit.quiet.player.MusicMetadata
 import tech.soit.quiet.player.MusicPlayerSessionImpl
@@ -55,19 +55,20 @@ class MusicPlayerServicePlugin(
             context: Context,
             playerSession: MusicPlayerSessionImpl
         ): MusicPlayerServicePlugin {
+            val flutterLoader = FlutterInjector.instance().flutterLoader()
             try {
-                FlutterMain.startInitialization(context)
+                flutterLoader.startInitialization(context)
             } catch (e: UnsatisfiedLinkError) {
                 // in android test mode, we don't have libflutter.so in apk
                 //TODO YangBin test compatibility
                 throw e
             }
-            FlutterMain.ensureInitializationComplete(context, null)
+            flutterLoader.ensureInitializationComplete(context, null)
 
             val engine = FlutterEngine(context, FlutterLoader(), FlutterJNI())
             engine.dartExecutor.executeDartEntrypoint(
                 DartExecutor.DartEntrypoint(
-                    FlutterMain.findAppBundlePath(),
+                    flutterLoader.findAppBundlePath(),
                     "playerBackgroundService"
                 )
             )
