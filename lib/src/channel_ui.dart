@@ -44,14 +44,13 @@ class MusicPlayer extends Player {
   }
 
   Future<MusicMetadata> getNextMusic(MusicMetadata anchor) async {
-    final Map map = await (_uiChannel.invokeMethod("getNext", anchor.toMap())
-        as FutureOr<Map<dynamic, dynamic>>);
+    final Map map = await _uiChannel.invokeMethod("getNext", anchor.toMap());
     return MusicMetadata.fromMap(map);
   }
 
   Future<MusicMetadata> getPreviousMusic(MusicMetadata metadata) async {
-    final Map map = await (_uiChannel.invokeMethod(
-        "getPrevious", metadata.toMap()) as FutureOr<Map<dynamic, dynamic>>);
+    final Map map =
+        await _uiChannel.invokeMethod("getPrevious", metadata.toMap());
     return MusicMetadata.fromMap(map);
   }
 
