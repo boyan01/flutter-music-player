@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:music_player/music_player.dart';
 
-import '../channel_ui.dart';
 
 class ProgressTrackingContainer extends StatefulWidget {
   final MusicPlayer player;
