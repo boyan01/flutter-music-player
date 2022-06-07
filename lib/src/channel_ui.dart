@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
@@ -8,10 +7,6 @@ import 'package:music_player/music_player.dart';
 import 'package:music_player/src/player/music_player.dart';
 
 import 'internal/serialization.dart';
-import 'player/music_metadata.dart';
-import 'player/play_queue.dart';
-import 'player/playback_state.dart';
-import 'player/transport_controls.dart';
 
 /// MusicPlayer for UI interaction.
 class MusicPlayer extends Player {

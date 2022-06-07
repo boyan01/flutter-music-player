@@ -61,7 +61,7 @@ Future runBackgroundService({
   final log = Logger("runBackgroundService");
   WidgetsFlutterBinding.ensureInitialized();
   // decrease background image memory
-  PaintingBinding.instance!.imageCache!.maximumSize = 20 << 20; // 20 MB
+  PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
   final serviceChannel = MethodChannel("tech.soit.quiet/background_callback");
   final player = BackgroundMusicPlayer._internal(serviceChannel, MusicPlayer());
   playQueueInterceptor?._player = player;

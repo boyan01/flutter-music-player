@@ -1,7 +1,4 @@
 import 'package:music_player/music_player.dart';
-import 'package:music_player/src/model/playback_error.dart';
-import 'package:music_player/src/player/music_metadata.dart';
-import 'package:music_player/src/player/playback_state.dart';
 
 const String objectKeyPrefix = 'tech.soit.queit.player';
 
