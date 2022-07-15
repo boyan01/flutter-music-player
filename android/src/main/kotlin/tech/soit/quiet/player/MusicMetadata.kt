@@ -9,7 +9,7 @@ data class MusicMetadata constructor(val obj: Map<String, Any?>) : Parcelable {
 
     val title: String? get() = obj["title"] as String?
 
-    val subtitle: String? get() = obj["subtitle"] as String
+    val subtitle: String? get() = obj["subtitle"] as String?
 
     val duration: Long? get() = (obj["duration"] as Number?)?.toLong()
 

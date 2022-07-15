@@ -1,6 +1,10 @@
 package tech.soit.quiet.service
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -14,12 +18,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.media.session.MediaButtonReceiver
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import tech.soit.quiet.R
-import tech.soit.quiet.player.*
+import tech.soit.quiet.player.BaseMusicSessionCallback
+import tech.soit.quiet.player.MusicMetadata
+import tech.soit.quiet.player.MusicPlayerSessionImpl
+import tech.soit.quiet.player.PlaybackState
+import tech.soit.quiet.player.State
 import tech.soit.quiet.utils.ArtworkCache
 
 
@@ -27,7 +36,7 @@ class NotificationAdapter(
     private val context: Service,
     private val playerSession: MusicPlayerSessionImpl,
     private val mediaSession: MediaSessionCompat
-) : BaseMusicSessionCallback(), LifecycleObserver {
+) : BaseMusicSessionCallback(), LifecycleObserver, CoroutineScope by MainScope() {
 
     private val notificationBuilder = NotificationBuilder(context)
 
@@ -58,7 +67,7 @@ class NotificationAdapter(
 
     private var isForegroundService = false
 
-    private fun startNotificationRunner() = GlobalScope.launch(Dispatchers.Main) {
+    private fun startNotificationRunner() = launch(Dispatchers.Main) {
 
         for ((playbackState, notification) in notificationBuilder.notificationGenerator) {
             when (val updatedState = playbackState.state) {
@@ -113,7 +122,7 @@ class NotificationAdapter(
  * Helper class to encapsulate code for building notifications.
  *
  */
-class NotificationBuilder(private val context: Service) {
+class NotificationBuilder(private val context: Service) : CoroutineScope by MainScope() {
 
     companion object {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
@@ -168,12 +177,12 @@ class NotificationBuilder(private val context: Service) {
 
         val playbackState = playerSession.playbackState
         if (playbackState.state == State.None) {
-            notificationGenerator.offer(playbackState to null)
+            notificationGenerator.trySend(playbackState to null)
             return
         }
 
         fun updateNotificationInner(artwork: Bitmap?, color: Int?) {
-            notificationGenerator.offer(
+            notificationGenerator.trySend(
                 playbackState to buildNotificationWithIcon(
                     mediaSessionCompat.sessionToken,
                     metadata,
@@ -201,7 +210,7 @@ class NotificationBuilder(private val context: Service) {
         }
 
         updateNotificationInner(null, null)
-        GlobalScope.launch(Dispatchers.Main) {
+        launch(Dispatchers.Main) {
             val artwork = playerSession.servicePlugin.loadImage(metadata, iconUri)
             if (artwork != null) {
                 iconCacheKey?.let { ArtworkCache.put(it, artwork) }

@@ -8,10 +8,11 @@ import android.os.IBinder
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import tech.soit.quiet.player.MusicMetadata
+import tech.soit.quiet.player.PlayMode
 import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.service.MusicPlayerService
 import tech.soit.quiet.utils.getNext
@@ -72,16 +73,16 @@ private class MusicPlayerUiChannel(
                 "prepareFromMediaId" -> session.prepareFromMediaId(call.arguments())
                 "skipToNext" -> session.skipToNext()
                 "skipToPrevious" -> session.skipToPrevious()
-                "seekTo" -> session.seekTo(call.arguments<Number>().toLong())
-                "setPlayMode" -> session.playMode = call.arguments()
-                "setPlayQueue" -> session.playQueue = PlayQueue(call.arguments<Map<String, Any>>())
-                "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments()))?.obj
-                "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments()))?.obj
+                "seekTo" -> session.seekTo(call.arguments<Number>()!!.toLong())
+                "setPlayMode" -> session.playMode = call.arguments() ?: PlayMode.Sequence.rawValue
+                "setPlayQueue" -> session.playQueue = PlayQueue(call.arguments<Map<String, Any>>()!!)
+                "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments()!!))?.obj
+                "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments()!!))?.obj
                 "insertToNext" -> session.addMetadata(
-                    MusicMetadata.fromMap(call.arguments()),
+                    MusicMetadata.fromMap(call.arguments()!!),
                     session.current?.mediaId
                 )
-                "setPlaybackSpeed" -> session.setPlaybackSpeed(call.arguments<Double>())
+                "setPlaybackSpeed" -> session.setPlaybackSpeed(call.arguments<Double>()!!)
                 else -> null
             }
 
@@ -114,7 +115,7 @@ private fun Context.startMusicService(): RemotePlayer {
 }
 
 
-private class RemotePlayer : ServiceConnection {
+private class RemotePlayer : ServiceConnection, CoroutineScope by MainScope() {
 
     var playerSession: MusicPlayerSession? = null
         private set
@@ -136,7 +137,7 @@ private class RemotePlayer : ServiceConnection {
         if (session == null) {
             pendingExecution.add(call)
         } else {
-            GlobalScope.launch(Dispatchers.Main) { call(session) }
+            launch { call(session) }
         }
     }
 }

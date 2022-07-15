@@ -3,7 +3,8 @@ description: A new Flutter plugin.
 version: 0.0.1
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=2.17.0 <3.0.0'
+  flutter: ">=3.0.0" 
 
 dependencies:
   flutter:
@@ -17,8 +18,12 @@ dev_dependencies:
 
 flutter:
   plugin:
-    androidPackage: tech.soit.quiet
-    pluginClass: MusicPlayerUiPlugin
+    platforms:
+      android:
+        package: tech.soit.quiet
+        pluginClass: MusicPlayerUiPlugin
+      ios:
+        pluginClass: MusicPlayerUiPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

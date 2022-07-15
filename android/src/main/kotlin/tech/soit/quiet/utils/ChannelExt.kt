@@ -19,7 +19,7 @@ suspend fun MethodChannel.invokeAsync(method: String, arguments: Any?): Any? =
                     continuation.resumeWithException(NotImplementedError("$method , $arguments"))
                 }
 
-                override fun error(errorCode: String?, errorMessage: String?, errorDetails: Any?) {
+                override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
                     continuation.resumeWithException(Exception("$errorCode , $errorMessage , $errorDetails"))
                 }
 
