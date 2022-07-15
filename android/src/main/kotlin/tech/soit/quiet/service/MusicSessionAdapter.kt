@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaSession
 import tech.soit.quiet.MusicSessionCallback
 import tech.soit.quiet.player.*
 import tech.soit.quiet.utils.ArtworkCache
@@ -17,7 +19,15 @@ import tech.soit.quiet.utils.log
 
 class MediaSessionCallbackAdapter(
     private val playerSession: MusicPlayerSessionImpl
-) : MediaSessionCompat.Callback() {
+) : MediaLibraryService.MediaLibrarySession.Callback {
+
+    override fun onPlayerCommandRequest(
+        session: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        playerCommand: Int
+    ): Int {
+        return super.onPlayerCommandRequest(session, controller, playerCommand)
+    }
 
     override fun onPlay() {
         playerSession.play()

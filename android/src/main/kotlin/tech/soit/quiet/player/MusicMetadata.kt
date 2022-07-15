@@ -1,7 +1,10 @@
 package tech.soit.quiet.player
 
+import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 
 data class MusicMetadata constructor(val obj: Map<String, Any?>) : Parcelable {
 
@@ -33,6 +36,20 @@ data class MusicMetadata constructor(val obj: Map<String, Any?>) : Parcelable {
         val newObj = obj.toMutableMap()
         newObj["duration"] = duration
         return MusicMetadata(newObj)
+    }
+
+    fun toMediaItem(): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setUri(mediaUri)
+            .setMediaMetadata(
+                MediaMetadata.Builder().apply {
+                    setTitle(title)
+                    setSubtitle(subtitle)
+                    setArtworkUri(kotlin.runCatching { Uri.parse(iconUri) }.getOrNull())
+                }.build()
+            )
+            .build()
     }
 
     companion object {

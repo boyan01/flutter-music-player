@@ -1,18 +1,25 @@
 package tech.soit.quiet.service
 
+import android.app.PendingIntent
 import android.content.Intent
-import android.os.Bundle
+import android.content.pm.PackageManager
 import android.os.IBinder
-import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.session.MediaSessionCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.media.MediaBrowserServiceCompat
+import androidx.media3.common.AudioAttributes
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaSession
+import tech.soit.quiet.MusicPlayerServicePlugin
+import tech.soit.quiet.ext.UrlUpdatingDataSource
 import tech.soit.quiet.player.MusicPlayerSessionImpl
 import tech.soit.quiet.receiver.BecomingNoisyReceiverAdapter
 
-class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
+class MusicPlayerService : MediaLibraryService(), LifecycleOwner {
 
     companion object {
         const val ACTION_MUSIC_PLAYER_SERVICE = "tech.soit.quiet.session.MusicSessionService"
@@ -24,19 +31,50 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
 
     override fun getLifecycle(): Lifecycle = lifecycle
 
-    private val playerSession by lazy { MusicPlayerSessionImpl(this) }
+    private lateinit var player: ExoPlayer
+    private lateinit var mediaSession: MediaLibrarySession
 
-    private val mediaSession by lazy {
-        return@lazy MediaSessionCompat(this, "MusicService").apply {
-            isActive = true
-        }
-    }
+    private val librarySessionCallback = CustomMediaLibrarySessionCallback()
+
+    private lateinit var playerSession: MusicPlayerSessionImpl
+
+    private lateinit var servicePlugin: MusicPlayerServicePlugin
 
     override fun onCreate() {
         super.onCreate()
-        lifecycle.markState(Lifecycle.State.CREATED)
-        sessionToken = mediaSession.sessionToken
-        mediaSession.setCallback(MediaSessionCallbackAdapter(playerSession))
+
+        playerSession = MusicPlayerSessionImpl(this, player)
+        servicePlugin = MusicPlayerServicePlugin.startServiceIsolate(this, playerSession)
+
+        player = ExoPlayer.Builder(this)
+            .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus = */ true)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(
+                    UrlUpdatingDataSource.Factory(DefaultDataSource.Factory(this), servicePlugin),
+                    DefaultExtractorsFactory()
+                )
+            )
+            .build()
+
+
+        lifecycle.currentState = Lifecycle.State.CREATED
+
+        val applicationInfo = packageManager
+            ?.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        val destinationAction = applicationInfo?.metaData
+            ?.getString(META_DATA_PLAYER_LAUNCH_ACTIVITY_ACTION, null)
+        val customIntent = if (destinationAction == null) null else Intent(destinationAction)
+
+        mediaSession = MediaLibrarySession.Builder(this, player, librarySessionCallback)
+            .apply {
+                if (customIntent != null) {
+                    val intent = PendingIntent.getActivity(this@MusicPlayerService, 1000, customIntent, 0)
+                    setSessionActivity(intent)
+                }
+            }
+            .build()
+
+
         playerSession.addCallback(MusicSessionCallbackAdapter(mediaSession, this))
         playerSession.addCallback(BecomingNoisyReceiverAdapter(this, playerSession))
         val notificationAdapter = NotificationAdapter(this, playerSession, mediaSession)
@@ -52,21 +90,6 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     }
 
 
-    override fun onLoadChildren(
-        parentId: String,
-        result: Result<MutableList<MediaBrowserCompat.MediaItem>>
-    ) {
-        result.sendResult(mutableListOf())
-    }
-
-    override fun onGetRoot(
-        clientPackageName: String,
-        clientUid: Int,
-        rootHints: Bundle?
-    ): BrowserRoot {
-        return BrowserRoot("ROOT", null)
-    }
-
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         if (playerSession.servicePlugin.config.pauseWhenTaskRemoved) {
@@ -74,12 +97,22 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
         }
     }
 
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
+        return mediaSession
+    }
+
     override fun onDestroy() {
-        lifecycle.markState(Lifecycle.State.DESTROYED)
-        mediaSession.isActive = false
+        lifecycle.currentState = Lifecycle.State.DESTROYED
+        player.release()
         mediaSession.release()
         playerSession.destroy()
         super.onDestroy()
+    }
+
+
+    private class CustomMediaLibrarySessionCallback : MediaLibrarySession.Callback {
+
+
     }
 
 

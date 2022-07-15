@@ -4,9 +4,15 @@ import android.content.Context
 import android.os.SystemClock
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
-import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.audio.AudioAttributes
-import kotlinx.coroutines.*
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
+import androidx.media3.common.Timeline
+import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import tech.soit.quiet.MusicPlayerServicePlugin
 import tech.soit.quiet.MusicPlayerSession
 import tech.soit.quiet.MusicResult
@@ -17,24 +23,13 @@ import tech.soit.quiet.ext.playbackError
 import tech.soit.quiet.ext.toMediaSource
 import tech.soit.quiet.service.ShimMusicSessionCallback
 
-class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPlayerSession.Stub(),
-    CoroutineScope by MainScope() {
+class MusicPlayerSessionImpl constructor(
+    private val context: Context,
+    private val player: ExoPlayer
+) : MusicPlayerSession.Stub(), CoroutineScope by MainScope() {
 
-    companion object {
-        private val audioAttribute = AudioAttributes.Builder()
-            .setContentType(C.CONTENT_TYPE_MUSIC)
-            .setUsage(C.USAGE_MEDIA)
-            .build()
-
-    }
-
-    // Wrap a SimpleExoPlayer with a decorator to handle audio focus for us.
-    private val player: ExoPlayer by lazy {
-        SimpleExoPlayer.Builder(context)
-            .setAudioAttributes(audioAttribute, true)
-            .build().apply {
-                addListener(ExoPlayerEventListener())
-            }
+    init {
+        player.addListener(ExoPlayerEventListener())
     }
 
     @Suppress("JoinDeclarationAndAssignment")
@@ -191,14 +186,18 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     @WorkerThread
     override fun addMetadata(metadata: MusicMetadata, anchorMediaId: String?) {
-        playQueue.add(anchorMediaId, metadata)
-        invalidatePlayQueue()
+        launch {
+            playQueue.add(anchorMediaId, metadata)
+            invalidatePlayQueue()
+        }
     }
 
     @WorkerThread
     override fun removeMetadata(mediaId: String) {
-        playQueue.remove(mediaId)
-        invalidatePlayQueue()
+        launch {
+            playQueue.remove(mediaId)
+            invalidatePlayQueue()
+        }
     }
 
     @WorkerThread
@@ -262,21 +261,21 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private inner class ExoPlayerEventListener : Player.Listener {
 
-        override fun onLoadingChanged(isLoading: Boolean) {
-        }
-
-        override fun onPlayerError(error: ExoPlaybackException) {
+        override fun onPlayerError(error: PlaybackException) {
             invalidatePlaybackState()
         }
 
-        override fun onPositionDiscontinuity(reason: Int) {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
             invalidatePlaybackState()
         }
 
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackStateInt: Int) {
+        override fun onPlaybackStateChanged(playbackState: Int) {
             invalidatePlaybackState()
-            // auto play next
-            if (playbackStateInt == Player.STATE_ENDED) {
+            if (playbackState == Player.STATE_ENDED) {
                 if (playMode == PlayMode.Single) {
                     player.seekTo(0)
                     player.playWhenReady = true
@@ -284,6 +283,10 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
                     skipToNext()
                 }
             }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            invalidatePlaybackState()
         }
 
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {

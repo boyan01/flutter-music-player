@@ -2,14 +2,16 @@ package tech.soit.quiet.ext
 
 import android.content.Context
 import android.net.Uri
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.upstream.DataSource
-import com.google.android.exoplayer2.upstream.DataSpec
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory
-import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor
-import com.google.android.exoplayer2.upstream.cache.SimpleCache
-import com.google.android.exoplayer2.util.Util
+import androidx.media3.common.MediaItem
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.NoOpCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import kotlinx.coroutines.runBlocking
 import tech.soit.quiet.MusicPlayerServicePlugin
 import tech.soit.quiet.player.MusicMetadata
@@ -18,11 +20,7 @@ internal fun MusicMetadata.toMediaSource(
     context: Context,
     servicePlugin: MusicPlayerServicePlugin
 ): ProgressiveMediaSource {
-    var factory: DataSource.Factory = DefaultDataSourceFactory(
-        context,
-        servicePlugin.config.userAgent
-            ?: Util.getUserAgent(context, context.applicationInfo.name), null
-    )
+    var factory: DataSource.Factory = DefaultDataSource.Factory(context)
     factory = UrlUpdatingDataSource.Factory(factory, servicePlugin)
     if (servicePlugin.config.enableCache) {
         factory = CacheDataSourceFactory(SimpleCache(context.cacheDir, NoOpCacheEvictor()), factory)
@@ -48,10 +46,11 @@ private fun buildMediaUri(metadata: MusicMetadata): Uri {
         .build()
 }
 
+
 /**
  * auto update url when we read data from dataSource
  */
-private class UrlUpdatingDataSource(
+class UrlUpdatingDataSource(
     private val dataSource: DataSource,
     private val backgroundChannel: MusicPlayerServicePlugin
 ) : DataSource by dataSource {
