@@ -5,7 +5,7 @@
 import AVFoundation
 import Foundation
 import MediaPlayer
-import SwiftAudio
+import SwiftAudioEx
 
 ///
 /// Music Player.

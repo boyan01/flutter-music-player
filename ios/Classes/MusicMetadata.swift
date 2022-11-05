@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import SwiftAudio
+import SwiftAudioEx
 
 class MusicMetadata: Equatable {
 
