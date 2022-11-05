@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
@@ -36,10 +34,7 @@ final medias = [
 
 final playQueueList = [
   PlayQueue(queueTitle: "Simple Test", queueId: "test1", queue: medias),
-  PlayQueue(
-      queueTitle: "Auto Fetch Test",
-      queueId: "fm",
-      queue: medias.getRange(0, 1).toList()),
+  PlayQueue(queueTitle: "Auto Fetch Test", queueId: "fm", queue: medias.getRange(0, 1).toList()),
   PlayQueue(queueTitle: "Failed to Play", queueId: "test_failed", queue: [
     MusicMetadata(
       title: "Cang",
@@ -58,11 +53,12 @@ void main() {
 }
 
 @pragma("vm:entry-point")
-void playerBackgroundService() {
+void playerBackgroundService() async {
   debugPrint("start playerBackgroundService");
   Logger.root.onRecord.listen((record) {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
+  await Future.delayed(const Duration(milliseconds: 100));
   runBackgroundService(
     config: Config(
       pauseWhenTaskRemoved: false,
@@ -126,10 +122,7 @@ class _PlayQueueListView extends StatelessWidget {
           return ListTile(
             title: Text(queue.queueTitle),
             onTap: () {
-              Navigator.push(
-                  context,
-                  new MaterialPageRoute(
-                      builder: (context) => PagePlayQueue(queue: queue)));
+              Navigator.push(context, new MaterialPageRoute(builder: (context) => PagePlayQueue(queue: queue)));
             },
           );
         });
