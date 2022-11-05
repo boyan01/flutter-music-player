@@ -51,6 +51,10 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
       player.playFromMediaId(call.arguments as! String)
       result(nil)
       break
+    case "prepareFromMediaId":
+      player.prepareFromMediaId(call.arguments as! String)
+      result(nil)
+      break
     case "skipToNext":
       player.skipToNext()
       result(nil)

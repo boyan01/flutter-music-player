@@ -129,7 +129,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
       updateTime: systemUptime())
   }
 
-  private func performPlay(metadata: MusicMetadata?) {
+  private func performPlay(metadata: MusicMetadata?, playWhenReady: Bool) {
     self.metadata = metadata
     player.stop()
     // clear error, prepare to play next item.
@@ -144,7 +144,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
             debugPrint("active session errored: \(error)")
           }
           debugPrint("start play: \(String(describing: item.getTitle())) \(item.getSourceUrl())")
-          try self.player.load(item: item, playWhenReady: true)
+          try self.player.load(item: item, playWhenReady: playWhenReady)
         } catch {
           self.playbackError = PlaybackError(
             type: .source,
@@ -196,10 +196,16 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     }
   }
 
-  private func skipTo(execute call: (_ completion: @escaping (MusicMetadata?) -> Void) -> Void) {
+  func prepareFromMediaId(_ mediaId: String) {
+    skipTo(playWhenReady: false) { completion in
+      completion(playQueue.getByMediaId(mediaId))
+    }
+  }
+
+  private func skipTo(playWhenReady: Bool = true, execute call: (_ completion: @escaping (MusicMetadata?) -> Void) -> Void) {
     player.stop()
     call { metadata in
-      self.performPlay(metadata: metadata)
+      self.performPlay(metadata: metadata, playWhenReady: playWhenReady)
     }
   }
 
