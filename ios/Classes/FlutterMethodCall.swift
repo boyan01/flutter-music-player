@@ -5,9 +5,7 @@
 import Flutter
 
 extension FlutterMethodCall {
-
-    func requireArgs<T>() -> T {
-        arguments as! T
-    }
-
+  func requireArgs<T>() -> T {
+    arguments as! T
+  }
 }
