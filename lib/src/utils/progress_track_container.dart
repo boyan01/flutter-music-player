@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:music_player/music_player.dart';
 
-
 class ProgressTrackingContainer extends StatefulWidget {
   final MusicPlayer player;
   final WidgetBuilder builder;
@@ -14,7 +13,7 @@ class ProgressTrackingContainer extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _ProgressTrackingContainerState createState() =>
+  State<ProgressTrackingContainer> createState() =>
       _ProgressTrackingContainerState();
 }
 
@@ -36,7 +35,7 @@ class _ProgressTrackingContainerState extends State<ProgressTrackingContainer>
 
   void _onStateChanged() {
     final needTrack = widget.player.playbackStateListenable.value.state ==
-        PlayerState.Playing;
+        PlayerState.playing;
     if (_ticker.isActive == needTrack) return;
     if (_ticker.isActive) {
       _ticker.stop();

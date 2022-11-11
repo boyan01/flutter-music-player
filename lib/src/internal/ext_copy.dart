@@ -11,7 +11,7 @@ extension MusicPlayerValueCopy on MusicPlayerValue {
       playMode: playMode ?? this.playMode,
       metadata: metadata ?? this.metadata,
       queue: queue ?? this.queue,
-      playbackState: state ?? this.playbackState,
+      playbackState: state ?? playbackState,
     );
   }
 }

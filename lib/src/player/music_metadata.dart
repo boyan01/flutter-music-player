@@ -1,5 +1,3 @@
-import 'package:music_player/src/internal/meta.dart';
-
 /// Music metadata
 class MusicMetadata {
   final Map? extras;
@@ -8,7 +6,6 @@ class MusicMetadata {
   final String? title;
   final String? subtitle;
 
-  @nonNull
   final int duration;
   final String? iconUri;
 

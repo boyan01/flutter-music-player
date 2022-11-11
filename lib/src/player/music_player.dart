@@ -4,6 +4,7 @@ import 'package:music_player/music_player.dart';
 abstract class Player extends ChangeNotifier
     implements ValueListenable<MusicPlayerValue> {
   /// Current player state value.
+  @override
   MusicPlayerValue get value => MusicPlayerValue(
         queue: queue,
         playMode: playMode,

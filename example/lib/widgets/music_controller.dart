@@ -5,13 +5,13 @@ class PlayPauseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playbackState = PlayerStateWidget.of(context).playbackState;
-    if (playbackState.state == PlayerState.Playing) {
+    if (playbackState.state == PlayerState.playing) {
       return IconButton(
           icon: Icon(Icons.pause),
           onPressed: () {
             PlayerWidget.transportControls(context).pause();
           });
-    } else if (playbackState.state == PlayerState.Buffering) {
+    } else if (playbackState.state == PlayerState.buffering) {
       return Center(
         child: Container(
           height: 24,

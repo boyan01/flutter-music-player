@@ -20,7 +20,7 @@ class PlaybackState {
   /// discuss: https://github.com/boyan01/flutter-music-player/issues/1
   ///
   int get computedPosition {
-    var append = state == PlayerState.Playing
+    var append = state == PlayerState.playing
         ? (SystemClock.uptime().inMilliseconds - updateTime)
         : 0;
     append = (append * speed).toInt();
@@ -38,7 +38,7 @@ class PlaybackState {
 
   const PlaybackState.none()
       : this(
-          state: PlayerState.None,
+          state: PlayerState.none,
           position: 0,
           bufferedPosition: 0,
           speed: 1,
@@ -73,9 +73,9 @@ class PlaybackState {
 }
 
 enum PlayerState {
-  None,
-  Paused,
-  Playing,
-  Buffering,
-  Error,
+  none,
+  paused,
+  playing,
+  buffering,
+  error,
 }

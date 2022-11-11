@@ -103,7 +103,7 @@ class _PlayingProgressState extends State<_PlayingProgress> {
                 onChangeStart: (value) {
                   setState(() {
                     _isUserTracking = true;
-                    if (playbackState.state == PlayerState.Playing) {
+                    if (playbackState.state == PlayerState.playing) {
                       _isPausedByTracking = true;
                       context.transportControls.pause();
                     }

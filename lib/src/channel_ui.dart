@@ -28,14 +28,11 @@ class MusicPlayer extends Player {
   }
 
   factory MusicPlayer() {
-    if (_player == null) {
-      _player = MusicPlayer._internal();
-    }
-    return _player!;
+    return _player ??= MusicPlayer._internal();
   }
 
-  void setPlayQueue(PlayQueue queue) {
-    _uiChannel.invokeMethod("setPlayQueue", queue.toMap());
+  Future<void> setPlayQueue(PlayQueue queue) async {
+    await _uiChannel.invokeMethod("setPlayQueue", queue.toMap());
   }
 
   Future<MusicMetadata> getNextMusic(MusicMetadata anchor) async {
@@ -61,9 +58,10 @@ class MusicPlayer extends Player {
   @override
   ValueListenable<MusicMetadata?> get metadataListenable => _metadata;
 
-  final ValueNotifier<PlayQueue> _queue = ValueNotifier(PlayQueue.empty());
+  final ValueNotifier<PlayQueue> _queue =
+      ValueNotifier(const PlayQueue.empty());
   final ValueNotifier<PlaybackState> _playbackState =
-      ValueNotifier(PlaybackState.none());
+      ValueNotifier(const PlaybackState.none());
   final ValueNotifier<PlayMode> _playMode = ValueNotifier(PlayMode.sequence);
   final ValueNotifier<MusicMetadata?> _metadata = ValueNotifier(null);
 
@@ -89,20 +87,23 @@ class MusicPlayer extends Player {
 
   TransportControls transportControls = TransportControls(_uiChannel);
 
-  Completer<bool?> _initCompleter = Completer();
+  final Completer<bool?> _initCompleter = Completer();
 
-  void insertToNext(MusicMetadata metadata) {
-    _uiChannel.invokeMethod("insertToNext", metadata.toMap());
+  Future<void> insertToNext(MusicMetadata metadata) {
+    return _uiChannel.invokeMethod("insertToNext", metadata.toMap());
   }
 
-  void playWithQueue(PlayQueue playQueue, {MusicMetadata? metadata}) {
-    setPlayQueue(playQueue);
+  Future<void> playWithQueue(
+    PlayQueue playQueue, {
+    MusicMetadata? metadata,
+  }) async {
+    await setPlayQueue(playQueue);
     if (playQueue.isEmpty) {
       return;
     }
     metadata = metadata ?? playQueue.queue.first;
     log.fine("playFromMediaId : ${metadata.mediaId}");
-    transportControls.playFromMediaId(metadata.mediaId);
+    await transportControls.playFromMediaId(metadata.mediaId);
   }
 
   void removeMusicItem(MusicMetadata metadata) {}
@@ -130,10 +131,10 @@ class MusicPlayerValue {
   });
 
   static final _empty = MusicPlayerValue(
-    queue: PlayQueue.empty(),
+    queue: const PlayQueue.empty(),
     playMode: PlayMode.sequence,
     metadata: null,
-    playbackState: PlaybackState.none(),
+    playbackState: const PlaybackState.none(),
   );
 
   factory MusicPlayerValue.none() {

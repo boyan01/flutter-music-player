@@ -1,11 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:music_player/music_player.dart';
-import 'package:music_player/src/internal/meta.dart';
 import 'package:music_player/src/internal/serialization.dart';
 import 'package:music_player/src/player/music_player.dart';
 
@@ -42,9 +39,9 @@ class Config {
 
   Map<String, dynamic> toMap() {
     return {
-      'enableCache': this.enableCache,
-      'userAgent': this.userAgent,
-      'pauseWhenTaskRemoved': this.pauseWhenTaskRemoved,
+      'enableCache': enableCache,
+      'userAgent': userAgent,
+      'pauseWhenTaskRemoved': pauseWhenTaskRemoved,
     };
   }
 }
@@ -62,7 +59,7 @@ Future runBackgroundService({
   WidgetsFlutterBinding.ensureInitialized();
   // decrease background image memory
   PaintingBinding.instance.imageCache.maximumSize = 20 << 20; // 20 MB
-  final serviceChannel = MethodChannel("tech.soit.quiet/background_callback");
+  const serviceChannel = MethodChannel("tech.soit.quiet/background_callback");
   final player = BackgroundMusicPlayer._internal(serviceChannel, MusicPlayer());
   playQueueInterceptor?._player = player;
   serviceChannel.setMethodCallHandler((call) async {
@@ -131,8 +128,7 @@ class BackgroundMusicPlayer extends Player {
   @override
   ValueListenable<PlayQueue> get queueListenable => _player.queueListenable;
 
-  Future<void> insertToPlayQueue(
-      @nonNull List<MusicMetadata> list, int index) async {
+  Future<void> insertToPlayQueue(List<MusicMetadata> list, int index) async {
     assert(() {
       if (index < 0 || index > value.queue.queue.length) {
         throw RangeError.range(index, 0, value.queue.queue.length);
