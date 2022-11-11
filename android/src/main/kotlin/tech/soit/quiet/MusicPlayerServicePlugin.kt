@@ -18,17 +18,15 @@ import tech.soit.quiet.player.PlayQueue
 import tech.soit.quiet.utils.*
 
 data class Config(
-    val enableCache: Boolean = false,
     val userAgent: String?,
     val pauseWhenTaskRemoved: Boolean,
 ) {
 
     companion object {
-        val Default = Config(enableCache = false, userAgent = null, pauseWhenTaskRemoved = true)
+        val Default = Config(userAgent = null, pauseWhenTaskRemoved = true)
     }
 
     constructor(map: Map<String, Any>) : this(
-        enableCache = map["enableCache"] as? Boolean ?: false,
         userAgent = map["userAgent"] as? String,
         pauseWhenTaskRemoved = map["pauseWhenTaskRemoved"] as? Boolean ?: true
     )

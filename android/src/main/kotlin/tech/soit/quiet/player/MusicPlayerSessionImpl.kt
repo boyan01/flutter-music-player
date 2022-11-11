@@ -22,7 +22,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     companion object {
         private val audioAttribute = AudioAttributes.Builder()
-            .setContentType(C.CONTENT_TYPE_MUSIC)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA)
             .build()
 
@@ -30,7 +30,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     // Wrap a SimpleExoPlayer with a decorator to handle audio focus for us.
     private val player: ExoPlayer by lazy {
-        SimpleExoPlayer.Builder(context)
+        ExoPlayer.Builder(context)
             .setAudioAttributes(audioAttribute, true)
             .build().apply {
                 addListener(ExoPlayerEventListener())
@@ -51,6 +51,7 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     @UiThread
     private fun performPlay(metadata: MusicMetadata?, playWhenReady: Boolean = true) {
         this.metadata = metadata
+        invalidateMetadata()
         if (metadata == null) {
             player.stop()
             player.clearMediaItems()
@@ -60,7 +61,6 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
         player.prepare()
         player.playWhenReady = playWhenReady
         invalidatePlaybackState()
-        invalidateMetadata()
     }
 
 
@@ -132,7 +132,16 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
     override fun setPlayQueue(queue: PlayQueue) {
         playQueue.onQueueChanged = null
         queue.onQueueChanged = ::invalidatePlayQueue
+        var needStop = playQueue.queueId != queue.queueId;
         playQueue = queue
+
+        needStop = needStop or current.let {
+            it ?: return@let false
+            playQueue.getByMediaId(it.mediaId) == null
+        }
+        if (needStop) {
+            launch { performPlay(null) }
+        }
         invalidatePlayQueue()
     }
 
@@ -191,14 +200,18 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     @WorkerThread
     override fun addMetadata(metadata: MusicMetadata, anchorMediaId: String?) {
-        playQueue.add(anchorMediaId, metadata)
-        invalidatePlayQueue()
+        launch {
+            playQueue.add(anchorMediaId, metadata)
+            invalidatePlayQueue()
+        }
     }
 
     @WorkerThread
     override fun removeMetadata(mediaId: String) {
-        playQueue.remove(mediaId)
-        invalidatePlayQueue()
+        launch {
+            playQueue.remove(mediaId)
+            invalidatePlayQueue()
+        }
     }
 
     @WorkerThread
@@ -262,21 +275,30 @@ class MusicPlayerSessionImpl constructor(private val context: Context) : MusicPl
 
     private inner class ExoPlayerEventListener : Player.Listener {
 
-        override fun onLoadingChanged(isLoading: Boolean) {
+        override fun onIsLoadingChanged(isLoading: Boolean) {
+
         }
 
-        override fun onPlayerError(error: ExoPlaybackException) {
+        override fun onPlayerError(error: PlaybackException) {
             invalidatePlaybackState()
         }
 
-        override fun onPositionDiscontinuity(reason: Int) {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
             invalidatePlaybackState()
         }
 
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackStateInt: Int) {
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            invalidatePlaybackState()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
             invalidatePlaybackState()
             // auto play next
-            if (playbackStateInt == Player.STATE_ENDED) {
+            if (playbackState == Player.STATE_ENDED) {
                 if (playMode == PlayMode.Single) {
                     player.seekTo(0)
                     player.playWhenReady = true

@@ -72,7 +72,9 @@ class MusicPlayer extends Player {
         _playbackState.value = createPlaybackState(call.arguments);
         break;
       case 'onMetadataChanged':
-        _metadata.value = MusicMetadata.fromMap(call.arguments);
+        _metadata.value = call.arguments == null
+            ? null
+            : MusicMetadata.fromMap(call.arguments);
         break;
       case 'onPlayQueueChanged':
         _queue.value = PlayQueue.fromMap(call.arguments);

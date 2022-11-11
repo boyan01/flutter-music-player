@@ -9,7 +9,7 @@ import tech.soit.quiet.player.State
 
 fun ExoPlayer.playbackError(): PlayerError? {
     if (playbackState != Player.STATE_IDLE) return null
-    val error = playbackError ?: return null
+    val error = playerError ?: return null
     val errorType = when (error.type) {
         ExoPlaybackException.TYPE_SOURCE -> PlayerError.TYPE_SOURCE
         ExoPlaybackException.TYPE_RENDERER -> PlayerError.TYPE_RENDERER

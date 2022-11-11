@@ -58,7 +58,24 @@ class PagePlayingQueue extends StatelessWidget {
   Widget build(BuildContext context) {
     final queue = context.listenPlayerValue.queue;
     return Scaffold(
-      appBar: AppBar(title: Text("Now Playing...")),
+      appBar: AppBar(
+        title: Text("Now Playing..."),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () {
+              context.player.setPlayQueue(
+                PlayQueue(
+                  queueId: '',
+                  queueTitle: '',
+                  queue: [],
+                ),
+              );
+              Navigator.pop(context);
+            },
+          )
+        ],
+      ),
       body: ListView.builder(
           itemCount: queue.queue.length,
           itemBuilder: (context, index) {

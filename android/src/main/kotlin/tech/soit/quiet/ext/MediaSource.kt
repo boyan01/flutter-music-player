@@ -2,14 +2,11 @@ package tech.soit.quiet.ext
 
 import android.content.Context
 import android.net.Uri
+import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DataSpec
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory
-import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor
-import com.google.android.exoplayer2.upstream.cache.SimpleCache
-import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.upstream.DefaultDataSource
 import kotlinx.coroutines.runBlocking
 import tech.soit.quiet.MusicPlayerServicePlugin
 import tech.soit.quiet.player.MusicMetadata
@@ -18,18 +15,10 @@ internal fun MusicMetadata.toMediaSource(
     context: Context,
     servicePlugin: MusicPlayerServicePlugin
 ): ProgressiveMediaSource {
-    var factory: DataSource.Factory = DefaultDataSourceFactory(
-        context,
-        servicePlugin.config.userAgent
-            ?: Util.getUserAgent(context, context.applicationInfo.name), null
-    )
+    var factory: DataSource.Factory = DefaultDataSource.Factory(context)
     factory = UrlUpdatingDataSource.Factory(factory, servicePlugin)
-    if (servicePlugin.config.enableCache) {
-        factory = CacheDataSourceFactory(SimpleCache(context.cacheDir, NoOpCacheEvictor()), factory)
-    }
     return ProgressiveMediaSource.Factory(factory)
-        .setCustomCacheKey(mediaId)
-        .createMediaSource(buildMediaUri(this))
+        .createMediaSource(MediaItem.fromUri(buildMediaUri(this)))
 }
 
 

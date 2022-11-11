@@ -21,7 +21,7 @@ internal class ShimMusicSessionCallback : MusicSessionCallback {
                 i--
                 try {
                     callbacks.getBroadcastItem(i).action()
-                } catch (e: RemoteException) {
+                } catch (_: RemoteException) {
 
                 }
             }

@@ -1,16 +1,13 @@
 package tech.soit.quiet.service
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.annotation.MainThread
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -24,12 +21,19 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import tech.soit.quiet.R
-import tech.soit.quiet.player.BaseMusicSessionCallback
-import tech.soit.quiet.player.MusicMetadata
-import tech.soit.quiet.player.MusicPlayerSessionImpl
-import tech.soit.quiet.player.PlaybackState
-import tech.soit.quiet.player.State
+import tech.soit.quiet.player.*
 import tech.soit.quiet.utils.ArtworkCache
+
+private sealed class NotificationItem {
+
+    class State(
+        val state: PlaybackState,
+        val notification: Notification?
+    ) : NotificationItem()
+
+    object Dismiss : NotificationItem()
+
+}
 
 
 class NotificationAdapter(
@@ -69,45 +73,64 @@ class NotificationAdapter(
 
     private fun startNotificationRunner() = launch(Dispatchers.Main) {
 
-        for ((playbackState, notification) in notificationBuilder.notificationGenerator) {
-            when (val updatedState = playbackState.state) {
-                State.Buffering, State.Playing -> {
+        for (item in notificationBuilder.notificationGenerator) {
+            when (item) {
+                NotificationItem.Dismiss -> dismissNotification()
+                is NotificationItem.State -> handlePlayerState(item.state, item.notification)
+            }
+        }
 
-                    /**
-                     * This may look strange, but the documentation for [Service.startForeground]
-                     * notes that "calling this method does *not* put the service in the started
-                     * state itself, even though the name sounds like it."
-                     */
-                    if (!isForegroundService) {
-                        context.startService(Intent(context, MusicPlayerService::class.java))
-                        context.startForeground(
-                            NotificationBuilder.NOW_PLAYING_NOTIFICATION,
-                            notification
-                        )
-                        isForegroundService = true
-                    } else if (notification != null) {
+    }
+
+    @MainThread
+    private fun dismissNotification() {
+        if (isForegroundService) {
+            context.stopForeground(false)
+            isForegroundService = false
+            context.stopSelf()
+            notificationManager.cancel(NotificationBuilder.NOW_PLAYING_NOTIFICATION)
+        }
+    }
+
+    @MainThread
+    private fun handlePlayerState(playbackState: PlaybackState, notification: Notification?) {
+        when (val updatedState = playbackState.state) {
+            State.Buffering, State.Playing -> {
+
+                /**
+                 * This may look strange, but the documentation for [Service.startForeground]
+                 * notes that "calling this method does *not* put the service in the started
+                 * state itself, even though the name sounds like it."
+                 */
+                if (!isForegroundService) {
+                    context.startService(Intent(context, MusicPlayerService::class.java))
+                    context.startForeground(
+                        NotificationBuilder.NOW_PLAYING_NOTIFICATION,
+                        notification
+                    )
+                    isForegroundService = true
+                } else if (notification != null) {
+                    notificationManager.notify(
+                        NotificationBuilder.NOW_PLAYING_NOTIFICATION,
+                        notification
+                    )
+                }
+            }
+            else -> {
+                if (isForegroundService) {
+                    context.stopForeground(false)
+                    isForegroundService = false
+
+                    // If playback has ended, also stop the service.
+                    if (updatedState == State.None) {
+                        context.stopSelf()
+                    }
+
+                    if (notification != null) {
                         notificationManager.notify(
                             NotificationBuilder.NOW_PLAYING_NOTIFICATION,
                             notification
                         )
-                    }
-                }
-                else -> {
-                    if (isForegroundService) {
-                        context.stopForeground(false)
-                        isForegroundService = false
-
-                        // If playback has ended, also stop the service.
-                        if (updatedState == State.None) {
-                            context.stopSelf()
-                        }
-
-                        if (notification != null) {
-                            notificationManager.notify(
-                                NotificationBuilder.NOW_PLAYING_NOTIFICATION,
-                                notification
-                            )
-                        }
                     }
                 }
             }
@@ -122,7 +145,7 @@ class NotificationAdapter(
  * Helper class to encapsulate code for building notifications.
  *
  */
-class NotificationBuilder(private val context: Service) : CoroutineScope by MainScope() {
+private class NotificationBuilder(private val context: Service) : CoroutineScope by MainScope() {
 
     companion object {
         const val NOW_PLAYING_CHANNEL: String = "TODO" //TODO build channel from context
@@ -163,7 +186,7 @@ class NotificationBuilder(private val context: Service) : CoroutineScope by Main
         MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_STOP)
 
 
-    val notificationGenerator = Channel<Pair<PlaybackState, Notification?>>()
+    val notificationGenerator = Channel<NotificationItem>()
 
 
     fun updateNotification(
@@ -173,23 +196,30 @@ class NotificationBuilder(private val context: Service) : CoroutineScope by Main
         if (shouldCreateNowPlayingChannel()) {
             createNowPlayingChannel()
         }
-        val metadata = playerSession.current ?: return
+        val metadata = playerSession.current
+
+        if (metadata == null) {
+            notificationGenerator.trySend(NotificationItem.Dismiss)
+            return
+        }
 
         val playbackState = playerSession.playbackState
         if (playbackState.state == State.None) {
-            notificationGenerator.trySend(playbackState to null)
+            notificationGenerator.trySend(NotificationItem.State(playbackState, null))
             return
         }
 
         fun updateNotificationInner(artwork: Bitmap?, color: Int?) {
             notificationGenerator.trySend(
-                playbackState to buildNotificationWithIcon(
-                    mediaSessionCompat.sessionToken,
-                    metadata,
-                    playbackState,
-                    mediaSessionCompat.controller.sessionActivity,
-                    artwork,
-                    color
+                NotificationItem.State(
+                    playbackState, buildNotificationWithIcon(
+                        mediaSessionCompat.sessionToken,
+                        metadata,
+                        playbackState,
+                        mediaSessionCompat.controller.sessionActivity,
+                        artwork,
+                        color
+                    )
                 )
             )
         }

@@ -17,7 +17,8 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     companion object {
         const val ACTION_MUSIC_PLAYER_SERVICE = "tech.soit.quiet.session.MusicSessionService"
 
-        const val META_DATA_PLAYER_LAUNCH_ACTIVITY_ACTION = "tech.soit.quiet.session.LaunchActivityAction"
+        const val META_DATA_PLAYER_LAUNCH_ACTIVITY_ACTION =
+            "tech.soit.quiet.session.LaunchActivityAction"
     }
 
     private val lifecycle = LifecycleRegistry(this)
@@ -34,7 +35,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
 
     override fun onCreate() {
         super.onCreate()
-        lifecycle.markState(Lifecycle.State.CREATED)
+        lifecycle.currentState = Lifecycle.State.CREATED
         sessionToken = mediaSession.sessionToken
         mediaSession.setCallback(MediaSessionCallbackAdapter(playerSession))
         playerSession.addCallback(MusicSessionCallbackAdapter(mediaSession, this))
@@ -75,7 +76,7 @@ class MusicPlayerService : MediaBrowserServiceCompat(), LifecycleOwner {
     }
 
     override fun onDestroy() {
-        lifecycle.markState(Lifecycle.State.DESTROYED)
+        lifecycle.currentState = Lifecycle.State.DESTROYED
         mediaSession.isActive = false
         mediaSession.release()
         playerSession.destroy()

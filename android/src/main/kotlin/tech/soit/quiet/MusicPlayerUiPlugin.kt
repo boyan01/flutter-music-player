@@ -75,7 +75,8 @@ private class MusicPlayerUiChannel(
                 "skipToPrevious" -> session.skipToPrevious()
                 "seekTo" -> session.seekTo(call.arguments<Number>()!!.toLong())
                 "setPlayMode" -> session.playMode = call.arguments() ?: PlayMode.Sequence.rawValue
-                "setPlayQueue" -> session.playQueue = PlayQueue(call.arguments<Map<String, Any>>()!!)
+                "setPlayQueue" -> session.playQueue =
+                    PlayQueue(call.arguments<Map<String, Any>>()!!)
                 "getNext" -> session.getNext(MusicMetadata.fromMap(call.arguments()!!))?.obj
                 "getPrevious" -> session.getPrevious(MusicMetadata.fromMap(call.arguments()!!))?.obj
                 "insertToNext" -> session.addMetadata(
@@ -83,12 +84,14 @@ private class MusicPlayerUiChannel(
                     session.current?.mediaId
                 )
                 "setPlaybackSpeed" -> session.setPlaybackSpeed(call.arguments<Double>()!!)
-                else -> null
+                else -> {
+                    result.notImplemented()
+                    return@doWhenSessionReady
+                }
             }
 
             when (r) {
                 Unit -> result.success(null)
-                null -> result.notImplemented()
                 else -> result.success(r)
             }
         }
