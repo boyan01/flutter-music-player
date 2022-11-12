@@ -12,7 +12,7 @@ class PlayQueue {
   private var queue: [MusicMetadata] = []
   private var shuffleIds: [String] = []
   private let extras: Any?
-  private let queueId: String
+  let queueId: String
   private let queueTitle: String?
 
   private var queueChangeListener: QueueChangeListener?

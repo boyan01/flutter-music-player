@@ -92,6 +92,16 @@ class MusicPlayer: NSObject, MusicPlayerSession {
       playQueue.setChangeListener(nil)
     }
     didSet {
+      var needStop = oldValue.queueId != playQueue.queueId
+
+      if let metadata = metadata {
+        needStop = needStop || playQueue.getByMediaId(metadata.mediaId) == nil
+      }
+
+      if needStop {
+        performPlay(metadata: nil, playWhenReady: false)
+      }
+
       playQueue.setChangeListener(invalidatePlayQueue)
       invalidatePlayQueue()
     }
@@ -131,9 +141,21 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
   private func performPlay(metadata: MusicMetadata?, playWhenReady: Bool) {
     self.metadata = metadata
-    player.stop()
     // clear error, prepare to play next item.
     playbackError = nil
+    player.stop()
+
+    if metadata == nil {
+      // stop and deactive audio session
+      do {
+        try AVAudioSession.sharedInstance().setActive(true)
+      } catch {
+        debugPrint("active session errored: \(error)")
+      }
+      player.nowPlayingInfoController.clear()
+      return
+    }
+
     getPlayItemForPlay(metadata: metadata) { item in
       if let item = item {
         do {
