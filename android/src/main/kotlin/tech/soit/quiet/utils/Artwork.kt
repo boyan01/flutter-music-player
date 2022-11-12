@@ -20,9 +20,10 @@ private const val MEMORY_CACHE_SIZE = 40 * 1024 * 1024 // 20MB
  */
 object ArtworkCache : LruCache<Int, Artwork>(MEMORY_CACHE_SIZE) {
 
-    fun key(metadata: MusicMetadata): Int? {
+    fun key(metadata: MusicMetadata): Int {
         return metadata.iconUri?.hashCode() ?: metadata.mediaId.hashCode()
     }
+
     override fun sizeOf(key: Int?, value: Artwork?): Int {
         return value?.bitmap?.byteCount ?: 0
     }
@@ -60,8 +61,13 @@ private val pendingUriRequests = hashMapOf<Uri, Deferred<ByteArray?>>()
 suspend fun createArtworkFromByteArray(byteArray: ByteArray): Artwork? =
     withContext(Dispatchers.IO) {
         return@withContext runCatching {
-            //TODO resize bitmap
-            val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            var bitmap = BitmapFactory.decodeByteArray(
+                byteArray, 0, byteArray.size
+            )
+            if (bitmap.height > 200) {
+                val width = (bitmap.width.toDouble() / bitmap.height) * 200
+                bitmap = Bitmap.createScaledBitmap(bitmap, width.toInt(), 200, false)
+            }
             createArtwork(bitmap)
         }.getOrNull()
     }

@@ -233,7 +233,7 @@ private class NotificationBuilder(private val context: Service) : CoroutineScope
 
         val iconCacheKey = ArtworkCache.key(metadata)
 
-        if (iconCacheKey != null && ArtworkCache[iconCacheKey] != null) {
+        if (ArtworkCache[iconCacheKey] != null) {
             val artworkCache = ArtworkCache.get(iconCacheKey)
             updateNotificationInner(artworkCache.bitmap, artworkCache.color)
             return
@@ -243,7 +243,7 @@ private class NotificationBuilder(private val context: Service) : CoroutineScope
         launch(Dispatchers.Main) {
             val artwork = playerSession.servicePlugin.loadImage(metadata, iconUri)
             if (artwork != null) {
-                iconCacheKey?.let { ArtworkCache.put(it, artwork) }
+                ArtworkCache.put(iconCacheKey, artwork)
                 updateNotification(mediaSessionCompat, playerSession)
             }
         }
