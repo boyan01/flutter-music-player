@@ -18,8 +18,8 @@ class MusicPlayer extends Player {
 
   MusicPlayer._internal() : super() {
     _uiChannel.setMethodCallHandler(_handleRemoteCall);
-    final Future<bool?> initResult = _uiChannel.invokeMethod("init");
-    _initCompleter.complete(initResult);
+    final initResult = _uiChannel.invokeMethod<bool>("init");
+    _initCompleter.complete(initResult.then((value) => value ?? false));
 
     _queue.addListener(notifyListeners);
     _playMode.addListener(notifyListeners);
@@ -89,7 +89,7 @@ class MusicPlayer extends Player {
 
   TransportControls transportControls = TransportControls(_uiChannel);
 
-  final Completer<bool?> _initCompleter = Completer();
+  final Completer<bool> _initCompleter = Completer();
 
   Future<void> insertToNext(MusicMetadata metadata) {
     return _uiChannel.invokeMethod("insertToNext", metadata.toMap());
@@ -111,7 +111,7 @@ class MusicPlayer extends Player {
   void removeMusicItem(MusicMetadata metadata) {}
 
   /// Check whether music service already running.
-  Future<bool?> isMusicServiceAvailable() {
+  Future<bool> isMusicServiceAvailable() {
     return _initCompleter.future;
   }
 }

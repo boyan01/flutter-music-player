@@ -33,7 +33,7 @@ public class SwiftMusicPlayerUiPlugin: NSObject, FlutterPlugin {
       playerCallback.onPlaybackStateChanged(player.playbackState)
       playerCallback.onPlayModeChanged(player.playMode)
       playerCallback.onMetadataChanged(player.metadata)
-      result(nil)
+      result(player.metadata != nil)
       break
     case "play":
       player.play()
