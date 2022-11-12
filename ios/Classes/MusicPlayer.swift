@@ -22,6 +22,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     }
     player.event.playbackEnd.addListener(self) { reason in
       if reason == .playedUntilEnd {
+        if self.playMode == .single {
+          self.player.seek(to: 0)
+          self.player.play();
+          return
+        }
         self.skipToNext()
       }
     }
