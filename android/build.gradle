@@ -2,7 +2,7 @@ group 'tech.soit.quiet'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.6.10'
+    ext.kotlin_version = '1.7.10'
     ext.coroutine_version = '1.6.4'
     repositories {
         google()
@@ -28,6 +28,7 @@ apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 31
+    buildToolsVersion "33.0.0"
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'

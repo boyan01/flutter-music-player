@@ -28,6 +28,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 android {
     compileSdkVersion 33
     ndkVersion flutter.ndkVersion
+    buildToolsVersion "33.0.0"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
