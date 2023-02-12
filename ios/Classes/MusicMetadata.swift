@@ -9,7 +9,7 @@ class MusicMetadata: Equatable {
   private let data: [String: Any]
 
   public init(map: [String: Any]) {
-    self.data = map
+    data = map
   }
 
   convenience init?(any: Any?) {
@@ -61,12 +61,12 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
 
   private let uri: String
 
-  private let servicePlugin: MusicPlayerServicePlugin
+  private let source: MusicPlayerSource
 
-  public init(metadata: MusicMetadata, uri: String, servicePlugin: MusicPlayerServicePlugin) {
+  public init(metadata: MusicMetadata, uri: String, source: MusicPlayerSource) {
     self.metadata = metadata
     self.uri = uri
-    self.servicePlugin = servicePlugin
+    self.source = source
   }
 
   func getSourceUrl() -> String {
@@ -74,15 +74,7 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
       return uri
     }
     if "asset".caseInsensitiveCompare(url.scheme ?? "") == .orderedSame {
-      if let registrar = servicePlugin.registrar {
-        let assetKey = registrar.lookupKey(forAsset: url.path)
-        guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
-          debugPrint("resource not found : \(assetKey)")
-          return uri
-        }
-        debugPrint("resource found: \(path)")
-        return URL(fileURLWithPath: path).absoluteString
-      }
+      return source.loadAssetResource(url: url)
     }
     return uri
   }
@@ -104,6 +96,6 @@ class MetadataAudioItem: AudioItem, RemoteCommandable {
   }
 
   func getArtwork(_ handler: @escaping (UIImage?) -> Void) {
-    servicePlugin.loadImage(metadata: metadata, completion: handler)
+    source.loadImage(metadata: metadata, completion: handler)
   }
 }

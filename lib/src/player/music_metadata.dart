@@ -31,7 +31,7 @@ class MusicMetadata {
     );
   }
 
-  Map toMap() {
+  Map<String, dynamic> toMap() {
     return {
       "extras": extras,
       "mediaId": mediaId,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:music_player_example/page_play_queue.dart';
-import 'package:music_player_example/player/background.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 import 'player/player.dart';
@@ -53,34 +51,6 @@ void main() {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
   runApp(ExampleApp());
-}
-
-@pragma("vm:entry-point")
-void playerBackgroundService() async {
-  debugPrint("start playerBackgroundService");
-  Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
-  });
-  await Future.delayed(const Duration(milliseconds: 100));
-  runBackgroundService(
-    config: Config(
-      pauseWhenTaskRemoved: false,
-    ),
-    playUriInterceptor: (mediaId, fallbackUrl) async {
-      debugPrint("get media play uri : $mediaId , $fallbackUrl");
-      if (mediaId == 'rise') return "asset:///tracks/rise.mp3";
-      return fallbackUrl;
-    },
-    imageLoadInterceptor: (metadata) async {
-      debugPrint("load image for ${metadata.mediaId} , ${metadata.title}");
-      if (metadata.mediaId == "bamboo") {
-        final data = await rootBundle.load("images/bamboo.jpg");
-        return Uint8List.view(data.buffer);
-      }
-      return null;
-    },
-    playQueueInterceptor: ExamplePlayQueueInterceptor(),
-  );
 }
 
 class ExampleApp extends StatelessWidget {

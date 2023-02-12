@@ -58,6 +58,10 @@ class MusicPlayer extends Player {
   @override
   ValueListenable<MusicMetadata?> get metadataListenable => _metadata;
 
+  PlayUriInterceptor? playUriInterceptor;
+  ImageLoadInterceptor? imageLoadInterceptor;
+  PlayQueueInterceptor? playQueueInterceptor;
+
   final ValueNotifier<PlayQueue> _queue =
       ValueNotifier(const PlayQueue.empty());
   final ValueNotifier<PlaybackState> _playbackState =
@@ -82,6 +86,38 @@ class MusicPlayer extends Player {
       case 'onPlayModeChanged':
         _playMode.value = PlayMode(call.arguments as int?);
         break;
+      case 'loadImage':
+        if (imageLoadInterceptor != null) {
+          return await imageLoadInterceptor!(
+            MusicMetadata.fromMap(call.arguments),
+          );
+        }
+        throw MissingPluginException();
+      case 'getPlayUrl':
+        if (playUriInterceptor != null) {
+          final String? id = call.arguments['id'];
+          final String? fallbackUrl = call.arguments['url'];
+          return await playUriInterceptor!(id, fallbackUrl);
+        }
+        throw MissingPluginException();
+      case "onPlayNextNoMoreMusic":
+        if (playQueueInterceptor != null) {
+          return await playQueueInterceptor!
+              .onPlayNextNoMoreMusic(
+                PlayMode(call.arguments["playMode"] as int?),
+              )
+              .toMap();
+        }
+        throw MissingPluginException();
+      case "onPlayPreviousNoMoreMusic":
+        if (playQueueInterceptor != null) {
+          return playQueueInterceptor!
+              .onPlayPreviousNoMoreMusic(
+                PlayMode(call.arguments["playMode"] as int?),
+              )
+              .toMap();
+        }
+        throw MissingPluginException();
       default:
         throw UnimplementedError();
     }
@@ -141,5 +177,11 @@ class MusicPlayerValue {
 
   factory MusicPlayerValue.none() {
     return _empty;
+  }
+}
+
+extension _ToMap on Future<MusicMetadata?> {
+  Future<Map<String, dynamic>?> toMap() {
+    return then((value) => value?.toMap());
   }
 }
