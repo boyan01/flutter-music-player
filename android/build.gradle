@@ -28,7 +28,6 @@ apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 31
-    buildToolsVersion "33.0.0"
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
