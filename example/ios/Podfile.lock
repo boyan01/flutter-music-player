@@ -4,13 +4,10 @@ PODS:
     - Flutter
     - SwiftAudioEx (~> 0.15.3)
   - SwiftAudioEx (0.15.3)
-  - system_clock (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - music_player (from `.symlinks/plugins/music_player/ios`)
-  - system_clock (from `.symlinks/plugins/system_clock/ios`)
 
 SPEC REPOS:
   trunk:
@@ -21,14 +18,11 @@ EXTERNAL SOURCES:
     :path: Flutter
   music_player:
     :path: ".symlinks/plugins/music_player/ios"
-  system_clock:
-    :path: ".symlinks/plugins/system_clock/ios"
 
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   music_player: 2cb8e84bc904013b04392560f0b94d1e96e71e14
   SwiftAudioEx: 83eabba2940924fc1c0d5cb0896049921365229c
-  system_clock: 3efb51d18e565092e2a97bc605c6255f328bd13a
 
 PODFILE CHECKSUM: 4e8f8b2be68aeea4c0d5beb6ff1e79fface1d048
 

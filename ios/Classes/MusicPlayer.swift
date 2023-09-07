@@ -7,6 +7,19 @@ import Foundation
 import MediaPlayer
 import SwiftAudioEx
 
+protocol MusicPlayerSource {
+  func getPlayUrl(mediaId: String, fallback: String?, completion: @escaping (String?) -> Void)
+
+  func loadImage(metadata: MusicMetadata, completion: @escaping (UIImage?) -> Void)
+
+  func onNextNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> Void)
+
+  func onPreviousNoMoreMusic(_ queue: PlayQueue, _ mode: PlayMode, completion: @escaping (MusicMetadata?) -> Void)
+
+  // load flutter asset resource path by player item metadata url.
+  func loadAssetResource(url: URL) -> String
+}
+
 ///
 /// Music Player.
 ///
@@ -24,7 +37,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
       if reason == .playedUntilEnd {
         if self.playMode == .single {
           self.player.seek(to: 0)
-          self.player.play();
+          self.player.play()
           return
         }
         self.skipToNext()
@@ -78,7 +91,7 @@ class MusicPlayer: NSObject, MusicPlayerSession {
 
   private var playbackError: PlaybackError?
 
-  private let servicePlugin = MusicPlayerServicePlugin.shared
+  var playerSource: MusicPlayerSource?
 
   var playMode: PlayMode = .sequence {
     didSet {
@@ -196,9 +209,16 @@ class MusicPlayer: NSObject, MusicPlayerSession {
       completion(nil)
       return
     }
-    servicePlugin.getPlayUrl(mediaId: metadata.mediaId, fallback: metadata.mediaUri) { url in
+
+    guard let source = playerSource else {
+      assert(false, "playerSource not avaliable.")
+      completion(nil)
+      return
+    }
+
+    source.getPlayUrl(mediaId: metadata.mediaId, fallback: metadata.mediaUri) { url in
       if let url = url {
-        completion(MetadataAudioItem(metadata: metadata, uri: url, servicePlugin: self.servicePlugin))
+        completion(MetadataAudioItem(metadata: metadata, uri: url, source: source))
       } else {
         completion(nil)
       }
@@ -271,7 +291,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     if metadata != nil {
       completion(metadata)
     } else {
-      servicePlugin.onNextNoMoreMusic(playQueue, playMode, completion: completion)
+      guard let playerSource = playerSource else {
+        completion(nil)
+        return
+      }
+      playerSource.onNextNoMoreMusic(playQueue, playMode, completion: completion)
     }
   }
 
@@ -280,7 +304,11 @@ class MusicPlayer: NSObject, MusicPlayerSession {
     if metadata != nil {
       completion(metadata)
     } else {
-      servicePlugin.onPreviousNoMoreMusic(playQueue, playMode, completion: completion)
+      guard let playerSource = playerSource else {
+        completion(nil)
+        return
+      }
+      playerSource.onPreviousNoMoreMusic(playQueue, playMode, completion: completion)
     }
   }
 
