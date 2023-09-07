@@ -5,7 +5,7 @@ import 'package:music_player_example/player/player_bottom_controller.dart';
 class PagePlayQueue extends StatelessWidget {
   final PlayQueue queue;
 
-  const PagePlayQueue({Key key, this.queue}) : super(key: key);
+  const PagePlayQueue({Key? key, required this.queue}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class _MusicTile extends StatelessWidget {
 
   final MusicMetadata metadata;
 
-  const _MusicTile({Key key, @required this.metadata, @required this.queue})
+  const _MusicTile({Key? key, required this.metadata, required this.queue})
       : super(key: key);
 
   @override
@@ -44,8 +44,8 @@ class _MusicTile extends StatelessWidget {
     return ListTile(
       leading:
           playing ? const Icon(Icons.volume_up) : const Icon(Icons.music_note),
-      title: Text(metadata.title),
-      subtitle: Text(metadata.subtitle),
+      title: Text(metadata.title ?? ''),
+      subtitle: Text(metadata.subtitle ?? ''),
       onTap: () {
         context.player.playWithQueue(queue, metadata: metadata);
       },

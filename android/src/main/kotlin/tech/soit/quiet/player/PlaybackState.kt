@@ -2,7 +2,6 @@ package tech.soit.quiet.player
 
 import android.os.Parcel
 import android.os.Parcelable
-import kotlinx.android.parcel.Parcelize
 
 data class PlaybackState constructor(
     val state: State,
@@ -80,7 +79,6 @@ enum class State {
     Error,
 }
 
-@Parcelize
 data class PlayerError(val errorCode: Int, val errorMessage: String) : Parcelable {
 
     companion object {
@@ -94,6 +92,22 @@ data class PlayerError(val errorCode: Int, val errorMessage: String) : Parcelabl
         // see lib/model/playback_error.dart ErrorType.unknown
         const val TYPE_UNKNOWN = 2
 
+        @JvmField
+        val CREATOR: Parcelable.Creator<PlayerError> = object : Parcelable.Creator<PlayerError> {
+            override fun createFromParcel(parcel: Parcel): PlayerError {
+                return PlayerError(parcel)
+            }
+
+            override fun newArray(size: Int): Array<PlayerError?> {
+                return arrayOfNulls(size)
+            }
+        }
+    }
+
+    constructor(parcel: Parcel) : this(
+        parcel.readInt(),
+        parcel.readString()!!
+    ) {
     }
 
     fun toMap(): Map<String, Any?> {
@@ -102,4 +116,15 @@ data class PlayerError(val errorCode: Int, val errorMessage: String) : Parcelabl
             "message" to errorMessage
         )
     }
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeInt(errorCode)
+        parcel.writeString(errorMessage)
+    }
+
+    override fun describeContents(): Int {
+        return 0
+    }
+
+
 }

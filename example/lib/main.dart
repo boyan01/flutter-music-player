@@ -114,7 +114,8 @@ class ExamplePage extends StatelessWidget {
 class _PlayQueueListView extends StatelessWidget {
   final List<PlayQueue> playQueueList;
 
-  const _PlayQueueListView({Key key, this.playQueueList}) : super(key: key);
+  const _PlayQueueListView({Key? key, required this.playQueueList})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {

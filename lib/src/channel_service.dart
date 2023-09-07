@@ -15,10 +15,10 @@ import 'package:music_player/src/player/music_player.dart';
 ///
 /// @return media uri which should
 ///
-typedef PlayUriInterceptor = Future<String> Function(
+typedef PlayUriInterceptor = Future<String?> Function(
     String? mediaId, String? fallbackUri);
 
-typedef ImageLoadInterceptor = Future<Uint8List> Function(
+typedef ImageLoadInterceptor = Future<Uint8List?> Function(
     MusicMetadata metadata);
 
 class Config {

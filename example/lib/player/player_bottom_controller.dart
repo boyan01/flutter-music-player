@@ -8,7 +8,7 @@ import '../page_play_queue.dart';
 class PlayerBottomController extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final MusicMetadata metadata = context.listenPlayerValue.metadata;
+    final metadata = context.listenPlayerValue.metadata;
     if (metadata == null) {
       return Container();
     }
@@ -16,8 +16,8 @@ class PlayerBottomController extends StatelessWidget {
       color: Colors.white,
       child: ListTile(
         leading: Icon(Icons.music_note),
-        title: Text(metadata.title),
-        subtitle: Text(metadata.subtitle),
+        title: Text(metadata.title ?? ''),
+        subtitle: Text(metadata.subtitle ?? ''),
         trailing: ButtonBar(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
