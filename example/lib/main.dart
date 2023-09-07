@@ -3,6 +3,7 @@ import 'package:logging/logging.dart';
 import 'package:music_player_example/page_play_queue.dart';
 import 'package:overlay_support/overlay_support.dart';
 
+import 'player/music_metadata.dart';
 import 'player/player.dart';
 import 'player/player_bottom_controller.dart';
 

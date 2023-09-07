@@ -1,5 +1,7 @@
+import 'package:music_player_example/player/player.dart';
+
 /// Music metadata
-class MusicMetadata {
+class MusicMetadata extends PlayItem {
   final Map? extras;
   final String mediaId;
   final String? mediaUri;
@@ -46,5 +48,10 @@ class MusicMetadata {
   @override
   String toString() {
     return 'MusicMetadata{mediaId: $mediaId, title: $title, subtitle: $subtitle}';
+  }
+
+  @override
+  Future<String> playerUrl() {
+    return Future.value(mediaUri!);
   }
 }
